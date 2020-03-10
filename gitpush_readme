@@ -1,0 +1,24 @@
+In the local project folder:
+
+# First delete the git origin (from git clone Krisher)
+rm -rf .git
+
+# Initialize the local directory as a Git repository.
+git init
+
+# Add the files in your new local repository. This stages them for the first commit.
+git add .
+
+# Commit the files that you’ve staged in your local repository.
+git commit -m "initial commit" 
+
+# In the Command prompt, add the URL for the remote repository where your local repository will be pushed
+
+# Add ssh url
+git remote add origin git@github.com:AmSergeant/LASIF_specfem3D
+
+git remote add origin remote repository HTTPS_URL
+git remote -v
+
+# Push the changes in your local repository to GitHub.
+git push -f origin master
