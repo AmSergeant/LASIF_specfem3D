@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import
+
 
 import copy
 import joblib
@@ -74,7 +74,7 @@ class AdjointSourcesComponent(Component):
         if ad_src_type not in MISFIT_MAPPING:
             raise LASIFAdjointSourceCalculationError(
                 "Adjoint source type '%s' not supported. Supported types: %s"
-                % (ad_src_type, ", ".join(MISFIT_MAPPING.keys())))
+                % (ad_src_type, ", ".join(list(MISFIT_MAPPING.keys()))))
 
         waveforms = self.comm.query.get_matching_waveforms(
             event=event_name, iteration=iteration_name,

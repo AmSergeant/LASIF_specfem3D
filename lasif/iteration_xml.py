@@ -208,8 +208,8 @@ class Iteration(object):
             comments += "\n"
 
         all_stations = []
-        for ev in self.events.itervalues():
-            all_stations.extend(ev["stations"].iterkeys())
+        for ev in self.events.values():
+            all_stations.extend(iter(ev["stations"].keys()))
 
         return ret_str.format(
             self=self, comments=comments,
@@ -258,13 +258,13 @@ class Iteration(object):
         ])
 
         # Add all events.
-        for key, value in self.events.iteritems():
+        for key, value in self.events.items():
             event = E.event(
                 E.event_name(key),
                 E.event_weight(str(value["event_weight"])),
                 *[E.comment(_i) for _i in value["comments"] if _i]
             )
-            for station_id, station_value in value["stations"].iteritems():
+            for station_id, station_value in value["stations"].items():
                 event.append(E.station(
                     E.station_id(station_id),
                     E.station_weight(str(station_value["station_weight"])),
@@ -294,13 +294,13 @@ def _recursive_dict(element):
             text = float(text)
         except:
             pass
-    if isinstance(text, basestring):
+    if isinstance(text, str):
         if text.lower() == "false":
             text = False
         elif text.lower() == "true":
             text = True
     return element.tag, \
-        OrderedDict(map(_recursive_dict, element)) or text
+        OrderedDict(list(map(_recursive_dict, element))) or text
 
 
 def _recursive_etree(dictionary):
@@ -311,17 +311,17 @@ def _recursive_etree(dictionary):
     import itertools
 
     contents = []
-    for key, value in dictionary.iteritems():
+    for key, value in dictionary.items():
         if key == "relaxation_parameter_list":
             # Wild iterator to arrive at the desired etree. If somebody else
             # ever reads this just look at the output and do it some other
             # way...
             contents.append(E.relaxation_parameter_list(
                 *[getattr(E, i[0])(str(i[1][1]), number=str(i[1][0]))
-                  for i in itertools.chain(*itertools.izip(
-                      itertools.izip_longest(
+                  for i in itertools.chain(*zip(
+                      itertools.zip_longest(
                           [], enumerate(value["tau"]), fillvalue="tau"),
-                      itertools.izip_longest(
+                      itertools.zip_longest(
                           [], enumerate(value["w"]), fillvalue="w")))]
             ))
             continue
@@ -371,7 +371,7 @@ def create_iteration_xml_string(iteration_name, solver_name, events,
     # Loop over all events.
     events_doc = []
     # Also over all stations.
-    for event_name, stations in events.iteritems():
+    for event_name, stations in events.items():
         stations_doc = [E.station(
             E.station_id(station),
             E.station_weight("1.0")) for station in stations]

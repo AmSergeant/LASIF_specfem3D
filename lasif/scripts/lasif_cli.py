@@ -135,7 +135,7 @@ def _find_project_comm(folder, read_only_caches):
     """
     max_folder_depth = 10
     folder = folder
-    for _ in xrange(max_folder_depth):
+    for _ in range(max_folder_depth):
         if os.path.exists(os.path.join(folder, "config.xml")):
             return Project(
                 os.path.abspath(folder),
@@ -365,7 +365,7 @@ def lasif_info(parser, args):
     args = parser.parse_args(args)
 
     comm = _find_project_comm(".", args.read_only_caches)
-    print(comm.project)
+    print((comm.project))
 
 
 @command_group("Data Acquisition")
@@ -413,8 +413,8 @@ def lasif_list_events(parser, args):
                                         "be specified.")
 
     if args.list is False:
-        print("%i event%s in project:" % (comm.events.count(),
-              "s" if comm.events.count() != 1 else ""))
+        print(("%i event%s in project:" % (comm.events.count(),
+              "s" if comm.events.count() != 1 else "")))
 
     if args.details is True:
         tab = PrettyTable(["Event Name", "Lat/Lng/Depth(km)/Mag",
@@ -473,10 +473,10 @@ def lasif_list_models(parser, args):
 
     comm = _find_project_comm(".", args.read_only_caches)
     models = comm.models.list()
-    print("%i model%s in project:" % (len(models), "s" if len(models) != 1
-          else ""))
+    print(("%i model%s in project:" % (len(models), "s" if len(models) != 1
+          else "")))
     for model in models:
-        print ("\t%s" % model)
+        print(("\t%s" % model))
 
 
 @command_group("Project Management")
@@ -488,11 +488,11 @@ def lasif_list_kernels(parser, args):
 
     comm = _find_project_comm(".", args.read_only_caches)
     kernels = comm.kernels.list()
-    print("%i kernel%s in project:" % (
-        len(kernels), "s" if len(kernels) != 1 else ""))
+    print(("%i kernel%s in project:" % (
+        len(kernels), "s" if len(kernels) != 1 else "")))
     for kernel in kernels:
-        print("\tIteration %3s and Event %s" % (kernel["iteration"],
-                                                kernel["event"]))
+        print(("\tIteration %3s and Event %s" % (kernel["iteration"],
+                                                kernel["event"])))
 
 
 @command_group("Plotting")
@@ -527,7 +527,7 @@ def lasif_plot_wavefield(parser, args):
         print(handler)
         print("")
 
-        inp = raw_input("Enter 'COMPONENT DEPTH' "
+        inp = input("Enter 'COMPONENT DEPTH' "
                         "('quit/exit' to exit): ").strip()
         if inp.lower() in ["quit", "q", "exit", "leave"]:
             break
@@ -564,13 +564,13 @@ def lasif_event_info(parser, args):
 
     event_dict = comm.events.get(event_name)
 
-    print("Earthquake with %.1f %s at %s" % (
+    print(("Earthquake with %.1f %s at %s" % (
           event_dict["magnitude"], event_dict["magnitude_type"],
-          event_dict["region"]))
-    print("\tLatitude: %.3f, Longitude: %.3f, Depth: %.1f km" % (
+          event_dict["region"])))
+    print(("\tLatitude: %.3f, Longitude: %.3f, Depth: %.1f km" % (
           event_dict["latitude"], event_dict["longitude"],
-          event_dict["depth_in_km"]))
-    print("\t%s UTC" % str(event_dict["origin_time"]))
+          event_dict["depth_in_km"])))
+    print(("\t%s UTC" % str(event_dict["origin_time"])))
 
     try:
         stations = comm.query.get_all_stations_for_event(event_name)
@@ -579,8 +579,8 @@ def lasif_event_info(parser, args):
 
     if verbose:
         from lasif.utils import table_printer
-        print("\nStation and waveform information available at %i "
-              "stations:\n" % len(stations))
+        print(("\nStation and waveform information available at %i "
+              "stations:\n" % len(stations)))
         header = ["id", "latitude", "longitude", "elevation_in_m",
                   "local depth"]
         keys = sorted(stations.keys())
@@ -590,8 +590,8 @@ def lasif_event_info(parser, args):
             for key in keys]
         table_printer(header, data)
     else:
-        print("\nStation and waveform information available at %i stations. "
-              "Use '-v' to print them." % len(stations))
+        print(("\nStation and waveform information available at %i stations. "
+              "Use '-v' to print them." % len(stations)))
 
 
 @command_group("Plotting")
@@ -645,8 +645,8 @@ def lasif_generate_all_input_files(parser, args):
     it = comm.iterations.get(iteration_name)
     events = sorted(it.events.keys())
     for _i, event in enumerate(events):
-        print("Generating input files for event %i of %i..." % (_i + 1,
-                                                                len(events)))
+        print(("Generating input files for event %i of %i..." % (_i + 1,
+                                                                len(events))))
         comm.actions.generate_input_files(iteration_name, event,
                                           simulation_type)
 
@@ -701,7 +701,7 @@ def lasif_init_project(parser, args):
     Project(project_root_path=folder_path,
             init_project=os.path.basename(folder_path))
 
-    print("Initialized project in: \n\t%s" % folder_path)
+    print(("Initialized project in: \n\t%s" % folder_path))
 
 
 @command_group("Iteration Management")
@@ -777,16 +777,16 @@ def lasif_select_all_windows(parser, args):
 
     for _i, event in enumerate(events):
         if MPI.COMM_WORLD.rank == 0:
-            print("\n{green}"
+            print(("\n{green}"
                   "==========================================================="
                   "{reset}".format(green=colorama.Fore.GREEN,
-                                   reset=colorama.Style.RESET_ALL))
-            print("Starting window selection for event %i of %i..." % (
-                  _i + 1, len(events)))
-            print("{green}"
+                                   reset=colorama.Style.RESET_ALL)))
+            print(("Starting window selection for event %i of %i..." % (
+                  _i + 1, len(events))))
+            print(("{green}"
                   "==========================================================="
                   "{reset}\n".format(green=colorama.Fore.GREEN,
-                                     reset=colorama.Style.RESET_ALL))
+                                     reset=colorama.Style.RESET_ALL)))
         MPI.COMM_WORLD.barrier()
         comm.actions.select_windows(event, iteration)
 
@@ -996,10 +996,10 @@ def lasif_compare_misfits(parser, args):
         # Split into a number of events per MPI process.
         events = split(events, MPI.COMM_WORLD.size)
 
-        print " => Calculating misfit change from iteration '%s' to " \
-            "iteration '%s' ..." % (from_it.name, to_it.name)
-        print " => Launching calculations on %i core(s)\n" % \
-            MPI.COMM_WORLD.size
+        print(" => Calculating misfit change from iteration '%s' to " \
+            "iteration '%s' ..." % (from_it.name, to_it.name))
+        print(" => Launching calculations on %i core(s)\n" % \
+            MPI.COMM_WORLD.size)
 
     else:
         events = None
@@ -1061,7 +1061,7 @@ def lasif_compare_misfits(parser, args):
                 except LASIFAdjointSourceCalculationError:
                     continue
                 except LASIFNotFoundError as e:
-                    print str(e)
+                    print(str(e))
                     continue
 
                 try:
@@ -1091,7 +1091,7 @@ def lasif_compare_misfits(parser, args):
             total_misfit_to += channel_misfit_to
 
             if (misfit_to - misfit_from) < -1.5:
-                print(event, channel, misfit_from - misfit_to)
+                print((event, channel, misfit_from - misfit_to))
             all_events[event].append(misfit_to - misfit_from)
         if MPI.COMM_WORLD.rank == 0:
             pbar.finish()
@@ -1112,15 +1112,15 @@ def lasif_compare_misfits(parser, args):
     if not all_events:
         raise LASIFCommandLineException("No misfit values could be compared.")
 
-    print "\nTotal misfit in Iteration %s: %g" % (from_it.name,
-                                                  total_misfit_from)
-    print "Total misfit in Iteration %s: %g" % (to_it.name,
-                                                total_misfit_to)
+    print("\nTotal misfit in Iteration %s: %g" % (from_it.name,
+                                                  total_misfit_from))
+    print("Total misfit in Iteration %s: %g" % (to_it.name,
+                                                total_misfit_to))
 
     _ending_time = time.time()
 
-    print "\n => Computation time: %.1f seconds" % (_ending_time -
-                                                    _starting_time)
+    print("\n => Computation time: %.1f seconds" % (_ending_time -
+                                                    _starting_time))
 
     import matplotlib.pylab as plt
     import numpy as np
@@ -1144,7 +1144,7 @@ def lasif_compare_misfits(parser, args):
         type="misfit_comparisons", tag="misfit_comparision")
     filename = os.path.join(output_folder, "misfit_comparision.pdf")
     plt.savefig(filename)
-    print "\nSaved figure to '%s'" % os.path.relpath(filename)
+    print("\nSaved figure to '%s'" % os.path.relpath(filename))
 
 
 @command_group("Iteration Management")
@@ -1162,11 +1162,11 @@ def lasif_migrate_windows(parser, args):
     from_it = comm.iterations.get(args.from_iteration)
     to_it = comm.iterations.get(args.to_iteration)
 
-    print "Migrating windows from iteration '%s' to iteration '%s'..." % (
-        from_it.name, to_it.name)
+    print("Migrating windows from iteration '%s' to iteration '%s'..." % (
+        from_it.name, to_it.name))
 
-    for event_name, stations in to_it.events.items():
-        stations = stations["stations"].keys()
+    for event_name, stations in list(to_it.events.items()):
+        stations = list(stations["stations"].keys())
 
         window_group_from = comm.windows.get(event_name, from_it.name)
         window_group_to = comm.windows.get(event_name, to_it.name)
@@ -1175,7 +1175,7 @@ def lasif_migrate_windows(parser, args):
         contents = contents_from - contents_to
 
         # Remove all not part of this iterations station.
-        filtered_contents = itertools.ifilter(
+        filtered_contents = filter(
             lambda x: ".".join(x.split(".")[:2]) in stations,
             contents)
 
@@ -1198,10 +1198,10 @@ def lasif_list_iterations(parser, args):
 
     it_len = comm.iterations.count()
 
-    print("%i iteration%s in project:" % (it_len,
-          "s" if it_len != 1 else ""))
+    print(("%i iteration%s in project:" % (it_len,
+          "s" if it_len != 1 else "")))
     for iteration in comm.iterations.list():
-        print ("\t%s" % iteration)
+        print(("\t%s" % iteration))
 
 
 @command_group("Iteration Management")
@@ -1219,7 +1219,7 @@ def lasif_iteration_info(parser, args):
                "a list of all available iterations.") % iteration_name
         raise LASIFCommandLineException(msg)
 
-    print(comm.iterations.get(iteration_name))
+    print((comm.iterations.get(iteration_name)))
 
 
 @command_group("Project Management")
@@ -1354,7 +1354,7 @@ def lasif_plot_windows(parser, args):
             sys.stdout.flush()
         print("\nDone")
 
-        print("Done. Written output to folder %s." % output_folder)
+        print(("Done. Written output to folder %s." % output_folder))
 
 
 @command_group("Project Management")
@@ -1426,23 +1426,23 @@ def lasif_iteration_status(parser, args):
     status = comm.query.get_iteration_status(iteration_name)
     iteration = comm.iterations.get(iteration_name)
 
-    print("Iteration %s is defined for %i events:" % (iteration_name,
-                                                      len(iteration.events)))
+    print(("Iteration %s is defined for %i events:" % (iteration_name,
+                                                      len(iteration.events))))
     for event in sorted(status.keys()):
         st = status[event]
-        print("\t%s" % event)
+        print(("\t%s" % event))
 
-        print("\t\t%.2f %% of the events stations have picked windows" %
-              (st["fraction_of_stations_that_have_windows"] * 100))
+        print(("\t\t%.2f %% of the events stations have picked windows" %
+              (st["fraction_of_stations_that_have_windows"] * 100)))
         if st["missing_raw"]:
-            print("\t\tLacks raw data for %i stations" %
-                  len(st["missing_raw"]))
+            print(("\t\tLacks raw data for %i stations" %
+                  len(st["missing_raw"])))
         if st["missing_processed"]:
-            print("\t\tLacks processed data for %i stations" %
-                  len(st["missing_processed"]))
+            print(("\t\tLacks processed data for %i stations" %
+                  len(st["missing_processed"])))
         if st["missing_synthetic"]:
-            print("\t\tLacks synthetic data for %i stations" %
-                  len(st["missing_synthetic"]))
+            print(("\t\tLacks synthetic data for %i stations" %
+                  len(st["missing_synthetic"])))
 
 
 def lasif_tutorial(parser, args):
@@ -1488,20 +1488,20 @@ def lasif_debug(parser, args):
     for filename in args.files:
         filename = os.path.relpath(filename)
         if not os.path.exists(filename):
-            print("{red}Path '{f}' does not exist.{reset}\n".format(
+            print(("{red}Path '{f}' does not exist.{reset}\n".format(
                 f=filename, red=colorama.Fore.RED,
-                reset=colorama.Style.RESET_ALL))
+                reset=colorama.Style.RESET_ALL)))
             continue
-        print("{green}Path '{f}':{reset}".format(
+        print(("{green}Path '{f}':{reset}".format(
             f=filename, green=colorama.Fore.GREEN,
-            reset=colorama.Style.RESET_ALL))
+            reset=colorama.Style.RESET_ALL)))
 
         try:
             info = comm.query.what_is(filename)
         except LASIFError as e:
             info = "Error: %s" % e.message
 
-        print("\t" + info)
+        print(("\t" + info))
         print("")
 
 
@@ -1560,7 +1560,7 @@ def _print_generic_help(fcts):
     """
     Small helper function printing a generic help message.
     """
-    print(100 * "#")
+    print((100 * "#"))
     header = ("{default_style}LASIF - Large Scale Seismic "
               "{inverted_style}Inversion"
               "{default_style} Framework{reset_style}  [Version {version}]"
@@ -1571,30 +1571,30 @@ def _print_generic_help(fcts):
                   colorama.Back.WHITE,
                   reset_style=colorama.Style.RESET_ALL,
                   version=lasif.__version__))
-    print("    " + header)
+    print(("    " + header))
     print("    http://krischer.github.io/LASIF")
-    print(100 * "#")
-    print("\n{cmd}usage: lasif [--help] COMMAND [ARGS]{reset}\n".format(
+    print((100 * "#"))
+    print(("\n{cmd}usage: lasif [--help] COMMAND [ARGS]{reset}\n".format(
         cmd=colorama.Style.BRIGHT + colorama.Fore.RED,
-        reset=colorama.Style.RESET_ALL))
+        reset=colorama.Style.RESET_ALL)))
 
     # Group the functions. Functions with no group will be placed in the group
     # "Misc".
     fct_groups = {}
-    for fct_name, fct in fcts.iteritems():
+    for fct_name, fct in fcts.items():
         group_name = fct.group_name if hasattr(fct, "group_name") else "Misc"
         fct_groups.setdefault(group_name, {})
         fct_groups[group_name][fct_name] = fct
 
     # Print in a grouped manner.
-    for group_name in sorted(fct_groups.iterkeys()):
-        print("{0:=>25s} Functions".format(" " + group_name))
+    for group_name in sorted(fct_groups.keys()):
+        print(("{0:=>25s} Functions".format(" " + group_name)))
         current_fcts = fct_groups[group_name]
         for name in sorted(current_fcts.keys()):
-            print("%s  %32s: %s%s%s" % (colorama.Fore.YELLOW, name,
+            print(("%s  %32s: %s%s%s" % (colorama.Fore.YELLOW, name,
                   colorama.Fore.BLUE,
                   _get_cmd_description(fcts[name]),
-                  colorama.Style.RESET_ALL))
+                  colorama.Style.RESET_ALL)))
     print("\nTo get help for a specific function type")
     print("\tlasif help FUNCTION  or\n\tlasif FUNCTION --help")
 
@@ -1604,7 +1604,7 @@ def _get_argument_parser(fct):
     Helper function to create a proper argument parser.
     """
     parser = argparse.ArgumentParser(
-        prog="lasif %s" % fct.func_name.replace("lasif_", ""),
+        prog="lasif %s" % fct.__name__.replace("lasif_", ""),
         description=_get_cmd_description(fct))
 
     parser.add_argument(
@@ -1618,7 +1618,7 @@ def _get_argument_parser(fct):
     exceptions = ["lasif_tutorial", "lasif_init_project",
                   "lasif_build_all_caches"]
 
-    if fct.func_name in exceptions:
+    if fct.__name__ in exceptions:
         return parser
 
     # Otherwise add the option to add caches in read-only mode.
@@ -1634,7 +1634,7 @@ def _get_functions():
     """
     # Get all functions in this script starting with "lasif_".
     fcts = {fct_name[len(FCT_PREFIX):]: fct for (fct_name, fct) in
-            globals().iteritems()
+            globals().items()
             if fct_name.startswith(FCT_PREFIX) and hasattr(fct, "__call__")}
     return fcts
 
@@ -1652,7 +1652,7 @@ def main():
     args = sys.argv[1:]
 
     if len(args) == 1 and args[0] == "--version":
-        print("LASIF version %s" % lasif.__version__)
+        print(("LASIF version %s" % lasif.__version__))
         sys.exit(0)
 
     # Print the generic help/introduction.
@@ -1678,7 +1678,7 @@ def main():
         sys.stderr.write("lasif: '{fct_name}' is not a LASIF command. See "
                          "'lasif --help'.\n".format(fct_name=fct_name))
         # Attempt to fuzzy match commands.
-        close_matches = sorted(difflib.get_close_matches(fct_name, fcts.keys(),
+        close_matches = sorted(difflib.get_close_matches(fct_name, list(fcts.keys()),
                                                          n=4))
         if len(close_matches) == 1:
             sys.stderr.write("\nDid you mean this?\n\t{match}\n".format(
@@ -1709,8 +1709,8 @@ def main():
     try:
         func(parser, further_args)
     except LASIFCommandLineException as e:
-        print(colorama.Fore.YELLOW + ("Error: %s\n" % str(e)) +
-              colorama.Style.RESET_ALL)
+        print((colorama.Fore.YELLOW + ("Error: %s\n" % str(e)) +
+              colorama.Style.RESET_ALL))
         sys.exit(1)
     except Exception as e:
         args = parser.parse_args(further_args)
@@ -1722,6 +1722,6 @@ def main():
             traceback.print_exc()
             ipdb.post_mortem(tb)
         else:
-            print(colorama.Fore.RED)
+            print((colorama.Fore.RED))
             traceback.print_exc()
-            print(colorama.Style.RESET_ALL)
+            print((colorama.Style.RESET_ALL))

@@ -57,11 +57,11 @@ def table_printer(header, data):
     :param data: A list of lists containing data items.
     """
     row_format = "{:>15}" * (len(header))
-    print row_format.format(*(["=" * 15] * len(header)))
-    print row_format.format(*header)
-    print row_format.format(*(["=" * 15] * len(header)))
+    print(row_format.format(*(["=" * 15] * len(header))))
+    print(row_format.format(*header))
+    print(row_format.format(*(["=" * 15] * len(header))))
     for row in data:
-        print row_format.format(*row)
+        print(row_format.format(*row))
 
 
 def recursive_dict(element):
@@ -71,7 +71,7 @@ def recursive_dict(element):
     From the lxml documentation.
     """
     return element.tag, \
-        dict(map(recursive_dict, element)) or element.text
+        dict(list(map(recursive_dict, element))) or element.text
 
 
 def generate_ses3d_4_1_template(w_p, tau_p):
@@ -265,7 +265,7 @@ def greatcircle_points(point_1, point_2, max_extension=None,
         npts = max_npts - 1
     if npts == 0:
         npts = 1
-    for i in xrange(npts + 1):
+    for i in range(npts + 1):
         line_point = line.Position(i * point["s12"] / float(npts))
         yield Point(line_point["lat2"], line_point["lon2"])
 

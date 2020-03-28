@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import
+
 
 import re
 import sqlite3
-import urllib2
+import urllib.request, urllib.error, urllib.parse
 
 from .component import Component
 
@@ -217,20 +217,20 @@ class InventoryDBComponent(Component):
         # Otherwise try to download the necessary information.
         msg = ("Attempting to download coordinates for %s. This will only "
                "happen once ... ") % station_id
-        print msg,
+        print(msg, end=' ')
 
         req = None
         network, station = station_id.split(".")
         # Try IRIS first.
         try:
-            req = urllib2.urlopen(URL.format(
+            req = urllib.request.urlopen(URL.format(
                 service="service.iris.edu", network=network, station=station))
         except:
             pass
         # Then ORFEUS.
         if req is None or str(req.code)[0] != "2":
             try:
-                req = urllib2.urlopen(URL.format(
+                req = urllib.request.urlopen(URL.format(
                     service="www.orfeus-eu.org", network=network,
                     station=station))
             except:
@@ -238,7 +238,7 @@ class InventoryDBComponent(Component):
         # Otherwise write None's to the database.
         if req is None or str(req.code)[0] != "2":
             self.save_station_coordinates(station_id, None, None, None, None)
-            print "Failure."
+            print("Failure.")
             return {"latitude": None, "longitude": None,
                     "elevation_in_m": None, "local_depth_in_m": None}
 
@@ -264,6 +264,6 @@ class InventoryDBComponent(Component):
 
         # The local is not set at the station level.
         self.save_station_coordinates(station_id, lat, lng, ele, None)
-        print "Success."
+        print("Success.")
         return {"latitude": lat, "longitude": lng, "elevation_in_m": ele,
                 "local_depth_in_m": None}

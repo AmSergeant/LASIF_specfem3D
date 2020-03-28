@@ -9,10 +9,10 @@ Cache taking care of a single waveform directory.
     GNU General Public License, Version 3
     (http://www.gnu.org/copyleft/gpl.html)
 """
-from __future__ import absolute_import
+
 
 import glob
-from itertools import izip
+
 import obspy
 import os
 import warnings
@@ -83,7 +83,7 @@ class WaveformCache(FileInfoCache):
         indices = [_i[0] for _i in self.index_values]
 
         for _i in self.db_cursor.execute(query, (network, station)):
-            values = {key: value for (key, value) in izip(indices, _i)}
+            values = {key: value for (key, value) in zip(indices, _i)}
             values["filename"] = os.path.abspath(os.path.join(
                 self.root_folder, _i[-1]))
             all_values.append(values)

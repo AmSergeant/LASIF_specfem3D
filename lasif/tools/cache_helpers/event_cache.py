@@ -9,7 +9,7 @@ Event cache. LASIF just feels much faster using one when there are more events.
     GNU General Public License, Version 3
     (http://www.gnu.org/copyleft/gpl.html)
 """
-from __future__ import absolute_import
+
 
 import glob
 import os

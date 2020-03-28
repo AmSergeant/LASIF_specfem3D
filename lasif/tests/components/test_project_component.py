@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import
+
 
 import copy
 import inspect
@@ -119,7 +119,7 @@ def test_string_representation(comm, capsys):
     """
     Tests the projects string representation.
     """
-    print(comm.project)
+    print((comm.project))
     out = capsys.readouterr()[0]
     assert "\"ExampleProject\"" in out
     assert "Toy Project used in the Test Suite" in out

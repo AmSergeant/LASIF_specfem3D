@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import
+
 
 from collections import namedtuple
 import inspect
 import mock
 import os
 import pytest
-import urllib2
+import urllib.request, urllib.error, urllib.parse
 
 from lasif.components.inventory_db import InventoryDBComponent
 from lasif.components.communicator import Communicator
@@ -184,7 +184,7 @@ def _urlopen_everything_fails(url):
 
 
 def _urlopen_raises(url):
-    raise urllib2.HTTPError
+    raise urllib.error.HTTPError
 
 
 @mock.patch("urllib2.urlopen")

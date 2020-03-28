@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import
+
 
 import copy
 import itertools
@@ -45,7 +45,7 @@ class VisualizationsComponent(Component):
                 stepsize = 2.0
             else:
                 stepsize = 1.0
-            print stepsize
+            print(stepsize)
             parallels = np.arange(min_lat,max_lat,stepsize)
             meridians = np.arange(min_lon,max_lon,stepsize)
             m.drawparallels(parallels, labels=[1,0,0,0], color='white', linewidth = 0.5)
@@ -67,7 +67,7 @@ class VisualizationsComponent(Component):
         """
         from lasif import visualization
 
-        events = self.comm.events.get_all_events().values()
+        events = list(self.comm.events.get_all_events().values())
 
         if plot_type == "map":
             if config == "teleseismic":
@@ -140,7 +140,7 @@ class VisualizationsComponent(Component):
 
         event_stations = []
         for event_name, event_info in \
-                self.comm.events.get_all_events().iteritems():
+                self.comm.events.get_all_events().items():
             try:
                 stations = \
                     self.comm.query.get_all_stations_for_event(event_name)
@@ -152,12 +152,12 @@ class VisualizationsComponent(Component):
                                       station_events=event_stations,
                                       domain=self.comm.project.domain)
 
-        visualization.plot_events(self.comm.events.get_all_events().values(),
+        visualization.plot_events(list(self.comm.events.get_all_events().values()),
                                   map_object=m)
 
         if plot_stations:
             stations = itertools.chain.from_iterable((
-                _i[1].values() for _i in event_stations if _i[1]))
+                list(_i[1].values()) for _i in event_stations if _i[1]))
             # Remove duplicates
             stations = [(_i["latitude"], _i["longitude"]) for _i in stations]
             stations = set(stations)
@@ -175,7 +175,7 @@ class VisualizationsComponent(Component):
                     type="raydensity_plots", tag="raydensity"),
                 "raydensity.png")
             plt.savefig(outfile, dpi=200, transparent=True)
-            print "Saved picture at %s" % outfile
+            print("Saved picture at %s" % outfile)
 
     def plot_windows(self, event, iteration, distance_bins=500,
                      ax=None, show=True):
@@ -206,7 +206,7 @@ class VisualizationsComponent(Component):
         # First step is to calculate all epicentral distances.
         stations = copy.deepcopy(self.comm.query.get_all_stations_for_event(
             event["event_name"]))
-        for s in stations.values():
+        for s in list(stations.values()):
             s["epicentral_distance"] = locations2degrees(
                 event["latitude"], event["longitude"], s["latitude"],
                 s["longitude"])
@@ -214,7 +214,7 @@ class VisualizationsComponent(Component):
         # Plot from 0 to however far it goes.
         min_epicentral_distance = 0
         max_epicentral_distance = math.ceil(max(
-            _i["epicentral_distance"] for _i in stations.values()))
+            _i["epicentral_distance"] for _i in list(stations.values())))
         epicentral_range = max_epicentral_distance - min_epicentral_distance
 
         if epicentral_range == 0:
@@ -273,7 +273,7 @@ class VisualizationsComponent(Component):
 
         # Replace colors...fairly complex. Not sure if there is another way...
         red, green, blue = image[:, :, 0], image[:, :, 1], image[:, :, 2]
-        for color, replacement in color_map.items():
+        for color, replacement in list(color_map.items()):
             image[:, :, :][(red == color[0]) & (green == color[1]) &
                            (blue == color[2])] = replacement
 

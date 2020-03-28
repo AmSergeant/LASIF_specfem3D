@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import
+
 
 import copy
 import json
@@ -120,7 +120,7 @@ class WindowsComponent(Component):
                     with open(cache_file) as fh:
                         data = json.load(fh)
                 except Exception as e:
-                    print("Loading cache failed due to: %s" % str(e))
+                    print(("Loading cache failed due to: %s" % str(e)))
                 print("Loading statistics from cache.")
                 return data
             else:
@@ -130,8 +130,8 @@ class WindowsComponent(Component):
         statistics = {}
 
         for _i, event in enumerate(list(sorted(it.events.keys()))):
-            print("Collecting statistics for event %i of %i ..." % (
-                _i + 1, len(it.events)))
+            print(("Collecting statistics for event %i of %i ..." % (
+                _i + 1, len(it.events))))
 
             wm = self.get(event=event, iteration=iteration)
 
@@ -146,7 +146,7 @@ class WindowsComponent(Component):
 
             stations = {}
 
-            for station in it.events[event]["stations"].keys():
+            for station in list(it.events[event]["stations"].keys()):
                 s = station_details[station]
                 stations[station] = s
 

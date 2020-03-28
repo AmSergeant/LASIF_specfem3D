@@ -21,11 +21,10 @@ import numpy as np
 from lasif import rotations
 
 
-class Domain(object):
+class Domain(object, metaclass=ABCMeta):
     """
     Abstract base class for the domain definitions.
     """
-    __metaclass__ = ABCMeta
 
     @abstractmethod
     def point_in_domain(self, longitude, latitude):
@@ -161,7 +160,7 @@ class RectangularSphericalSection(Domain):
 
     @property
     def extent(self):
-        lats, lngs = zip(*self.border)
+        lats, lngs = list(zip(*self.border))
         lats, lngs = np.array(lats), np.array(lngs)
 
         # One has to be careful with longitudes as they wrap around.
@@ -318,15 +317,15 @@ class RectangularSphericalSection(Domain):
     def __str__(self):
         ret_str = (
             "{rotation} Spherical Section Domain\n"
-            u"\tLatitude: {min_lat:.2f}° - {max_lat:.2f}°\n"
-            u"\tLongitude: {min_lng:.2f}° - {max_lng:.2f}°\n"
+            "\tLatitude: {min_lat:.2f}° - {max_lat:.2f}°\n"
+            "\tLongitude: {min_lng:.2f}° - {max_lng:.2f}°\n"
             "\tDepth: {min_depth:.1f}km - {max_depth:.1f}km"
         )
         if self.rotation_angle_in_degree:
             rotation = "Rotated"
             ret_str += (
                 "\n\tRotation Axis: {x:.1f} / {y:.1f} / {z:.1f}\n"
-                u"\tRotation Angle: {angle:.2f}°"
+                "\tRotation Angle: {angle:.2f}°"
             )
         else:
             rotation = "Unrotated"

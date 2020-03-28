@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import
+
 
 import glob
 import os
@@ -154,7 +154,7 @@ class IterationsComponent(Component):
         """
         iteration = self.comm.iterations.get(iteration_name)
         path = self.comm.project.paths["synthetics"]
-        for event_name in iteration.events.keys():
+        for event_name in list(iteration.events.keys()):
             folder = os.path.join(path, event_name, iteration.long_name)
             if not os.path.exists(folder):
                 os.makedirs(folder)

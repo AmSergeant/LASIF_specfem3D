@@ -9,7 +9,7 @@ Test suite for the domain definitions in LASIF.
     GNU Lesser General Public License, Version 3
     (http://www.gnu.org/copyleft/gpl.html)
 """
-from __future__ import absolute_import
+
 
 import copy
 

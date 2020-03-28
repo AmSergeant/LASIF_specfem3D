@@ -318,7 +318,7 @@ def test_exception_handling(tmpdir, recwarn):
         sorted(station_cache.get_stations().keys())
 
     # Naturally only three files should have been indexed.
-    filenames = list(itertools.chain(*station_cache.files.values()))
+    filenames = list(itertools.chain(*list(station_cache.files.values())))
     assert len(filenames) == 3
 
     # 5 warnings should have been raised.

@@ -13,9 +13,9 @@ needed.
 :license: GNU General Public License, Version 3
     (http://www.gnu.org/copyleft/gpl.html)
 """
-from __future__ import absolute_import
 
-import cPickle
+
+import pickle
 import glob
 import imp
 import inspect
@@ -202,7 +202,7 @@ class Project(Component):
         if os.path.exists(cfile):
             try:
                 with open(cfile, "rb") as fh:
-                    cf_cache = cPickle.load(fh)
+                    cf_cache = pickle.load(fh)
                 last_m_time = int(os.path.getmtime(self.paths["config_file"]))
                 if last_m_time == cf_cache["last_m_time"]:
                     default_download_settings.update(cf_cache["config"][
@@ -302,7 +302,7 @@ class Project(Component):
         cf_cache["last_m_time"] = \
             int(os.path.getmtime(self.paths["config_file"]))
         with open(cfile, "wb") as fh:
-            cPickle.dump(cf_cache, fh, protocol=2)
+            pickle.dump(cf_cache, fh, protocol=2)
 
     def build_all_caches(self, quick=False):
         """
@@ -319,7 +319,7 @@ class Project(Component):
             self.comm.stations.file_count
 
         for event in self.comm.events.list():
-            print("Building/updating data cache for event '%s'..." % event)
+            print(("Building/updating data cache for event '%s'..." % event))
             # Get all caches which will build them.
             try:
                 self.comm.waveforms.get_waveform_cache(event, "raw",
@@ -494,7 +494,7 @@ class Project(Component):
         """
         Updates the folder structure of the project.
         """
-        for name, path in self.paths.iteritems():
+        for name, path in self.paths.items():
             if "file" in name or os.path.exists(path):
                 continue
             os.makedirs(path)

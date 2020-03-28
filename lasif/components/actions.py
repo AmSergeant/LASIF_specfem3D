@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import
+
 
 import itertools
 import numpy as np
@@ -43,7 +43,7 @@ class ActionsComponent(Component):
             waveform.
             """
             # Loop over the chosen events.
-            for event_name, event in iteration.events.iteritems():
+            for event_name, event in iteration.events.items():
                 # None means to process all events, otherwise it will be a list
                 # of events.
                 if not ((event_names is None) or (event_name in event_names)):
@@ -230,10 +230,10 @@ class ActionsComponent(Component):
                     "station %s: %s" % (iteration.name, event["event_name"],
                                         station, str(e)), LASIFWarning)
             if MPI.COMM_WORLD.rank == 0:
-                print("Window picking process: Picked windows for approx. %i "
+                print(("Window picking process: Picked windows for approx. %i "
                       "of %i stations." % (
                           min(_i * MPI.COMM_WORLD.size, total_size),
-                          total_size))
+                          total_size)))
 
         # Barrier at the end useful for running this in a loop.
         MPI.COMM_WORLD.barrier()
@@ -326,7 +326,7 @@ class ActionsComponent(Component):
             raise ValueError(msg)
 
         event = self.comm.events.get(event_name)
-        stations_for_event = iteration.events[event_name]["stations"].keys()
+        stations_for_event = list(iteration.events[event_name]["stations"].keys())
 
         # Get all stations and create a dictionary for the input file
         # generator.
@@ -335,7 +335,7 @@ class ActionsComponent(Component):
                      "longitude": value["longitude"],
                      "elevation_in_m": value["elevation_in_m"],
                      "local_depth_in_m": value["local_depth_in_m"]}
-                    for key, value in stations.iteritems()
+                    for key, value in stations.items()
                     if key in stations_for_event]
 
         # =====================================================================
@@ -565,7 +565,7 @@ class ActionsComponent(Component):
                 event_name))
 
         gen.write(format=solver_format, output_dir=output_dir)
-        print "Written files to '%s'." % output_dir
+        print("Written files to '%s'." % output_dir)
 
     def calculate_all_adjoint_sources(self, iteration_name, event_name):
         """
@@ -591,15 +591,15 @@ class ActionsComponent(Component):
                         # calculation.
                         window.adjoint_source
             except LASIFError as e:
-                print("Could not calculate adjoint source for iteration %s "
+                print(("Could not calculate adjoint source for iteration %s "
                       "and station %s. Repick windows? Reason: %s" % (
-                          iteration.name, station, str(e)))
+                          iteration.name, station, str(e))))
 
     def finalize_adjoint_sources(self, iteration_name, event_name):
         """
         Finalizes the adjoint sources.
         """
-        from itertools import izip
+        
         import numpy as np
         from lasif import rotations
 
@@ -634,7 +634,7 @@ class ActionsComponent(Component):
                 l, key=lambda x: ".".join(x.split(".")[:2])):
             if station not in iteration_stations:
                 continue
-            print ".",
+            print(".", end=' ')
             station_weight = iteration_stations[station]["station_weight"]
             channels = {}
             try:
@@ -656,14 +656,14 @@ class ActionsComponent(Component):
                         event_weight * station_weight
                     channels[w.channel_id[-1]] = adjoint_source
             except LASIFError as e:
-                print("Could not calculate adjoint source for iteration %s "
+                print(("Could not calculate adjoint source for iteration %s "
                       "and station %s. Repick windows? Reason: %s" % (
-                          iteration.name, station, str(e)))
+                          iteration.name, station, str(e))))
                 continue
             if not channels:
                 continue
             # Now all adjoint sources of a window should have the same length.
-            length = set(len(v) for v in channels.values())
+            length = set(len(v) for v in list(channels.values()))
             assert len(length) == 1
             length = length.pop()
             # All missing channels will be replaced with a zero array.
@@ -719,7 +719,7 @@ class ActionsComponent(Component):
                                                     r_rec_depth))
                     open_file.write("-- source time function (x, y, z) --\n")
                     # Revert the X component as it has to point south in SES3D.
-                    for x, y, z in izip(-1.0 * channels[CHANNEL_MAPPING["X"]],
+                    for x, y, z in zip(-1.0 * channels[CHANNEL_MAPPING["X"]],
                                         channels[CHANNEL_MAPPING["Y"]],
                                         channels[CHANNEL_MAPPING["Z"]]):
                         open_file.write("%e %e %e\n" % (x, y, z))
@@ -782,5 +782,5 @@ class ActionsComponent(Component):
                         ele=coords["elevation_in_m"],
                         dep=coords["local_depth_in_m"]))
 
-        print "Wrote adjoint sources for %i station(s) to %s." % (
-            len(adjoint_source_stations), os.path.relpath(output_folder))
+        print("Wrote adjoint sources for %i station(s) to %s." % (
+            len(adjoint_source_stations), os.path.relpath(output_folder)))

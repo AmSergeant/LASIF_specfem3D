@@ -9,7 +9,7 @@ Test suite for the windows component.
     GNU Lesser General Public License, Version 3
     (http://www.gnu.org/copyleft/gpl.html)
 """
-from __future__ import absolute_import
+
 
 import mock
 import numpy as np

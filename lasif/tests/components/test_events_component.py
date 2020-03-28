@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import
+
 
 import inspect
 import io
@@ -68,7 +68,7 @@ def test_get_event(comm):
         'magnitude': 5.1,
         'magnitude_type': 'Mwc',
         'origin_time': obspy.UTCDateTime(2010, 3, 24, 14, 11, 31),
-        'region': u'TURKEY'}
+        'region': 'TURKEY'}
 
     ev = comm.events.get("GCMT_event_TURKEY_Mag_5.9_2011-5-19-20-15")
     ev["filename"] = os.path.basename(ev["filename"])
@@ -87,7 +87,7 @@ def test_get_event(comm):
         'magnitude': 5.9,
         'magnitude_type': 'Mwc',
         'origin_time': obspy.UTCDateTime(2011, 5, 19, 20, 15, 22, 900000),
-        'region': u'TURKEY'}
+        'region': 'TURKEY'}
 
     with pytest.raises(LASIFNotFoundError):
         comm.events.get("random")

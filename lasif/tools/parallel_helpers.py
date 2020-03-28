@@ -170,9 +170,9 @@ def distribute_across_ranks(function, items, get_name, logfile):
         results.append(_execute_wrapped_function(function, item))
 
         if MPI.COMM_WORLD.rank == 0:
-            print("Approximately %i of %i items have been processed." % (
+            print(("Approximately %i of %i items have been processed." % (
                 min((_i + 1) * MPI.COMM_WORLD.size, total_length),
-                total_length))
+                total_length)))
 
     results = MPI.COMM_WORLD.gather(results, root=0)
 
@@ -210,18 +210,18 @@ def distribute_across_ranks(function, items, get_name, logfile):
             else:
                 successful_file_count += 1
 
-        print("\nFinished processing %i items. See the logfile for "
-              "details.\n" % total_file_count)
-        print("\t%s%i files failed being processed.%s" %
+        print(("\nFinished processing %i items. See the logfile for "
+              "details.\n" % total_file_count))
+        print(("\t%s%i files failed being processed.%s" %
               (colorama.Fore.RED, failed_file_count,
-               colorama.Fore.RESET))
-        print("\t%s%i files raised warnings while being processed.%s" %
+               colorama.Fore.RESET)))
+        print(("\t%s%i files raised warnings while being processed.%s" %
               (colorama.Fore.YELLOW, warning_file_count,
-               colorama.Fore.RESET))
-        print("\t%s%i files have been processed without errors or warnings%s" %
+               colorama.Fore.RESET)))
+        print(("\t%s%i files have been processed without errors or warnings%s" %
               (colorama.Fore.GREEN, successful_file_count,
-               colorama.Fore.RESET))
+               colorama.Fore.RESET)))
 
-        print("\nLogfile written to '%s'." % os.path.relpath(logfile))
+        print(("\nLogfile written to '%s'." % os.path.relpath(logfile)))
 
     return results

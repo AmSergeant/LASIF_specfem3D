@@ -10,7 +10,7 @@ Visualization scripts.
     GNU General Public License, Version 3
     (http://www.gnu.org/copyleft/gpl.html)
 """
-from itertools import izip, chain
+from itertools import chain
 from matplotlib import cm
 import matplotlib.pyplot as plt
 import numpy as np
@@ -70,7 +70,7 @@ def plot_raydensity(map_object, station_events, domain):
                 -1.0 * domain.rotation_angle_in_degree))
         else:
             e_point = Point(event["latitude"], event["longitude"])
-        for station in stations.itervalues():
+        for station in stations.values():
             # Rotate point to the non-rotated domain if necessary.
             if domain.rotation_angle_in_degree:
                 p = Point(*rotations.rotate_lat_lon(
@@ -100,8 +100,8 @@ def plot_raydensity(map_object, station_events, domain):
         data.dtype = dtype
         return data.reshape(shape)
 
-    print "\nLaunching %i greatcircle calculations on %i CPUs..." % \
-        (circle_count, cpu_count)
+    print("\nLaunching %i greatcircle calculations on %i CPUs..." % \
+        (circle_count, cpu_count))
 
     widgets = ["Progress: ", progressbar.Percentage(),
                progressbar.Bar(), "", progressbar.ETA()]
@@ -153,7 +153,7 @@ def plot_raydensity(map_object, station_events, domain):
     processes = []
     lock = multiprocessing.Lock()
     counter = multiprocessing.Value("i", 0)
-    for _i in xrange(cpu_count):
+    for _i in range(cpu_count):
         processes.append(multiprocessing.Process(
             target=great_circle_binning, args=(chunks[_i], collected_bins_data,
                                                collected_bins.bins.shape, lock,
@@ -166,7 +166,7 @@ def plot_raydensity(map_object, station_events, domain):
     pbar.finish()
 
     stations = chain.from_iterable((
-        _i[1].values() for _i in station_events if _i[1]))
+        list(_i[1].values()) for _i in station_events if _i[1]))
     # Remove duplicates
     stations = [(_i["latitude"], _i["longitude"]) for _i in stations]
     stations = set(stations)
@@ -222,7 +222,7 @@ def plot_stations_for_event(map_object, station_dict, event_info,
     lngs = []
     lats = []
     station_ids = []
-    for key, value in station_dict.iteritems():
+    for key, value in station_dict.items():
         lngs.append(value["longitude"])
         lats.append(value["latitude"])
         station_ids.append(key)
@@ -238,7 +238,7 @@ def plot_stations_for_event(map_object, station_dict, event_info,
 
     # Plot the ray paths.
     if raypaths:
-        for sta_lng, sta_lat in izip(lngs, lats):
+        for sta_lng, sta_lat in zip(lngs, lats):
             map_object.drawgreatcircle(
                 event_info["longitude"], event_info["latitude"], sta_lng,
                 sta_lat, lw=2, alpha=0.3)
@@ -264,7 +264,7 @@ def plot_stations(map_object, station_dict,
     lngs = []
     lats = []
     station_ids = []
-    for key, value in station_dict.iteritems():
+    for key, value in station_dict.items():
         lngs.append(value["longitude"])
         lats.append(value["latitude"])
         station_ids.append(key)
@@ -316,7 +316,7 @@ def plot_tf(data, delta, freqmin=None, freqmax=None):
 
     if len(axes) != 3:
         msg = "Could not plot frequency limits!"
-        print msg
+        print(msg)
         plt.gcf().patch.set_alpha(0.0)
         plt.show()
         return

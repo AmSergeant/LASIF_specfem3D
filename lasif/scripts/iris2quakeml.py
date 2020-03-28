@@ -35,11 +35,11 @@ Requirements:
     (http://www.gnu.org/copyleft/gpl.html)
 """
 import argparse
-import HTMLParser
+import html.parser
 from obspy import read_events
 import os
-from StringIO import StringIO
-import urllib2
+from io import StringIO
+import urllib.request, urllib.error, urllib.parse
 
 from lasif.utils import get_event_filename
 
@@ -51,16 +51,16 @@ def iris2quakeml(url, output_folder=None):
             url += "quakeml"
         else:
             url += "/quakeml"
-    print "Downloading %s..." % url
+    print("Downloading %s..." % url)
 
-    r = urllib2.urlopen(url)
+    r = urllib.request.urlopen(url)
     if r.code != 200:
         r.close()
         msg = "Error Downloading file!"
         raise Exception(msg)
 
     # For some reason the quakeml file is escaped HTML.
-    h = HTMLParser.HTMLParser()
+    h = html.parser.HTMLParser()
 
     data = h.unescape(r.read())
     r.close()
@@ -95,7 +95,7 @@ def iris2quakeml(url, output_folder=None):
     if output_folder:
         event_name = os.path.join(output_folder, event_name)
     cat.write(event_name, format="quakeml", validate=True)
-    print "Written file", event_name
+    print("Written file", event_name)
 
 
 def main():

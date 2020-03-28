@@ -75,7 +75,7 @@ def test_reading_iteration_xml():
         sorted(["HL.ARG", "IU.ANTO", "GE.ISP", "HL.RDO", "HT.SIGR",
                 "GE.SANT", "HT.ALN", "HL.SANT"])
 
-    assert set([_i["station_weight"] for _i in stations.values()]) == \
+    assert set([_i["station_weight"] for _i in list(stations.values())]) == \
         set([1.0])
 
     # Test reading of comments for single events and stations.

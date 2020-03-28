@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import
+
 
 import collections
 import os
@@ -61,7 +61,7 @@ class QueryComponent(Component):
         LASIFNotFoundError: ...
         """
 
-        events = self.comm.events.get_all_events().values()
+        events = list(self.comm.events.get_all_events().values())
         stations_all={}
         # Here I use a loop on event waveforms, this might take a while if many events
         # To be improved using a loop on xml files in STATIONS/StationXML 
@@ -199,7 +199,7 @@ class QueryComponent(Component):
         events = {}
         for event in self.comm.events.list():
             try:
-                data = self.get_all_stations_for_event(event).keys()
+                data = list(self.get_all_stations_for_event(event).keys())
             except LASIFNotFoundError:
                 continue
             events[event] = data
@@ -231,7 +231,7 @@ class QueryComponent(Component):
             events = [self.comm.events.get(_i)["event_name"] for _i in events]
 
         # Get all the data.
-        for event_name, event_dict in iteration.events.items():
+        for event_name, event_dict in list(iteration.events.items()):
             # Skip events if some are specified.
             if events and event_name not in events:
                 continue
@@ -529,7 +529,7 @@ class QueryComponent(Component):
             return self.__what_is_this_file(path)
 
     def __what_is_this_folder(self, folder_path):
-        key = [_i[0] for _i in self.comm.project.paths.items() if _i[1] ==
+        key = [_i[0] for _i in list(self.comm.project.paths.items()) if _i[1] ==
                folder_path]
         if key:
             key = key[0]
@@ -565,7 +565,7 @@ class QueryComponent(Component):
             return None
 
     def __what_is_this_file(self, file_path):
-        key = [_i[0] for _i in self.comm.project.paths.items() if _i[1] ==
+        key = [_i[0] for _i in list(self.comm.project.paths.items()) if _i[1] ==
                file_path]
         # Deal with files defined by the project itsself.
         if key:
@@ -584,7 +584,7 @@ class QueryComponent(Component):
         # Deal with other files.
         else:
             # Check if it is a subfolder of any of the other defined paths.
-            common_prefix = [_i for _i in self.comm.project.paths.items() if
+            common_prefix = [_i for _i in list(self.comm.project.paths.items()) if
                              os.path.commonprefix([_i[1], file_path]) == _i[1]]
             # Not a project file if nothing is found.
             if not common_prefix:

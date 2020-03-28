@@ -61,7 +61,7 @@ class DataSyntheticIterator(object):
         return self.comm.query.get_matching_waveforms(
             self.event_name, self.iteration, station_id)
 
-    def next(self):
+    def __next__(self):
         """
         Called to retrieve the next item.
 

@@ -105,7 +105,7 @@ class RawSES3DModelHandler(object):
                     continue
                 # Check that the naming is continuous.
                 all_good = True
-                for _i in xrange(len(self.setup["subdomains"])):
+                for _i in range(len(self.setup["subdomains"])):
                     if os.path.join(directory,
                                     "%s%i" % (component, _i)) in files:
                         continue
@@ -140,7 +140,7 @@ class RawSES3DModelHandler(object):
                     timestep = int(os.path.basename(filename).split("_")[-1])
                     timesteps[timestep].append(filename)
 
-                for timestep, filenames in timesteps.iteritems():
+                for timestep, filenames in timesteps.items():
                     self.components["%s %s" % (component, timestep)] = \
                         {"filenames": sorted(
                             filenames,
@@ -177,7 +177,7 @@ class RawSES3DModelHandler(object):
         # all files have the same size.
         unique_filesizes = len(list(set([
             os.path.getsize(_i["filenames"][0])
-            for _i in self.components.itervalues()])))
+            for _i in self.components.values()])))
         if unique_filesizes != 1:
             msg = ("The different components in the folder do not have the "
                    "same number of samples")
@@ -185,7 +185,7 @@ class RawSES3DModelHandler(object):
 
         # Now calculate the lagrange polynomial degree. All necessary
         # information is present.
-        size = os.path.getsize(self.components.values()[0]["filenames"][0])
+        size = os.path.getsize(list(self.components.values())[0]["filenames"][0])
         sd = self.setup["subdomains"][0]
         x, y, z = sd["index_x_count"], sd["index_y_count"], sd["index_z_count"]
         self.lagrange_polynomial_degree = \
@@ -265,7 +265,7 @@ class RawSES3DModelHandler(object):
         :type component: basestring
         """
         # If a real component,
-        if component in self.components.keys():
+        if component in list(self.components.keys()):
             self._parse_component(component)
             return
         elif component not in self.available_derived_components:
@@ -380,7 +380,7 @@ class RawSES3DModelHandler(object):
         points = np.empty(count)
         lpd = self.lagrange_polynomial_degree
         p_view = points[:count - 1].view().reshape(((count - 1) / lpd, lpd))
-        for _i in xrange(p_view.shape[0]):
+        for _i in range(p_view.shape[0]):
             p_view[_i] = _i
         points[-1] = points[-2] + 1
         for _i, value in enumerate(coll_points[1:-1]):
@@ -628,19 +628,16 @@ class RawSES3DModelHandler(object):
                     subdom = {}
                     # Convert both indices to 0-based indices
                     subdom["single_index"] = int(data.pop(0)) - 1
-                    subdom["multi_index"] = map(lambda x: int(x) - 1,
-                                                data.pop(0).split())
-                    subdom["boundaries_x"] = map(int, data.pop(0).split())
-                    subdom["boundaries_y"] = map(int, data.pop(0).split())
-                    subdom["boundaries_z"] = map(int, data.pop(0).split())
+                    subdom["multi_index"] = [int(x) - 1 for x in data.pop(0).split()]
+                    subdom["boundaries_x"] = list(map(int, data.pop(0).split()))
+                    subdom["boundaries_y"] = list(map(int, data.pop(0).split()))
+                    subdom["boundaries_z"] = list(map(int, data.pop(0).split()))
                     # Convert radians to degree.
-                    subdom["physical_boundaries_x"] = map(
-                        lambda x: math.degrees(float(x)), data.pop(0).split())
-                    subdom["physical_boundaries_y"] = map(
-                        lambda x: math.degrees(float(x)), data.pop(0).split())
+                    subdom["physical_boundaries_x"] = [math.degrees(float(x)) for x in data.pop(0).split()]
+                    subdom["physical_boundaries_y"] = [math.degrees(float(x)) for x in data.pop(0).split()]
                     # z is in meter.
                     subdom["physical_boundaries_z"] = \
-                        map(float, data.pop(0).split())
+                        list(map(float, data.pop(0).split()))
                     for component in ("x", "y", "z"):
                         idx = "boundaries_%s" % component
                         index_count = subdom[idx][1] - subdom[idx][0] + 1

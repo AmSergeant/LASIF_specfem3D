@@ -105,11 +105,11 @@ def _parse_resp_datetime_string(datetime_string):
     dt = datetime_string.split(",")
     # Parse 2003,169
     if len(dt) == 2:
-        year, julday = map(int, dt)
+        year, julday = list(map(int, dt))
         return UTCDateTime(year=year, julday=julday)
     # Parse 2003,169,00:00:00.0000
     elif len(dt) == 3:
-        year, julday = map(int, dt[:2])
+        year, julday = list(map(int, dt[:2]))
         time_split = dt[-1].split(":")
         if len(time_split) == 3:
             hour, minute, second = time_split
@@ -118,7 +118,7 @@ def _parse_resp_datetime_string(datetime_string):
             return UTCDateTime(year=year, julday=julday, hour=int(hour),
                                minute=int(minute)) + float(second)
         elif len(time_split) == 2:
-            hour, minute = map(int, time_split)
+            hour, minute = list(map(int, time_split))
             return UTCDateTime(year=year, julday=julday, hour=int(hour),
                                minute=int(minute))
         elif len(time_split) == 1:
