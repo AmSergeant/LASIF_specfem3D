@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import flask
-from flask.ext.cache import Cache
+from flask_caching import Cache
 
 import matplotlib.pylab as plt
 from matplotlib.colors import hex2color
