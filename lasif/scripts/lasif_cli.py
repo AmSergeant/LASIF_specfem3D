@@ -234,8 +234,8 @@ def lasif_plot_event(parser, args):
 
     import matplotlib.pyplot as plt
     plt.show()
-    
-    
+
+
 @command_group("Plotting")
 def lasif_plot_events(parser, args):
     """
@@ -259,7 +259,7 @@ def lasif_plot_events(parser, args):
     args = parser.parse_args(args)
     plot_type = args.type
     config=args.config
-    
+
     comm = _find_project_comm(".", args.read_only_caches)
     comm.visualizations.plot_events(plot_type, config)
 
@@ -278,13 +278,13 @@ def lasif_plot_stations(parser,args):
                         "0: no relief background, ")
     args = parser.parse_args(args)
     plot_type = args.relief
-    
+
     comm = _find_project_comm(".", args.read_only_caches)
     comm.visualizations.plot_stations(plot_type)
 
     import matplotlib.pyplot as plt
     plt.show()    
-    
+
 
 @command_group("Plotting")
 def lasif_plot_raydensity(parser, args):
@@ -340,13 +340,13 @@ def lasif_add_gcmt_events(parser, args):
                         help="maximum epicentral distance from the domain center in degree")
     parser.add_argument("--select", default=1, type=int,
                         help="Flag for statistical selection of the events based on their spatial and time distibution")
-    
+
 
     args = parser.parse_args(args)
 
     from lasif.tools.query_gcmt_catalog import add_new_events
     comm = _find_project_comm(".", args.read_only_caches)
-    
+
     add_new_events(comm=comm, count=args.count,
                    min_magnitude=args.min_magnitude,
                    max_magnitude=args.max_magnitude,
@@ -354,7 +354,7 @@ def lasif_add_gcmt_events(parser, args):
                    domain=args.domain, min_dist=args.min_dist, max_dist=args.max_dist,
                    threshold_distance_in_km=args.min_distance,
                    statistical_selection=args.select)
-    
+
 
 
 @command_group("Project Management")
@@ -382,7 +382,7 @@ def lasif_download_data(parser, args):
     parser.add_argument("--networks", default=None,
                         type=str, 
                         help="seismic networks (comma separated) to download in the domain, eg. ``IU,G`` ")
-    
+
     args = parser.parse_args(args)
     event_name = args.e
     providers = args.providers

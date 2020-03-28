@@ -23,36 +23,36 @@ class VisualizationsComponent(Component):
     """
 
     def plot_stations(self,plot_relief=True):
-	"""
+        """
         Plots the domain and locations for all stations on the map.
         """
-	from lasif import visualization
-	
-	stations = self.comm.query.get_all_stations()
-	if plot_relief:
-		m = self.comm.project.domain.plot(skip_map_features=True)
-        	m.shadedrelief()
-		min_lat = np.round(m.latmin, decimals=1)
-		max_lat = np.round(m.latmax, decimals=1)
-		min_lon = np.round(m.lonmin, decimals=0)
-                max_lon = np.round(m.lonmax, decimals=0)
-		width = np.abs(max_lon - min_lon)
-		if width > 60.0:
-                   stepsize = 10.0
-            	elif 30.0 < width <= 60.0:
-                   stepsize = 5.0
-            	elif 10.0 < width <= 30.0:
-                   stepsize = 2.0
-            	else:
-                   stepsize = 1.0
-		print stepsize
-		parallels = np.arange(min_lat,max_lat,stepsize)
-		meridians = np.arange(min_lon,max_lon,stepsize)
-		m.drawparallels(parallels, labels=[1,0,0,0], color='white', linewidth = 0.5)
-		m.drawmeridians(meridians, labels=[0,0,0,1], color='white')
-	else:
-		m = self.comm.project.domain.plot()
-	visualization.plot_stations(map_object=m, station_dict=stations)
+        from lasif import visualization
+
+        stations = self.comm.query.get_all_stations()
+        if plot_relief:
+            m = self.comm.project.domain.plot(skip_map_features=True)
+            m.shadedrelief()
+            min_lat = np.round(m.latmin, decimals=1)
+            max_lat = np.round(m.latmax, decimals=1)
+            min_lon = np.round(m.lonmin, decimals=0)
+            max_lon = np.round(m.lonmax, decimals=0)
+            width = np.abs(max_lon - min_lon)
+            if width > 60.0:
+                stepsize = 10.0
+            elif 30.0 < width <= 60.0:
+                stepsize = 5.0
+            elif 10.0 < width <= 30.0:
+                stepsize = 2.0
+            else:
+                stepsize = 1.0
+            print stepsize
+            parallels = np.arange(min_lat,max_lat,stepsize)
+            meridians = np.arange(min_lon,max_lon,stepsize)
+            m.drawparallels(parallels, labels=[1,0,0,0], color='white', linewidth = 0.5)
+            m.drawmeridians(meridians, labels=[0,0,0,1], color='white')
+        else:
+            m = self.comm.project.domain.plot()
+        visualization.plot_stations(map_object=m, station_dict=stations)
 
 
 
@@ -68,15 +68,15 @@ class VisualizationsComponent(Component):
         from lasif import visualization
 
         events = self.comm.events.get_all_events().values()
-        
-	if plot_type == "map":
+
+        if plot_type == "map":
             if config == "teleseismic":
-		print("Printing global map for teleseismic configuration")
-		m = self.comm.project.domain.plot(Teleseismic=True)
-		visualization.plot_events(events, map_object=m)
-	    else:
-		m = self.comm.project.domain.plot()
-	    	visualization.plot_events(events, map_object=m)
+                print("Printing global map for teleseismic configuration")
+                m = self.comm.project.domain.plot(Teleseismic=True)
+                visualization.plot_events(events, map_object=m)
+            else:
+                m = self.comm.project.domain.plot()
+                visualization.plot_events(events, map_object=m)
         elif plot_type == "depth":
             visualization.plot_event_histogram(events, "depth")
         elif plot_type == "time":
@@ -93,11 +93,11 @@ class VisualizationsComponent(Component):
             msg = "Event '%s' not found in project." % event_name
             raise ValueError(msg)
 
-	if config == "teleseismic":
-                print("Printing global map for teleseismic configuration")
-		map_object = self.comm.project.domain.plot(Teleseismic=True)
-	else:
-        	map_object = self.comm.project.domain.plot()
+        if config == "teleseismic":
+            print("Printing global map for teleseismic configuration")
+            map_object = self.comm.project.domain.plot(Teleseismic=True)
+        else:
+            map_object = self.comm.project.domain.plot()
 
         from lasif import visualization
 
@@ -108,7 +108,7 @@ class VisualizationsComponent(Component):
         # current event.
         try:
             stations = self.comm.query.get_all_stations_for_event(event_name)
-	except LASIFNotFoundError:
+        except LASIFNotFoundError:
             pass
         else:
             # Plot the stations if it has some. This will also plot raypaths.
@@ -135,8 +135,8 @@ class VisualizationsComponent(Component):
 
         plt.figure(figsize=(20, 21))
 
-        
-	m = self.comm.project.domain.plot()
+
+        m = self.comm.project.domain.plot()
 
         event_stations = []
         for event_name, event_info in \

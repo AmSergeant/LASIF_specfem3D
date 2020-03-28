@@ -25,7 +25,7 @@ class QueryComponent(Component):
     It should thus be initialized fairly late as it needs access to a number
     of other components via the communicator.
     """
-    
+
     def get_all_stations(self):
         """
         Returns a list of all stations available for all events.
@@ -63,20 +63,20 @@ class QueryComponent(Component):
 
         events = self.comm.events.get_all_events().values()
         stations_all={}
-	# Here I use a loop on event waveforms, this might take a while if many events
-	# To be improved using a loop on xml files in STATIONS/StationXML 
+        # Here I use a loop on event waveforms, this might take a while if many events
+        # To be improved using a loop on xml files in STATIONS/StationXML 
         # stations = self.comm.stations.get_details_for_filename(xmlfile)
-	for event in events:
-	    try:
-            	stations = self.comm.query.get_all_stations_for_event(event["event_name"])
-	    except LASIFNotFoundError:
+        for event in events:
+            try:
+                stations = self.comm.query.get_all_stations_for_event(event["event_name"])
+            except LASIFNotFoundError:
                 continue
-	    for station in stations:
-		if station in stations_all:
-		    continue
-		else:
-		    stations_all[station]=stations[station]
-	return stations_all
+            for station in stations:
+                if station in stations_all:
+                    continue
+                else:
+                    stations_all[station]=stations[station]
+        return stations_all
 
     def get_all_stations_for_event(self, event_name):
         """
@@ -234,7 +234,7 @@ class QueryComponent(Component):
         for event_name, event_dict in iteration.events.items():
             # Skip events if some are specified.
             if events and event_name not in events:
-                    continue
+                continue
 
             # Get all stations that should be defined for the current
             # iteration.
@@ -494,16 +494,16 @@ class QueryComponent(Component):
         """
         Get the center of the domain.
         """
-	domain=self.comm.project.domain
+        domain=self.comm.project.domain
         c = domain.unrotated_center
-	Point = collections.namedtuple("CenterPoint", ["longitude",
+        Point = collections.namedtuple("CenterPoint", ["longitude",
                                                        "latitude"])
-	from lasif import rotations
-	r_lat, r_lng = rotations.rotate_lat_lon(
+        from lasif import rotations
+        r_lat, r_lng = rotations.rotate_lat_lon(
             c.latitude, c.longitude, domain.rotation_axis,
             domain.rotation_angle_in_degree)	
-	return Point(longitude=r_lng, latitude=r_lat)
-    
+        return Point(longitude=r_lng, latitude=r_lat)
+
     def what_is(self, path):
         """
         Debug function returning a string with information about the file.

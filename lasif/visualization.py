@@ -53,7 +53,7 @@ def plot_raydensity(map_object, station_events, domain):
     import multiprocessing
     import progressbar
     from scipy.stats import scoreatpercentile
-	
+
     if not isinstance(domain, RectangularSphericalSection):
         raise NotImplementedError(
             "Raydensity currently only implemented for rectangular domains. "

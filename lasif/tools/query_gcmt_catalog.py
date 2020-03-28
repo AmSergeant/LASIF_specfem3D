@@ -166,14 +166,14 @@ def add_new_events(comm, count, min_magnitude, max_magnitude, min_year=None,
 
         count -= 1
     else:
-	if not statistical_selection:
-	    for event in cat:
-	        if event not in existing_events:
-            	    chosen_events.append(event)
-	
+        if not statistical_selection:
+            for event in cat:
+                if event not in existing_events:
+                    chosen_events.append(event)
+
 
     while count and statistical_selection:
-	print("Starting selection process ...")
+        print("Starting selection process ...")
 
         if not coordinates:
             print("\tNo events left to select from. Stoping here.")

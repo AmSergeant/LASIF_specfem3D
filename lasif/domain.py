@@ -251,12 +251,12 @@ class RectangularSphericalSection(Domain):
         # does not distort features a lot on regional scales.
         else:
             if resolution is None:
-		try:
+                try:
                     resolution = "i"
-		except IOError:
-		    resolution = "l"
+                except IOError:
+                    resolution = "l"
             extent = self.extent
-	    
+
             # Calculate approximate width and height in meters.
             width = extent.longitudinal_extent
             height = extent.latitudinal_extent
@@ -276,8 +276,8 @@ class RectangularSphericalSection(Domain):
             m = Basemap(projection='laea', resolution=resolution, width=width,
                         height=height, lat_0=self.center.latitude,
                         lon_0=self.center.longitude, ax=ax)
-	
-	# This is fairly expensive and can thus be skipped.
+
+        # This is fairly expensive and can thus be skipped.
         if not skip_map_features:
             _plot_features(m, stepsize)
 
@@ -287,7 +287,7 @@ class RectangularSphericalSection(Domain):
             if self.boundary_width_in_degree:
                 _plot_lines(m, self.unrotated_inner_border, color="red", lw=2,
                             alpha=0.4)
-	
+
         _plot_lines(m, self.border, color="black", lw=2,
                     label="Physical Domain", effects=False)
         if self.boundary_width_in_degree:

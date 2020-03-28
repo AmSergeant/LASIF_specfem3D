@@ -1194,8 +1194,8 @@ class PrettyTable(object):
             bits = [options["horizontal_char"]]
         # For tables with no data or fieldnames
         if not self._field_names:
-                bits.append(options["junction_char"])
-                return "".join(bits)
+            bits.append(options["junction_char"])
+            return "".join(bits)
         for field, width in zip(self._field_names, self._widths):
             if options["fields"] and field not in options["fields"]:
                 continue
