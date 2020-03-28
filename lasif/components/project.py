@@ -562,7 +562,7 @@ class Project(Component):
         string_doc = etree.tostring(doc, pretty_print=True,
                                     xml_declaration=True, encoding="UTF-8")
 
-        with open(self.paths["config_file"], "wt") as open_file:
+        with open(self.paths["config_file"], "wb") as open_file:
             open_file.write(string_doc)
 
     def get_project_function(self, fct_type):

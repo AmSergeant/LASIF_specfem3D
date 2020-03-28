@@ -3,6 +3,7 @@
 # Form implementation generated from reading ui file '/home/nienkeblom/LASIF/lasif/ses3d_model_gui/ses3d_model_gui.ui'
 #
 # Created by: PyQt4 UI code generator 4.11.4
+# Modified for PyQt5
 #
 # WARNING! All changes made in this file will be lost!
 
