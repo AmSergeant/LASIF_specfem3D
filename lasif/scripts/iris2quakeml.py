@@ -62,7 +62,7 @@ def iris2quakeml(url, output_folder=None):
     # For some reason the quakeml file is escaped HTML.
     h = html.parser.HTMLParser()
 
-    data = h.unescape(r.read())
+    data = h.unescape(r.read().decode('utf-8'))
     r.close()
 
     data = StringIO(data)

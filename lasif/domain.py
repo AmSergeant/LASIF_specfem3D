@@ -245,6 +245,7 @@ class RectangularSphericalSection(Domain):
                         lat_0=self.center.latitude, resolution=resolution,
                         ax=ax)
             stepsize = 10.0
+
         # Lambert azimuthal equal area projection. Equal area projections
         # are useful for interpreting features and this particular one also
         # does not distort features a lot on regional scales.
