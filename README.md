@@ -4,7 +4,14 @@
 [![GPLv3](http://www.gnu.org/graphics/gplv3-88x31.png)](https://github.com/krischer/LASIF/blob/master/LICENSE)
 
 
-Documentation can be found here: [LASIF](http://krischer.github.io/LASIF)
+## Secfem3D FWI flavor LASIF
+to install,  
+`pip install -r requirements.txt`  
+then  
+`pip install .`  
+
+
+Documentation about can be found here: [LASIF](http://krischer.github.io/LASIF)
 
 
 ### Paper

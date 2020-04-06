@@ -68,7 +68,8 @@ setup_config = dict(
         "mock",
         "flask",
         "flask-cache",
-        "geojson"],
+        "geojson",
+        ],
     package_data={
         "lasif": get_package_data()},
     entry_points={
