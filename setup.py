@@ -69,7 +69,7 @@ setup_config = dict(
         "flask",
         "flask-cache",
         "geojson",
-        ],
+    ],
     package_data={
         "lasif": get_package_data()},
     entry_points={

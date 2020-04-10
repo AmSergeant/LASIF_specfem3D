@@ -39,7 +39,7 @@ class DataSyntheticIterator(object):
         processed = set(["%s.%s" % (_i["network"], _i["station"]) for _i in
                          processed])
         synthetics = set(["%s.%s" % (_i["network"], _i["station"]) for _i in
-                         synthetics])
+                          synthetics])
         self.stations = tuple(sorted(stations.intersection(
             processed).intersection(synthetics)))
 

@@ -14,13 +14,13 @@ Still to be specified.
     (http://www.gnu.org/copyleft/gpl.html)
 """
 
-import sys
-sys.path.append('../')
-import lasif.rotations as rot
-import numpy as np
-from obspy.core import UTCDateTime
 from obspy.core.event import Catalog, Magnitude, Event, Origin, \
     FocalMechanism, Tensor, MomentTensor, NodalPlanes
+from obspy.core import UTCDateTime
+import numpy as np
+import lasif.rotations as rot
+import sys
+sys.path.append('../')
 
 
 def par2quakeml(Par_filename, QuakeML_filename, rotation_axis=[0.0, 1.0, 0.0],

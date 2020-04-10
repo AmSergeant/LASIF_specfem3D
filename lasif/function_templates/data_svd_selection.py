@@ -17,7 +17,7 @@ import warnings
 from lasif import LASIFError
 
 
-def data_svd_selection(to_be_processed, components = ['E','N','Z'], cc_threshold = 0.7):  # NOQA
+def data_svd_selection(to_be_processed, components=['E', 'N', 'Z'], cc_threshold=0.7):  # NOQA
     """
     Function to perform the actual preprocessing for one individual seismogram.
     This is part of the project so it can change depending on the project.
@@ -87,34 +87,34 @@ def data_svd_selection(to_be_processed, components = ['E','N','Z'], cc_threshold
     objects can do.
 
     """
-    def align_trace(timeserie,tau):
-            """
-            Parameters
-            ----------
-            timeserie : np.array, dtype = float
-                seismic trace
-            tau : scalar, dtype = int
-                number of samples to shift the trace
-                tau > 0 whill shift the trace forward in time
-                tau <0 will shift the trace backward in time
-    
-            Returns
-            -------
-            align : np.array, dtype = float
-                shifted trace. 
-                output trace has same number of samples as input signal which has been filled with zero padding
-    
-            """
-            tau=int(tau)
-            align=np.zeros(timeserie.shape[0])
-            if tau>=0:
-                #roll the signal forward
-                align[tau:-1]=timeserie[0:-1-tau]
-            elif tau<0:
-                #roll the signal backward
-                align[0:-1-np.abs(tau)]=timeserie[np.abs(tau):-1]
-            return align
-        
+    def align_trace(timeserie, tau):
+        """
+        Parameters
+        ----------
+        timeserie : np.array, dtype = float
+            seismic trace
+        tau : scalar, dtype = int
+            number of samples to shift the trace
+            tau > 0 whill shift the trace forward in time
+            tau <0 will shift the trace backward in time
+
+        Returns
+        -------
+        align : np.array, dtype = float
+            shifted trace.
+            output trace has same number of samples as input signal which has been filled with zero padding
+
+        """
+        tau = int(tau)
+        align = np.zeros(timeserie.shape[0])
+        if tau >= 0:
+            # roll the signal forward
+            align[tau:-1] = timeserie[0:-1 - tau]
+        elif tau < 0:
+            # roll the signal backward
+            align[0:-1 - np.abs(tau)] = timeserie[np.abs(tau):-1]
+        return align
+
     def construct_reference_wavefrom_from_dtt_inversion(stream):
         """
         construct the reference waveform for teleseismic seismograms based on a svd decomposition of the traces
@@ -125,7 +125,7 @@ def data_svd_selection(to_be_processed, components = ['E','N','Z'], cc_threshold
         Parameters
         ----------
         stream : stream of data. Prefer to use traces windowed around the phase of interest
-        
+
 
         Returns
         -------
@@ -134,8 +134,7 @@ def data_svd_selection(to_be_processed, components = ['E','N','Z'], cc_threshold
                         the input stream but with individual traces aligned with each other
 
         """
-        
-        
+
         def invert_time_shift(stream):
             """
             invert for the best time-shifts for m indivual traces to align them with respect to each other
@@ -153,61 +152,63 @@ def data_svd_selection(to_be_processed, components = ['E','N','Z'], cc_threshold
                             ....
                       0 0 0 0 0 0 ... 1 -1] of size N x m
             Following Brenguier et al. (2014, Science) Supp. Mat
-                
-    
+
+
             Parameters
             ----------
             stream : data stream of length m
                 contains seismic traces to cac
-    
+
             Returns
             -------
             model_time_shift : np.array of size m x 1
-    
+
             """
             import itertools
             m = len(stream)
             all_combin = list(itertools.combinations(np.arange(m), 2))
             N = len(all_combin)
-            time_shift_doublet=np.zeros((N,1),dtype = float)
-            G=np.zeros((N,m),dtype = int) 
+            time_shift_doublet = np.zeros((N, 1), dtype=float)
+            G = np.zeros((N, m), dtype=int)
             for i, combin in enumerate(all_combin):
-                    i1 = combin[0]
-                    i2 = combin[1]
-                    cc = np.correlate(stream[i1].data,stream[i2].data, mode="full")
-                    time_shift = int(cc.argmax() - stream[0].stats.npts  + 1)
-                    time_shift_doublet[i] = time_shift
-                    G[i][i1] = -1
-                    G[i][i2] = 1
+                i1 = combin[0]
+                i2 = combin[1]
+                cc = np.correlate(
+                    stream[i1].data,
+                    stream[i2].data,
+                    mode="full")
+                time_shift = int(cc.argmax() - stream[0].stats.npts + 1)
+                time_shift_doublet[i] = time_shift
+                G[i][i1] = -1
+                G[i][i2] = 1
             Ginv = np.linalg.inv(np.transpose(G).dot(G)).dot(np.transpose(G))
             model_time_shift = Ginv.dot(time_shift_doublet)
             return model_time_shift
-        
-        
+
         # Invert the time-shift for individual traces
         time_shifts = invert_time_shift(stream)
-        
+
         # align traces + construct array of aligned data
-        data_matrix = np.zeros((len(stream),stream[0].stats.npts),dtype = float)
+        data_matrix = np.zeros(
+            (len(stream), stream[0].stats.npts), dtype=float)
         i = 0
         stream_aligned = stream.copy()
         for i, tr in enumerate(stream_aligned):
-            tr.data = align_trace(tr.data, time_shifts[i] )
-            data_matrix[i] = tr.data  
-            i += 1 
-                  
+            tr.data = align_trace(tr.data, time_shifts[i])
+            data_matrix[i] = tr.data
+            i += 1
+
         #rank = np.linalg.matrix_rank(data_matrix)
         #print("!!!! Rank %d should be lower than number of traces %d !!!"%(rank, len(stream)))
-        
+
         # svd decomposition of data_matrix
         U, s, V = np.linalg.svd(data_matrix)
-        
+
         # the reference waveform is the first eigenimage
-        reference_wav = - np.sign(s[0])*V[0] # check with the sign !
-        
+        reference_wav = - np.sign(s[0]) * V[0]  # check with the sign !
+
         return reference_wav, stream_aligned
-    
-    
+
     def construct_reference_wavefrom_from_dtt_stack(stream, stack):
         """
         construct the reference waveform for teleseismic seismograms based on a svd decomposition of the traces
@@ -218,7 +219,7 @@ def data_svd_selection(to_be_processed, components = ['E','N','Z'], cc_threshold
         Parameters
         ----------
         stream : stream of data. Prefer to use traces windowed around the phase of interest
-        
+
 
         Returns
         -------
@@ -230,107 +231,115 @@ def data_svd_selection(to_be_processed, components = ['E','N','Z'], cc_threshold
         # =========================================================================
         # Align individual seismograms with the stack, and construct data matrix
         # =========================================================================
-        data_matrix = np.zeros((len(stream),stream[0].stats.npts),dtype = float)
+        data_matrix = np.zeros(
+            (len(stream), stream[0].stats.npts), dtype=float)
         i = 0
         stream_aligned = stream.copy()
         for tr in stream_aligned:
-            cc = np.correlate(stack,tr.data, mode="full")
+            cc = np.correlate(stack, tr.data, mode="full")
             time_shift = int(cc.argmax() - stream[0].stats.npts + 1)
-            
-            tr.data = align_trace(tr.data, time_shift )
-            data_matrix[i] = tr.data  
+
+            tr.data = align_trace(tr.data, time_shift)
+            data_matrix[i] = tr.data
             i += 1
         # svd decomposition of data_matrix
         U, s, V = np.linalg.svd(data_matrix)
         # the reference waveform is the first eigenimage
-        reference_wav = - np.sign(s[0])*V[0] # check with the sign !
-        
+        reference_wav = - np.sign(s[0]) * V[0]  # check with the sign !
+
         return reference_wav, stream_aligned
 
-
-    
-    
     # =========================================================================
     # Entering the function
     # =========================================================================
     process_params = to_be_processed[0]["processing_info"]["process_params"]
-    
+
     seconds_prior_arrival = process_params["seconds_prior_arrival"]
     window_length_in_sec = process_params["window_length_in_sec"]
-    
-    
-    
+
     for comp in components:
-        
+
         # =========================================================================
         # Selection on one component
         # =========================================================================
         # !!!!!! replace first_P_arrival by phase of interest to be calculated in preprocess_data and given in process_info
-        
-        file_list = [wav["processing_info"]["output_filename"] 
-                     for wav in to_be_processed 
+
+        file_list = [wav["processing_info"]["output_filename"]
+                     for wav in to_be_processed
                      if comp in wav["processing_info"]["channel"]]
-        arrival_times = [wav["processing_info"]["first_P_arrival"] 
-                     for wav in to_be_processed 
-                     if comp in wav["processing_info"]["channel"]]
+        arrival_times = [wav["processing_info"]["first_P_arrival"]
+                         for wav in to_be_processed
+                         if comp in wav["processing_info"]["channel"]]
         #print("%d files for %s"%(len(file_list),comp))
-        
+
         # =========================================================================
         # read traces, window around phase of interest and construct a stack
         # =========================================================================
         st_win = obspy.Stream()
-        stack = np.zeros(int(window_length_in_sec/process_params["dt"]),dtype=float)
+        stack = np.zeros(int(window_length_in_sec /
+                             process_params["dt"]), dtype=float)
         files_to_read = []
         for file_to_read, first_tt_arrival in zip(file_list, arrival_times):
             if os.path.isfile(file_to_read):
                 tr = obspy.read(file_to_read)
-                idx_sigwin_start = int(np.ceil((first_tt_arrival - seconds_prior_arrival) / process_params["dt"]))
-                idx_sigwin_end = idx_sigwin_start + int(window_length_in_sec/ process_params["dt"])
+                idx_sigwin_start = int(
+                    np.ceil(
+                        (first_tt_arrival -
+                         seconds_prior_arrival) /
+                        process_params["dt"]))
+                idx_sigwin_end = idx_sigwin_start + \
+                    int(window_length_in_sec / process_params["dt"])
                 tr[0].data = tr[0].data[idx_sigwin_start:idx_sigwin_end]
                 tr.detrend("linear")
-                
+
                 stack += tr[0].data
                 st_win += tr
                 files_to_read.append(file_to_read)
         file_list = files_to_read
         del files_to_read
         #print("%d files to process"%len(file_list))
-           
-        # if no waveform selected at the previous step (snr criteria), quit the process
+
+        # if no waveform selected at the previous step (snr criteria), quit the
+        # process
         if not st_win:
-            print("No %s data selected for this event, will skip the svd selection"%comp)
+            print(
+                "No %s data selected for this event, will skip the svd selection" %
+                comp)
             continue
-        
+
         stack /= len(st_win)
-        
+
         # =========================================================================
         # construct reference waveforms and aligned data
         # =========================================================================
-        ## For testing
-        ## choose the option for align the traces: inversion of time-shift across the traces, or use the stack
-        ## it appears that both method yiel similar results
-        ## So I suggest to use either one of the two options
+        # For testing
+        # choose the option for align the traces: inversion of time-shift across the traces, or use the stack
+        # it appears that both method yiel similar results
+        # So I suggest to use either one of the two options
         try:
-            reference_wav, st_aligned = construct_reference_wavefrom_from_dtt_inversion(st_win)
-        except:
-            reference_wav, st_aligned = construct_reference_wavefrom_from_dtt_stack(st_win, stack)
-         
-        # =========================================================================         
+            reference_wav, st_aligned = construct_reference_wavefrom_from_dtt_inversion(
+                st_win)
+        except BaseException:
+            reference_wav, st_aligned = construct_reference_wavefrom_from_dtt_stack(
+                st_win, stack)
+
+        # =========================================================================
         # waveform selection based on correlation coeff with reference waveform
         # =========================================================================
         st_win_select = obspy.Stream()
         for tr in st_win:
             a = np.dot(tr.data, np.transpose(reference_wav))
-            b = np.linalg.norm(tr.data,ord=None)*np.linalg.norm(reference_wav,ord=None)
-            cc = a/b
-            if np.abs(cc)>=cc_threshold:
+            b = np.linalg.norm(tr.data, ord=None) * \
+                np.linalg.norm(reference_wav, ord=None)
+            cc = a / b
+            if np.abs(cc) >= cc_threshold:
                 st_win_select += tr
-           
+
         '''
         # plotting
         from lasif.visualization import plot_waveform_section
         import matplotlib.pyplot as plt
-        import matplotlib.gridspec as gridspec 
+        import matplotlib.gridspec as gridspec
         fig=plt.figure()
         spec = gridspec.GridSpec(ncols=1, nrows=6, figure=fig)
         ax=fig.add_subplot(spec[0:4, 0])
@@ -343,64 +352,60 @@ def data_svd_selection(to_be_processed, components = ['E','N','Z'], cc_threshold
         ax2.set_xlim(0,window_length_in_sec)
         plt.show()
         '''
-    
-            
-            
+
         # =========================================================================
         # Remove non-selected files
-        # =========================================================================    
+        # =========================================================================
         if st_win_select:
             files_to_keep = []
             for tr in st_win_select:
-                loc_id = "%s.%s"%(tr.stats.network,tr.stats.station)
-                files_to_keep.append([wav["processing_info"]["output_filename"] 
-                     for wav in to_be_processed 
-                     if (loc_id in wav["processing_info"]["station_filename"]) 
-                     and (comp in wav["processing_info"]["channel"])][0])
+                loc_id = "%s.%s" % (tr.stats.network, tr.stats.station)
+                files_to_keep.append([wav["processing_info"]["output_filename"]
+                                      for wav in to_be_processed
+                                      if (loc_id in wav["processing_info"]["station_filename"])
+                                      and (comp in wav["processing_info"]["channel"])][0])
             files_to_rmv = list(set(file_list) - set(files_to_keep))
             #print("%d/%d %s files to rmv"%(len(files_to_rmv),len(file_list),comp))
-            
+
         else:
             #print("no selected %s files, will remove all"%comp)
             files_to_rmv = file_list
-                
-        
+
         # remove non-selected files
         for the_file in files_to_rmv:
-            os.system("rm %s"%the_file)
-        
-        
-    '''    
+            os.system("rm %s" % the_file)
+
+    '''
     """ I do not use this anymore, I check for every files
     # =========================================================================
-    # find other horizontal files to be processed based on selection on Z 
-    # =========================================================================        
+    # find other horizontal files to be processed based on selection on Z
+    # =========================================================================
     if st_win_select:
         E_file_list = []
         N_file_list = []
         for tr in st_win_select:
             loc_id = "%s.%s"%(tr.stats.network,tr.stats.station)
-            E_file_list.append([wav["processing_info"]["output_filename"] 
-                 for wav in to_be_processed 
-                 if (loc_id in wav["processing_info"]["station_filename"]) 
+            E_file_list.append([wav["processing_info"]["output_filename"]
+                 for wav in to_be_processed
+                 if (loc_id in wav["processing_info"]["station_filename"])
                  and ('E' in wav["processing_info"]["channel"])][0])
-            N_file_list.append([wav["processing_info"]["output_filename"] 
-                 for wav in to_be_processed 
-                 if (loc_id in wav["processing_info"]["station_filename"]) 
+            N_file_list.append([wav["processing_info"]["output_filename"]
+                 for wav in to_be_processed
+                 if (loc_id in wav["processing_info"]["station_filename"])
                  and ('N' in wav["processing_info"]["channel"])][0])
         print("%d E files and %d N files to process"%(len(E_file_list), len(N_file_list)))
     """
-    
+
     # =========================================================================
     # Same process on E component
     # =========================================================================
-    E_file_list = [wav["processing_info"]["output_filename"] 
-                 for wav in to_be_processed 
+    E_file_list = [wav["processing_info"]["output_filename"]
+                 for wav in to_be_processed
                  if 'E' in wav["processing_info"]["channel"]]
-    E_arrival_times = [wav["processing_info"]["first_P_arrival"] 
-                 for wav in to_be_processed 
+    E_arrival_times = [wav["processing_info"]["first_P_arrival"]
+                 for wav in to_be_processed
                  if 'E' in wav["processing_info"]["channel"]]
-    
+
     st_win = obspy.Stream()
     stack = np.zeros(int(window_length_in_sec/process_params["dt"]),dtype=float)
     E_files = []
@@ -411,14 +416,14 @@ def data_svd_selection(to_be_processed, components = ['E','N','Z'], cc_threshold
             idx_sigwin_end = idx_sigwin_start + int(window_length_in_sec/ process_params["dt"])
             tr[0].data = tr[0].data[idx_sigwin_start:idx_sigwin_end]
             tr.detrend("linear")
-            
+
             stack += tr[0].data
             st_win += tr
             E_files.append(file_to_read)
     E_file_list = E_files
     print("%d E files to actually process"%len(E_file_list))
-       
-    
+
+
     if st_win:
         stack /= len(st_win)
         try:
@@ -426,7 +431,7 @@ def data_svd_selection(to_be_processed, components = ['E','N','Z'], cc_threshold
             del stack
         except:
             reference_wav, st_aligned = construct_reference_wavefrom_from_dtt_stack(st_win, stack)
-                  
+
         st_win_select = obspy.Stream()
         for tr in st_win:
             a = np.dot(tr.data, np.transpose(reference_wav))
@@ -434,39 +439,39 @@ def data_svd_selection(to_be_processed, components = ['E','N','Z'], cc_threshold
             cc = a/b
             if np.abs(cc)>=cc_threshold:
                 st_win_select += tr
-                
+
         if st_win_select:
             E_files_to_keep = []
             for tr in st_win_select:
                 loc_id = "%s.%s"%(tr.stats.network,tr.stats.station)
-                E_files_to_keep.append([wav["processing_info"]["output_filename"] 
-                     for wav in to_be_processed 
-                     if (loc_id in wav["processing_info"]["station_filename"]) 
+                E_files_to_keep.append([wav["processing_info"]["output_filename"]
+                     for wav in to_be_processed
+                     if (loc_id in wav["processing_info"]["station_filename"])
                      and ('E' in wav["processing_info"]["channel"])][0])
             E_files_to_rmv = list(set(E_file_list) - set(E_files_to_keep))
             print("%d/%d E files to rmb"%(len(E_files_to_rmv),len(E_file_list)))
-            
+
         else:
             print("no selected E files, will remove all")
             E_files_to_rmv = E_file_list
-         
-        
+
+
         # remove non-selected Efiles
         for Efile in E_files_to_rmv:
             os.system("rm %s"%Efile)
-           
-            
-            
+
+
+
     # =========================================================================
     # Same process on N component
     # =========================================================================
-    N_file_list = [wav["processing_info"]["output_filename"] 
-                 for wav in to_be_processed 
+    N_file_list = [wav["processing_info"]["output_filename"]
+                 for wav in to_be_processed
                  if 'N' in wav["processing_info"]["channel"]]
-    N_arrival_times = [wav["processing_info"]["first_P_arrival"] 
-                 for wav in to_be_processed 
+    N_arrival_times = [wav["processing_info"]["first_P_arrival"]
+                 for wav in to_be_processed
                  if 'N' in wav["processing_info"]["channel"]]
-    
+
     st_win = obspy.Stream()
     stack = np.zeros(int(window_length_in_sec/process_params["dt"]),dtype=float)
     N_files = []
@@ -477,14 +482,14 @@ def data_svd_selection(to_be_processed, components = ['E','N','Z'], cc_threshold
             idx_sigwin_end = idx_sigwin_start + int(window_length_in_sec/ process_params["dt"])
             tr[0].data = tr[0].data[idx_sigwin_start:idx_sigwin_end]
             tr.detrend("linear")
-            
+
             stack += tr[0].data
             st_win += tr
             N_files.append(file_to_read)
     N_file_list = N_files
     print("%d N files to actually process"%len(N_file_list))
-       
-    
+
+
     if st_win:
         stack /= len(st_win)
         try:
@@ -492,7 +497,7 @@ def data_svd_selection(to_be_processed, components = ['E','N','Z'], cc_threshold
             del stack
         except:
             reference_wav, st_aligned = construct_reference_wavefrom_from_dtt_stack(st_win, stack)
-                  
+
         st_win_select = obspy.Stream()
         for tr in st_win:
             a = np.dot(tr.data, np.transpose(reference_wav))
@@ -500,25 +505,25 @@ def data_svd_selection(to_be_processed, components = ['E','N','Z'], cc_threshold
             cc = a/b
             if np.abs(cc)>=cc_threshold:
                 st_win_select += tr
-                
+
         if st_win_select:
             N_files_to_keep = []
             for tr in st_win_select:
                 loc_id = "%s.%s"%(tr.stats.network,tr.stats.station)
-                N_files_to_keep.append([wav["processing_info"]["output_filename"] 
-                     for wav in to_be_processed 
-                     if (loc_id in wav["processing_info"]["station_filename"]) 
+                N_files_to_keep.append([wav["processing_info"]["output_filename"]
+                     for wav in to_be_processed
+                     if (loc_id in wav["processing_info"]["station_filename"])
                      and ('N' in wav["processing_info"]["channel"])][0])
             N_files_to_rmv = list(set(N_file_list) - set(N_files_to_keep))
             print("%d/%d N files to rmb"%(len(N_files_to_rmv),len(N_file_list)))
-            
+
         else:
             print("no selected N files, will remove all")
             N_files_to_rmv = N_file_list
-        
-        
+
+
         # remove non-selected Efiles
         for Nfile in N_files_to_rmv:
             os.system("rm %s"%Nfile)
-                
+
     '''

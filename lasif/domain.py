@@ -78,6 +78,7 @@ class RectangularSphericalSection(Domain):
     """
     Class defining a potentially rotated spherical section.
     """
+
     def __init__(self, min_longitude, max_longitude, min_latitude,
                  max_latitude, min_depth_in_km=0.0, max_depth_in_km=6371.0,
                  rotation_axis=[0.0, 0.0, 1.0],
@@ -220,8 +221,14 @@ class RectangularSphericalSection(Domain):
 
         return True
 
-    def plot(self, plot_simulation_domain=False, ax=None, resolution=None,
-             skip_map_features=False, Teleseismic=False, azimuthal_projection=False):
+    def plot(
+            self,
+            plot_simulation_domain=False,
+            ax=None,
+            resolution=None,
+            skip_map_features=False,
+            Teleseismic=False,
+            azimuthal_projection=False):
         import matplotlib.pyplot as plt
         from mpl_toolkits.basemap import Basemap
 
@@ -233,13 +240,13 @@ class RectangularSphericalSection(Domain):
         if self.max_extent >= 180.0 or Teleseismic:
             if resolution is None:
                 resolution = "c"
-	    if azimuthal_projection is True:
-		m = Basemap(projection='aeqd', lon_0=self.center.longitude,
-			lat_0=self.center.latitude, resolution=resolution,
-                        ax=ax)
-	    else:
-            	m = Basemap(projection='moll', lon_0=0, resolution=resolution,
-                        ax=ax)
+            if azimuthal_projection is True:
+                m = Basemap(projection='aeqd', lon_0=self.center.longitude,
+                            lat_0=self.center.latitude, resolution=resolution,
+                            ax=ax)
+            else:
+                m = Basemap(projection='moll', lon_0=0, resolution=resolution,
+                            ax=ax)
             stepsize = 45.0
         # Orthographic projection for 75.0 <= extent < 180.0
         elif self.max_extent >= 75.0 or (plot_simulation_domain is True and

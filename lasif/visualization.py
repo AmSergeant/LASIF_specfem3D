@@ -18,19 +18,27 @@ from obspy.imaging.beachball import beach
 from obspy.signal.tf_misfit import plot_tfr
 
 
-def plot_waveform_section(axis,stream, offsets, reftime = None, scale=5., colors=None, lw = 1, type='normal'):
+def plot_waveform_section(
+        axis,
+        stream,
+        offsets,
+        reftime=None,
+        scale=5.,
+        colors=None,
+        lw=1,
+        type='normal'):
     """
     Create a waveform gather plot for one event.
 
     """
-    if reftime ==None:
+    if reftime is None:
         reftime = stream[0].stats.starttime
-    if colors==None:
-        colors='k'
-    if len(offsets)==0:
-        offsets=np.arange(len(stream))
-        
-    def sect_init_time(stream,reftime):
+    if colors is None:
+        colors = 'k'
+    if len(offsets) == 0:
+        offsets = np.arange(len(stream))
+
+    def sect_init_time(stream, reftime):
         """
         Define the time vector for each trace
         """
@@ -41,17 +49,29 @@ def plot_waveform_section(axis,stream, offsets, reftime = None, scale=5., colors
                  (tr.stats.starttime - reftime)) * tr.stats.delta)
         time_min = np.concatenate(tr_times).min()
         time_max = np.concatenate(tr_times).max()
-        return time_min, time_max, len(np.concatenate(tr_times))/len(tr_times)
-    
-    time_lim = sect_init_time(stream,reftime)
-    for tr, offset in zip(stream,offsets):
-        axis.plot(tr.times(), tr.data/tr.data.max()*scale + offset,
-                  color=colors,alpha=0.5, linewidth=lw)
+        return time_min, time_max, len(
+            np.concatenate(tr_times)) / len(tr_times)
+
+    time_lim = sect_init_time(stream, reftime)
+    for tr, offset in zip(stream, offsets):
+        axis.plot(tr.times(), tr.data / tr.data.max() * scale + offset,
+                  color=colors, alpha=0.5, linewidth=lw)
         if type == "wiggle":
-            axis.fill_between(tr.times(),offset,tr.data/tr.data.max()*scale + offset,
-                              where=(tr.data/tr.data.max()*scale + offset>offset),
-                              color=colors,alpha=0.5)
-    axis.set_xlim(time_lim[0],time_lim[1])
+            axis.fill_between(
+                tr.times(),
+                offset,
+                tr.data /
+                tr.data.max() *
+                scale +
+                offset,
+                where=(
+                    tr.data /
+                    tr.data.max() *
+                    scale +
+                    offset > offset),
+                color=colors,
+                alpha=0.5)
+    axis.set_xlim(time_lim[0], time_lim[1])
 
 
 def plot_events(events, map_object, beachball_size=0.02):
@@ -136,8 +156,8 @@ def plot_raydensity(map_object, station_events, domain):
         data.dtype = dtype
         return data.reshape(shape)
 
-    print("\nLaunching %i greatcircle calculations on %i CPUs..." % \
-        (circle_count, cpu_count))
+    print("\nLaunching %i greatcircle calculations on %i CPUs..." %
+          (circle_count, cpu_count))
 
     widgets = ["Progress: ", progressbar.Percentage(),
                progressbar.Bar(), "", progressbar.ETA()]
@@ -286,8 +306,9 @@ def plot_stations_for_event(map_object, station_dict, event_info,
     map_object.ax.set_title(title, size="large")
     return stations
 
+
 def plot_stations(map_object, station_dict,
-                            color="red", alpha=1.0):
+                  color="red", alpha=1.0):
     """
     Plots all stations for one event.
 
@@ -417,4 +438,3 @@ def plot_event_histogram(events, plot_type):
         plt.title("Hypocenter depth distribution (%i events)" % len(events))
 
     plt.tight_layout()
-

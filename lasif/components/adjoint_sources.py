@@ -30,6 +30,7 @@ class AdjointSourcesComponent(Component):
     :param communicator: The communicator instance.
     :param component_name: The name of this component for the communicator.
     """
+
     def __init__(self, ad_src_folder, communicator, component_name):
         self._folder = ad_src_folder
         super(AdjointSourcesComponent, self).__init__(

@@ -89,7 +89,7 @@ def preprocessing_function(processing_info, iteration):  # NOQA
     objects can do.
 
     """
-    
+
     def zerophase_chebychev_lowpass_filter(trace, freqmax):
         """
         Custom Chebychev type two zerophase lowpass filter useful for
@@ -120,32 +120,33 @@ def preprocessing_function(processing_info, iteration):  # NOQA
 
         # Apply twice to get rid of the phase distortion.
         trace.data = signal.filtfilt(b, a, trace.data)
-        
-        
-        
-    def signal_to_noise_ratio(data,first_tt_arrival, process_params):    
-        
-        minimum_period = 1./process_params["highpass"]
+
+    def signal_to_noise_ratio(data, first_tt_arrival, process_params):
+
+        minimum_period = 1. / process_params["highpass"]
         dt = process_params["dt"]
-        
-        
+
         # Estimate noise level from waveforms prior to the first arrival.
-        idx_noise_end = int(np.ceil((first_tt_arrival - 0.5 * minimum_period) / dt)) - 1
+        idx_noise_end = int(
+            np.ceil(
+                (first_tt_arrival - 0.5 * minimum_period) / dt)) - 1
         idx_noise_end = max(10, idx_noise_end)
-        idx_noise_start = int(np.ceil((first_tt_arrival - 5 * minimum_period) / dt))
+        idx_noise_start = int(
+            np.ceil(
+                (first_tt_arrival - 5 * minimum_period) / dt))
         idx_noise_start = max(10, idx_noise_start)
-        idx_sigwin_start = int(np.ceil((first_tt_arrival - 0.5 * minimum_period) / dt))
-        idx_sigwin_end = idx_sigwin_start + int(minimum_period/ dt)
-    
+        idx_sigwin_start = int(
+            np.ceil((first_tt_arrival - 0.5 * minimum_period) / dt))
+        idx_sigwin_end = idx_sigwin_start + int(minimum_period / dt)
+
         if idx_noise_start >= idx_noise_end:
             idx_noise_start = max(10, idx_noise_end - 10)
-    
+
         abs_data = np.abs(data[idx_sigwin_start:idx_sigwin_end])
         noise_absolute = np.abs(data[idx_noise_start:idx_noise_end]).max()
         noise_relative = noise_absolute / abs_data.max()
-        
-        return noise_relative, noise_absolute
 
+        return noise_relative, noise_absolute
 
     # =========================================================================
     # Define noise_theshold by default if not given in argument
@@ -154,7 +155,7 @@ def preprocessing_function(processing_info, iteration):  # NOQA
         noise_threshold = 0.1
     else:
         noise_threshold = processing_info["noise_threshold"]
-    
+
     # =========================================================================
     # Read seismograms and gather basic information.
     # =========================================================================
@@ -171,18 +172,13 @@ def preprocessing_function(processing_info, iteration):  # NOQA
                           processing_info["input_filename"], len(st)))
     tr = st[0]
 
-
-    
     # fill the data file header with station coordinates
     receiver = processing_info["station_coordinates"]
-    tr.stats.coordinates =  AttribDict({
+    tr.stats.coordinates = AttribDict({
         'latitude': receiver["latitude"],
         'elevation': receiver["elevation_in_m"],
         'longitude': receiver["longitude"]})
-    
 
-    
-    
     # Make sure the seismograms are long enough. If not, skip them.
     if starttime < tr.stats.starttime or endtime > tr.stats.endtime:
 
@@ -355,13 +351,12 @@ def preprocessing_function(processing_info, iteration):  # NOQA
         sampling_rate=1.0 / processing_info["process_params"]["dt"],
         method="lanczos", starttime=starttime, window="blackman", a=12,
         npts=processing_info["process_params"]["npts"])
-    
-    
+
     # =========================================================================
     # Step 6: Waveform selection based on SNR
     # =========================================================================
     # compute the noise_relative level
-    snr = signal_to_noise_ratio(tr.data, processing_info["first_P_arrival"], 
+    snr = signal_to_noise_ratio(tr.data, processing_info["first_P_arrival"],
                                 processing_info["process_params"])[0]
     # selection
     if snr < noise_threshold:
@@ -372,5 +367,5 @@ def preprocessing_function(processing_info, iteration):  # NOQA
         tr.data = np.require(tr.data, dtype="float32", requirements="C")
         if hasattr(tr.stats, "mseed"):
             tr.stats.mseed.encoding = "FLOAT32"
-    
+
         tr.write(processing_info["output_filename"], format=tr.stats._format)

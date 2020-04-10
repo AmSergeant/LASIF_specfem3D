@@ -42,7 +42,7 @@ def scan_programs(parser):
                     if choice == arg.default:
                         choice += " (Default)"
                     new_choices.append(choice)
-                choices=new_choices
+                choices = new_choices
             name += " {%s}" % ", ".join(choices)
         desc = (arg.help or '') % {'default': arg.default}
         positional_arguments.append(([name], desc))
@@ -63,7 +63,7 @@ def scan_programs(parser):
                     if choice == arg.default:
                         choice += " (Default)"
                     new_choices.append(choice)
-                choices=new_choices
+                choices = new_choices
             additional_info += " {%s}" % ", ".join(choices)
             # from IPython.core.debugger import Tracer; Tracer(colors="linux")()
         names = ['{0}{1}'.format(option_string, additional_info)
@@ -103,7 +103,6 @@ class LasifCLIDirective(Directive):
             result.append(title, "<lasif_cli_list>")
             result.append("-" * len(title), "<lasif_cli_list>")
             result.append("", "<lasif_cli_list>")
-
 
             if group_name in lasif_cli.COMMAND_GROUP_DOCS:
                 result.append(".. admonition:: %s" % group_name,
@@ -153,7 +152,6 @@ class LasifCLIDirective(Directive):
                             "<lasif_cli_list>")
                         result.append("", "<lasif_cli_list>")
 
-
                     result.append(" .. code-block:: none", "<lasif_cli_list>")
                     result.append("", "<lasif_cli_list>")
                     result.append("    " + "\n    ".join(usage.splitlines()),
@@ -183,10 +181,10 @@ class LasifCLIDirective(Directive):
 
                     for option_strings, help_ in optional_args:
                         for i, j in itertools.izip_longest(
-                                (", ".join(["``%s``" % _i
-                                            for _i in option_strings]),),
-                                 textwrap.wrap(help_, 20),
-                                 fillvalue=""):
+                            (", ".join(["``%s``" % _i
+                                        for _i in option_strings]),),
+                                textwrap.wrap(help_, 20),
+                                fillvalue=""):
                             table.append((i, j))
 
                     # Render table.
@@ -214,11 +212,11 @@ class LasifCLIDirective(Directive):
                             if row[0] == "":
                                 final_table.pop(-1)
                             final_table.append("|" +
-                                "|".join(
-                                    "%-{0}s".format(length) %
-                                    (" " * padding + _i)
-                                    for _i, length in zip(row, rows)
-                                ) + "|")
+                                               "|".join(
+                                                   "%-{0}s".format(length) %
+                                                   (" " * padding + _i)
+                                                   for _i, length in zip(row, rows)
+                                               ) + "|")
                         else:
                             warnings.warn("Table cannot be rendered!")
                         final_table.append(separator)

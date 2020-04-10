@@ -22,6 +22,7 @@ class EventsComponent(Component):
     :param component_name: The name of this component for the
         communicator.
     """
+
     def __init__(self, folder, communicator, component_name):
         super(EventsComponent, self).__init__(communicator, component_name)
         self.__event_info_cache = {}

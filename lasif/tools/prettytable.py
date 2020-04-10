@@ -71,7 +71,7 @@ MSWORD_FRIENDLY = 11
 PLAIN_COLUMNS = 12
 RANDOM = 20
 
-_re = re.compile("\033\[[0-9;]*m")
+_re = re.compile(r"\033\[[0-9;]*m")
 
 
 def _get_size(text):
@@ -135,8 +135,9 @@ class PrettyTable(object):
         # Options
         self._options = ("start end fields header border sortby reversesort "
                          "sort_key attributes format hrules vrules").split()
-        self._options.extend(("int_format float_format padding_width "
-                             "left_padding_width right_padding_width").split())
+        self._options.extend(
+            ("int_format float_format padding_width "
+             "left_padding_width right_padding_width").split())
         self._options.extend(("vertical_char horizontal_char junction_char "
                               "header_style valign xhtml print_empty "
                               "oldsortslice").split())
@@ -448,6 +449,7 @@ class PrettyTable(object):
 
         fields - list or tuple of field names
         """
+
     def _set_field_names(self, val):
         val = [self._unicode(x) for x in val]
         self._validate_option("field_names", val)
@@ -943,10 +945,12 @@ class PrettyTable(object):
         self._vrules = random.choice((ALL, FRAME, NONE))
         self.left_padding_width = random.randint(0, 5)
         self.right_padding_width = random.randint(0, 5)
-        self.vertical_char = random.choice("~!@#$%^&*()_+|-=\{}[];':\",./;<>?")
+        self.vertical_char = random.choice(
+            r"~!@#$%^&*()_+|-=\{}[];':\",./;<>?")
         self.horizontal_char = random.choice(
             "~!@#$%^&*()_+|-=\{}[];':\",./;<>?")
-        self.junction_char = random.choice("~!@#$%^&*()_+|-=\{}[];':\",./;<>?")
+        self.junction_char = random.choice(
+            r"~!@#$%^&*()_+|-=\{}[];':\",./;<>?")
 
     ##############################
     # DATA INPUT METHODS         #
@@ -1056,8 +1060,9 @@ class PrettyTable(object):
             for index, value in enumerate(row):
                 fieldname = self.field_names[index]
                 if fieldname in self.max_width:
-                    widths[index] = max(widths[index], min(_get_size(value)[0],
-                                        self.max_width[fieldname]))
+                    widths[index] = max(
+                        widths[index], min(
+                            _get_size(value)[0], self.max_width[fieldname]))
                 else:
                     widths[index] = max(widths[index], _get_size(value)[0])
         self._widths = widths

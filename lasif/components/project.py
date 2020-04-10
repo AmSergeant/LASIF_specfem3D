@@ -49,6 +49,7 @@ class Project(Component):
 
     It represents the heart of LASIF.
     """
+
     def __init__(self, project_root_path, init_project=False,
                  read_only_caches=False):
         """
@@ -222,7 +223,7 @@ class Project(Component):
                         os.remove(cfile)
                     else:
                         return
-            except:
+            except BaseException:
                 os.remove(cfile)
 
         from lxml import etree
@@ -464,7 +465,7 @@ class Project(Component):
         self.paths["wavefields"] = os.path.join(root_path, "WAVEFIELDS")
         self.paths["iterations"] = os.path.join(root_path, "ITERATIONS")
         self.paths["synthetics"] = os.path.join(root_path, "SYNTHETICS")
-	self.paths["stf"] = os.path.join(root_path,"STF")
+        self.paths["stf"] = os.path.join(root_path, "STF")
         self.paths["kernels"] = os.path.join(root_path, "KERNELS")
         self.paths["stations"] = os.path.join(root_path, "STATIONS")
         self.paths["output"] = os.path.join(root_path, "OUTPUT")
@@ -501,7 +502,10 @@ class Project(Component):
                 continue
             os.makedirs(path)
         events = self.comm.events.list()
-        folders = [self.paths["data"], self.paths["synthetics"], self.paths["stf"]]
+        folders = [
+            self.paths["data"],
+            self.paths["synthetics"],
+            self.paths["stf"]]
         for folder in folders:
             for event in events:
                 event_folder = os.path.join(folder, event)
@@ -581,11 +585,11 @@ class Project(Component):
         fct_type_map = {
             "window_picking_function": "window_picking_function.py",
             "preprocessing_function": "preprocessing_function.py",
-	    "data_svd_selection": "data_svd_selection.py",
+            "data_svd_selection": "data_svd_selection.py",
             "process_synthetics": "process_synthetics.py",
             "source_time_function": "source_time_function.py",
-	    "instaseis_synthetics_function": "instaseis_synthetics_function.py",
-	    "stf_deconvolution": "stf_deconvolution.py",
+            "instaseis_synthetics_function": "instaseis_synthetics_function.py",
+            "stf_deconvolution": "stf_deconvolution.py",
         }
 
         if fct_type not in fct_type:

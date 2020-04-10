@@ -25,6 +25,7 @@ class OneDimensionalModel(object):
     """
     Simple class dealing with 1D earth models.
     """
+
     def __init__(self, model_name):
         """
         :param model_name: The name of the used model. Possible names are:

@@ -62,20 +62,21 @@ class QueryComponent(Component):
         """
 
         events = list(self.comm.events.get_all_events().values())
-        stations_all={}
+        stations_all = {}
         # Here I use a loop on event waveforms, this might take a while if many events
-        # To be improved using a loop on xml files in STATIONS/StationXML 
+        # To be improved using a loop on xml files in STATIONS/StationXML
         # stations = self.comm.stations.get_details_for_filename(xmlfile)
         for event in events:
             try:
-                stations = self.comm.query.get_all_stations_for_event(event["event_name"])
+                stations = self.comm.query.get_all_stations_for_event(
+                    event["event_name"])
             except LASIFNotFoundError:
                 continue
             for station in stations:
                 if station in stations_all:
                     continue
                 else:
-                    stations_all[station]=stations[station]
+                    stations_all[station] = stations[station]
         return stations_all
 
     def get_all_stations_for_event(self, event_name):
@@ -154,8 +155,9 @@ class QueryComponent(Component):
             if coords["latitude"]:
                 stations[station_id] = coords
         return stations
-    
-    def get_all_stations_for_event_for_iteration(self, event_name, iteration_name):
+
+    def get_all_stations_for_event_for_iteration(
+            self, event_name, iteration_name):
         """
         Returns a list of all stations for one event for one iteration.
 
@@ -191,12 +193,13 @@ class QueryComponent(Component):
         LASIFNotFoundError: ...
         """
         event = self.comm.events.get(event_name)
-        
+
         iteration = self.comm.iterations.get(iteration_name)
         processing_tag = iteration.processing_tag
-        
+
         # Collect information from all the different places.
-        waveform_metadata = self.comm.waveforms.get_metadata_processed(event_name, processing_tag)
+        waveform_metadata = self.comm.waveforms.get_metadata_processed(
+            event_name, processing_tag)
         station_coordinates = self.comm.stations.get_all_channels_at_time(
             event["origin_time"])
         inventory_coordinates = self.comm.inventory_db.get_all_coordinates()
@@ -285,17 +288,17 @@ class QueryComponent(Component):
                 continue
             events[event] = data
         return events
-    
+
     def get_stations_for_all_processed_events(self, iteration_name):
         """
         Returns a dictionary with a list of stations per processed event for one iteration.
         :param iteration_name: name of the iteration
-        """     
+        """
         events = {}
         for event in self.comm.events.list():
             try:
-                data = self.get_all_stations_for_event_for_iteration(event, 
-                                                    iteration_name).keys()
+                data = self.get_all_stations_for_event_for_iteration(
+                    event, iteration_name).keys()
             except LASIFNotFoundError:
                 continue
             events[event] = data
@@ -590,14 +593,14 @@ class QueryComponent(Component):
         """
         Get the center of the domain.
         """
-        domain=self.comm.project.domain
+        domain = self.comm.project.domain
         c = domain.unrotated_center
         Point = collections.namedtuple("CenterPoint", ["longitude",
                                                        "latitude"])
         from lasif import rotations
         r_lat, r_lng = rotations.rotate_lat_lon(
             c.latitude, c.longitude, domain.rotation_axis,
-            domain.rotation_angle_in_degree)	
+            domain.rotation_angle_in_degree)
         return Point(longitude=r_lng, latitude=r_lat)
 
     def what_is(self, path):
@@ -625,8 +628,9 @@ class QueryComponent(Component):
             return self.__what_is_this_file(path)
 
     def __what_is_this_folder(self, folder_path):
-        key = [_i[0] for _i in list(self.comm.project.paths.items()) if _i[1] ==
-               folder_path]
+        key = [
+            _i[0] for _i in list(
+                self.comm.project.paths.items()) if _i[1] == folder_path]
         if key:
             key = key[0]
             info = {
@@ -661,8 +665,9 @@ class QueryComponent(Component):
             return None
 
     def __what_is_this_file(self, file_path):
-        key = [_i[0] for _i in list(self.comm.project.paths.items()) if _i[1] ==
-               file_path]
+        key = [
+            _i[0] for _i in list(
+                self.comm.project.paths.items()) if _i[1] == file_path]
         # Deal with files defined by the project itsself.
         if key:
             key = key[0]
@@ -680,8 +685,8 @@ class QueryComponent(Component):
         # Deal with other files.
         else:
             # Check if it is a subfolder of any of the other defined paths.
-            common_prefix = [_i for _i in list(self.comm.project.paths.items()) if
-                             os.path.commonprefix([_i[1], file_path]) == _i[1]]
+            common_prefix = [_i for _i in list(self.comm.project.paths.items(
+            )) if os.path.commonprefix([_i[1], file_path]) == _i[1]]
             # Not a project file if nothing is found.
             if not common_prefix:
                 return None

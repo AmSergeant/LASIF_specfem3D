@@ -1,21 +1,20 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+import os
+import numpy as np
+import inspect
+import io
+from obspy.imaging.beachball import beach
+import json
+import geojson
+import copy
+import collections
 import flask
 from flask_caching import Cache
 
 import matplotlib.pylab as plt
 from matplotlib.colors import hex2color
 plt.switch_backend("agg")
-
-import collections
-import copy
-import geojson
-import json
-from obspy.imaging.beachball import beach
-import io
-import inspect
-import numpy as np
-import os
 
 
 WEBSERVER_DIRECTORY = os.path.dirname(os.path.abspath(inspect.getfile(

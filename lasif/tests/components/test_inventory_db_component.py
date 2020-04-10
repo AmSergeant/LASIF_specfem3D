@@ -7,7 +7,9 @@ import inspect
 import mock
 import os
 import pytest
-import urllib.request, urllib.error, urllib.parse
+import urllib.request
+import urllib.error
+import urllib.parse
 
 from lasif.components.inventory_db import InventoryDBComponent
 from lasif.components.communicator import Communicator

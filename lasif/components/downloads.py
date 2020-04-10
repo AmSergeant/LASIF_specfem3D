@@ -19,6 +19,7 @@ class DownloadsComponent(Component):
     :param communicator: The communicator instance.
     :param component_name: The name of this component for the communicator.
     """
+
     def download_data(self, event=None, providers=None, networks=None):
         """
         Download waveforms and station info on a loop of events available in EVENTS
@@ -26,22 +27,25 @@ class DownloadsComponent(Component):
 
         if event is None:
             events = self.comm.events.list()
-            n=len(events)
+            n = len(events)
             for i, event in enumerate(events):
-                print(("PROCESSING EVENT "+str(i+1)+"/"+str(n)))
-                self.comm.downloads.download_data_for_one_event(event, providers=providers, networks=networks) 
+                print(("PROCESSING EVENT " + str(i + 1) + "/" + str(n)))
+                self.comm.downloads.download_data_for_one_event(
+                    event, providers=providers, networks=networks)
         else:
-            self.comm.downloads.download_data_for_one_event(event, providers=providers, networks=networks)
+            self.comm.downloads.download_data_for_one_event(
+                event, providers=providers, networks=networks)
 
-
-    def download_data_for_one_event(self, event, providers=None, networks = None):
+    def download_data_for_one_event(
+            self, event, providers=None, networks=None):
         event = self.comm.events.get(event)
 
         from obspy.clients.fdsn.mass_downloader import MassDownloader, \
             Restrictions, GlobalDomain
 
         print(" ")
-        print(("######## Looking for data for "+event["event_name"]+" #########"))    
+        print(("######## Looking for data for " +
+               event["event_name"] + " #########"))
         print(" ")
 
         proj = self.comm.project

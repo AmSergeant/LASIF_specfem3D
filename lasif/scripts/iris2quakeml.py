@@ -39,7 +39,9 @@ import html.parser
 from obspy import read_events
 import os
 from io import StringIO
-import urllib.request, urllib.error, urllib.parse
+import urllib.request
+import urllib.error
+import urllib.parse
 
 from lasif.utils import get_event_filename
 
@@ -69,7 +71,7 @@ def iris2quakeml(url, output_folder=None):
 
     try:
         cat = read_events(data)
-    except:
+    except BaseException:
         msg = "Could not read downloaded event data"
         raise ValueError(msg)
 

@@ -20,6 +20,7 @@ class WindowsComponent(Component):
     :param communicator: The communicator instance.
     :param component_name: The name of this component for the communicator.
     """
+
     def __init__(self, windows_folder, communicator, component_name):
         self._folder = windows_folder
         super(WindowsComponent, self).__init__(communicator,

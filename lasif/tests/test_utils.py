@@ -30,7 +30,7 @@ def test_channel_in_parser():
     channel_id = "ES.ECAL..HHE"
     # An empty file should of course not contain much.
     parser_object = Parser(os.path.join(data_dir, "station_files", "seed",
-                           "channelless_datalessSEED"))
+                                        "channelless_datalessSEED"))
     assert utils.channel_in_parser(parser_object, channel_id,
                                    starttime, endtime) is False
     # Now read a file that actually contains data.
@@ -38,7 +38,7 @@ def test_channel_in_parser():
     starttime = UTCDateTime(1999, 2, 18, 10, 0)
     endtime = UTCDateTime(2009, 8, 13, 19, 0)
     parser_object = Parser(os.path.join(data_dir, "station_files", "seed",
-                           "dataless.IU_PAB"))
+                                        "dataless.IU_PAB"))
     # This is an exact fit of the start and end times in this file.
     assert utils.channel_in_parser(
         parser_object, channel_id, starttime, endtime) is True

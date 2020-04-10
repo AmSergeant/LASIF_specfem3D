@@ -2,27 +2,23 @@
 # -*- coding: utf-8 -*-
 
 
+import lasif.visualization
+from .window_region_item import WindowLinearRegionItem
+from ..colors import COLORS
+import sys
+import random
+import os
+from obspy.taup import TauPyModel
+from obspy.geodetics import locations2degrees
+import matplotlib.patheffects as PathEffects
+import inspect
+import imp
+from glob import iglob
 from PyQt5 import QtGui, QtWidgets
 from PyQt5.QtCore import pyqtSlot
 import pyqtgraph as pg
 # Default to antialiased drawing.
 pg.setConfigOptions(antialias=True, foreground=(50, 50, 50), background=None)
-
-
-from glob import iglob
-import imp
-import inspect
-import matplotlib.patheffects as PathEffects
-from obspy.geodetics import locations2degrees
-from obspy.taup import TauPyModel
-import os
-import random
-import sys
-
-from ..colors import COLORS
-from .window_region_item import WindowLinearRegionItem
-
-import lasif.visualization
 
 
 taupy_model = TauPyModel("ak135")
@@ -166,7 +162,7 @@ class Window(QtWidgets.QMainWindow):
 
         try:
             self.current_station_scatter.remove()
-        except:
+        except BaseException:
             pass
 
         stations = self.comm.query.get_all_stations_for_event(

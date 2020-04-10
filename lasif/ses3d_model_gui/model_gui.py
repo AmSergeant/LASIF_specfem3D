@@ -288,7 +288,7 @@ class Window(QtWidgets.QMainWindow):
         for _i in self.plot_state["depth_profile_line"]:
             try:
                 _i.remove()
-            except:
+            except BaseException:
                 pass
             del _i
         self.plot_state["depth_profile_line"] = []

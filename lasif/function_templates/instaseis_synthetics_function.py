@@ -20,11 +20,10 @@ import warnings
 from lasif import LASIFError
 
 
-
 def instaseis_synthetics_function(processing_info, iteration, db):  # NOQA
     """
     Function to compute the synthetics seismogram for one individual seismogram.
-    It uses the same preprocessing parameters as for data seismograms 
+    It uses the same preprocessing parameters as for data seismograms
     defined in the iteration file.
     This is part of the project so it can change depending on the project.
 
@@ -93,22 +92,19 @@ def instaseis_synthetics_function(processing_info, iteration, db):  # NOQA
     objects can do.
 
     """
-    
-    
-    
+
     # =========================================================================
     # Step 1: Compute synthetic seismogram
     # =========================================================================
-    st = \
-        db.get_seismograms(source=processing_info["event_information"]["source"],
-                            receiver=processing_info["receiver"], 
-                            kind='velocity',
-                            components=processing_info["component"],
-                            remove_source_shift=True, 
-                            dt = processing_info["process_params"]["dt"])
+    st = db.get_seismograms(
+        source=processing_info["event_information"]["source"],
+        receiver=processing_info["receiver"],
+        kind='velocity',
+        components=processing_info["component"],
+        remove_source_shift=True,
+        dt=processing_info["process_params"]["dt"])
 
-
-	# =========================================================================
+    # =========================================================================
     # Step 2: Preprocess the synthetic seismogram
     # =========================================================================
     # Use same preprocessing as for data seismograms
@@ -120,33 +116,32 @@ def instaseis_synthetics_function(processing_info, iteration, db):  # NOQA
     st.detrend("demean")
     st.taper(0.05, type="cosine")
     st.filter("bandpass", freqmin=freqmin, freqmax=freqmax, corners=3,
-             zerophase=False)
+              zerophase=False)
     st.detrend("linear")
     st.detrend("demean")
     st.taper(0.05, type="cosine")
     st.filter("bandpass", freqmin=freqmin, freqmax=freqmax, corners=3,
-             zerophase=False)
+              zerophase=False)
 
     starttime = processing_info["event_information"]["origin_time"]
     endtime = starttime + processing_info["process_params"]["dt"] * \
-        	(processing_info["process_params"]["npts"] - 1)
-    st=st.trim(starttime, endtime)
-    
+        (processing_info["process_params"]["npts"] - 1)
+    st = st.trim(starttime, endtime)
+
     tr = st[0]
-    tr.stats.coordinates =  AttribDict({
-			'latitude': processing_info["station_coordinates"]["latitude"],
-			'elevation': processing_info["station_coordinates"]["elevation_in_m"],
-			'longitude': processing_info["station_coordinates"]["longitude"]})
+    tr.stats.coordinates = AttribDict({
+        'latitude': processing_info["station_coordinates"]["latitude"],
+        'elevation': processing_info["station_coordinates"]["elevation_in_m"],
+        'longitude': processing_info["station_coordinates"]["longitude"]})
     tr.stats.station = processing_info["station"]
-    
+
     # =========================================================================
     # Save processed synthetic and clean up.
     # =========================================================================
     # Convert to single precision to save some space.
     tr.data = np.require(tr.data, dtype="float32", requirements="C")
     tr.stats._format = processing_info["output_filename"].split('.')[-1]
-    if hasattr(tr.stats, "mseed"): # to be fixed
+    if hasattr(tr.stats, "mseed"):  # to be fixed
         tr.stats.mseed.encoding = "FLOAT32"
 
     tr.write(processing_info["output_filename"], format=tr.stats._format)
-    

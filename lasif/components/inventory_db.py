@@ -4,7 +4,9 @@
 
 import re
 import sqlite3
-import urllib.request, urllib.error, urllib.parse
+import urllib.request
+import urllib.error
+import urllib.parse
 
 from .component import Component
 
@@ -24,6 +26,7 @@ class InventoryDBComponent(Component):
     :param communicator: The communicator instance.
     :param component_name: The name of this component for the communicator.
     """
+
     def __init__(self, db_file, communicator, component_name):
         self._db_file = db_file
         super(InventoryDBComponent, self).__init__(communicator,
@@ -225,7 +228,7 @@ class InventoryDBComponent(Component):
         try:
             req = urllib.request.urlopen(URL.format(
                 service="service.iris.edu", network=network, station=station))
-        except:
+        except BaseException:
             pass
         # Then ORFEUS.
         if req is None or str(req.code)[0] != "2":
@@ -233,7 +236,7 @@ class InventoryDBComponent(Component):
                 req = urllib.request.urlopen(URL.format(
                     service="www.orfeus-eu.org", network=network,
                     station=station))
-            except:
+            except BaseException:
                 pass
         # Otherwise write None's to the database.
         if req is None or str(req.code)[0] != "2":

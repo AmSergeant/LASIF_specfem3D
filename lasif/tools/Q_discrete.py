@@ -250,8 +250,7 @@ def calculate_Q_model(N, f_min, f_max, iterations=30000,
             chi = chi_test
 
     # sort weights and relaxation times
-    decorated = [(tau_s[i], D[i]) for i in range(N)]
-    decorated.sort()
+    decorated = sorted([(tau_s[i], D[i]) for i in range(N)])
 
     tau_s = [decorated[i][0] for i in range(N)]
     D = [decorated[i][1] for i in range(N)]

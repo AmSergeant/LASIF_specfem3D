@@ -20,6 +20,7 @@ class ValidatorComponent(Component):
     :param communicator: The communicator instance.
     :param component_name: The name of this component for the communicator.
     """
+
     def __init__(self, *args, **kwargs):
         super(ValidatorComponent, self).__init__(*args, **kwargs)
         self._reports = []
@@ -115,9 +116,9 @@ class ValidatorComponent(Component):
         # Depending on whether or not the tests passed, report it accordingly.
         if not self._reports:
             print(("\n%sALL CHECKS PASSED%s\n"
-                  "The data seems to be valid. If we missed something please "
-                  "contact the developers." % (colorama.Fore.GREEN,
-                                               colorama.Fore.RESET)))
+                   "The data seems to be valid. If we missed something please "
+                   "contact the developers." % (colorama.Fore.GREEN,
+                                                colorama.Fore.RESET)))
         else:
             folder = \
                 self.comm.project.get_output_folder(
@@ -130,9 +131,9 @@ class ValidatorComponent(Component):
                     fh.write(report.strip())
                     fh.write(seperator_string)
             print(("\n%sFAILED%s\nEncountered %i errors!\n"
-                  "A report has been created at '%s'.\n" %
-                  (colorama.Fore.RED, colorama.Fore.RESET,
-                   self._total_error_count, os.path.relpath(filename))))
+                   "A report has been created at '%s'.\n" %
+                   (colorama.Fore.RED, colorama.Fore.RESET,
+                    self._total_error_count, os.path.relpath(filename))))
             if files_failing_raypath_test:
                 # Put quotes around the filenames
                 files_failing_raypath_test = ['"%s"' % _i for _i in
@@ -144,9 +145,9 @@ class ValidatorComponent(Component):
                     fh.write("rm ")
                     fh.write("\nrm ".join(files_failing_raypath_test))
                 print(("\nSome files failed the raypath in domain checks. A "
-                      "script which deletes the violating files has been "
-                      "created. Please check and execute it if necessary:\n"
-                      "'%s'" % filename))
+                       "script which deletes the violating files has been "
+                       "created. Please check and execute it if necessary:\n"
+                       "'%s'" % filename))
 
     def validate_raypaths_in_domain(self):
         """
@@ -490,7 +491,7 @@ class ValidatorComponent(Component):
         event_infos = list(self.comm.events.get_all_events().values())
 
         # Now check the time distribution of events.
-        print("\tChecking for duplicates and events too close in time %s" % \
+        print("\tChecking for duplicates and events too close in time %s" %
               (self.comm.events.count() * "."), end=' ')
         all_good = True
         # Sort the events by time.
@@ -519,7 +520,7 @@ class ValidatorComponent(Component):
             self._print_fail_message()
 
         # Check that all events fall within the chosen boundaries.
-        print("\tAssure all events are in chosen domain %s" % \
+        print("\tAssure all events are in chosen domain %s" %
               (self.comm.events.count() * "."), end=' ')
         all_good = True
         domain = self.comm.project.domain
