@@ -10,6 +10,9 @@ import warnings
 from lasif import LASIFError, LASIFWarning, LASIFNotFoundError
 from lasif import rotations
 from .component import Component
+from obspy.taup import TauPyModel
+from obspy.geodetics import locations2degrees
+
 
 
 class ActionsComponent(Component):
@@ -20,7 +23,7 @@ class ActionsComponent(Component):
     :param communicator: The communicator instance.
     :param component_name: The name of this component for the communicator.
     """
-    def preprocess_data(self, iteration_name, event_names=None):
+    def preprocess_data(self, iteration_name, components = ['E','N','Z'], svd_selection = False, noise_threshold=None, event_names=None):
         """
         Preprocesses all data for a given iteration.
 
@@ -36,18 +39,26 @@ class ActionsComponent(Component):
 
         process_params = iteration.get_process_params()
         processing_tag = iteration.processing_tag
+        
+        
+        earth_model = TauPyModel("ak135")
 
         def processing_data_generator():
             """
             Generate a dictionary with information for processing for each
             waveform.
             """
+            
             # Loop over the chosen events.
             for event_name, event in iteration.events.items():
                 # None means to process all events, otherwise it will be a list
                 # of events.
+                
                 if not ((event_names is None) or (event_name in event_names)):
+                    #print("!!!!%s not defined in the iteration file !!!!"%event_name)
                     continue
+                
+                
 
                 output_folder = self.comm.waveforms.get_waveform_folder(
                     event_name=event_name, data_type="processed",
@@ -57,6 +68,7 @@ class ActionsComponent(Component):
 
                 # Get the event.
                 event = self.comm.events.get(event_name)
+                
 
                 try:
                     # Get the stations.
@@ -81,6 +93,7 @@ class ActionsComponent(Component):
                     channels = list(channels)
                     # Filter waveforms with no available station files
                     # or coordinates.
+                    
                     if station_name not in stations:
                         continue
 
@@ -106,6 +119,8 @@ class ActionsComponent(Component):
                     # Loop over each found channel.
                     for channel in location:
                         channel.update(stations[station_name])
+                        channel["component"]= channel["channel_id"].split('.')[-1][-1]
+                        
                         input_filename = channel["filename"]
                         output_filename = os.path.join(
                             output_folder,
@@ -113,11 +128,32 @@ class ActionsComponent(Component):
                         # Skip already processed files.
                         if os.path.exists(output_filename):
                             continue
+                        
+                        # compute the P-wave arrival time to be used for SNR calculation
+                        dist_in_deg = locations2degrees(channel["latitude"], channel["longitude"], 
+                                                        event["latitude"], event["longitude"])
+                        tts = earth_model.get_travel_times(source_depth_in_km=event["depth_in_km"],
+                                                     distance_in_degree=dist_in_deg,
+                                                     phase_list=['P'])
+                        
+                        if len(tts)==0:
+                            print("No P wave for epicentral distance %f"%dist_in_deg)
+                            continue
+                        else:
+                            # check the purist name
+                            if len(tts)>1:
+                                first_tt_arrival = tts[[i for i,j in enumerate(tts) if j.purist_name=='P'][0]].time
+                            else:
+                                first_tt_arrival  = tts[0].time
+                            
 
                         ret_dict = {
                             "process_params": process_params,
                             "input_filename": input_filename,
                             "output_filename": output_filename,
+                            "channel": channel["channel"],
+                            "station": channel["station"],
+                            "component": channel["component"],
                             "station_coordinates": {
                                 "latitude": channel["latitude"],
                                 "longitude": channel["longitude"],
@@ -129,7 +165,11 @@ class ActionsComponent(Component):
                             get_channel_filename(channel["channel_id"],
                                                  channel["starttime"]),
                             "event_information": event,
+                            "event_name": event_name,
+                            "noise_threshold":noise_threshold,
+                            "first_P_arrival":first_tt_arrival
                         }
+                        
                         yield ret_dict
 
         # Only rank 0 needs to know what has to be processsed.
@@ -139,18 +179,247 @@ class ActionsComponent(Component):
         else:
             to_be_processed = None
 
-        # Load project specific window selection function.
+
+        # Load project specific data preprocessing function.
         preprocessing_function = self.comm.project.get_project_function(
             "preprocessing_function")
+        
 
         logfile = self.comm.project.get_log_file(
             "DATA_PREPROCESSING", "processing_iteration_%s" % (str(
                 iteration.name)))
-
+        
+        
         distribute_across_ranks(
             function=preprocessing_function, items=to_be_processed,
             get_name=lambda x: x["processing_info"]["input_filename"],
             logfile=logfile)
+        
+        
+        ###################################################
+        # svd to be computed only for teleseismic events :
+        ##################################################
+        if svd_selection:
+            # Load project specific data selection function.
+            data_svd_selection = self.comm.project.get_project_function(
+                "data_svd_selection") 
+            
+            # Loop over the chosen events.
+            for event_name, event in iteration.events.iteritems():
+                if not ((event_names is None) or (event_name in event_names)):
+                    continue
+    
+                one_event_to_be_processed = [proc for proc in to_be_processed
+                                             if event_name in proc["processing_info"]["event_name"]]
+                print("Processing SVD selection for %s"%event_name)
+                data_svd_selection(one_event_to_be_processed, components)
+                
+                
+                
+    def stf_estimate(self, iteration_name, components = ['E','N','Z'], event_names=None):
+        """
+        Estimate the source wavelet by deconvolving the synthetics from data
+        following Pratt, R. G. (1999), 
+        Seismic waveform inversion in the frequency domain, part 1: Theory and verification in a physical scale model
+
+        This function works with and without MPI.
+
+        :param event_names: event_ids is a list of events to process in this
+            run. It will process all events if not given.
+        """
+        from mpi4py import MPI
+        from lasif.tools.parallel_helpers import distribute_across_ranks
+        import instaseis
+        
+        iteration = self.comm.iterations.get(iteration_name)
+        
+
+        process_params = iteration.get_process_params()
+        processing_tag = iteration.processing_tag
+        
+        
+        earth_model = TauPyModel("ak135")
+        db = instaseis.open_db("syngine://ak135f_2s")
+
+        def processing_instaseis_synthetics_generator():
+            """
+            Generate a dictionary with information for processing for each
+            synthetic waveform.
+            """
+            
+            # Loop over the chosen events.
+            for event_name, event in iteration.events.iteritems():
+                # None means to process all events, otherwise it will be a list
+                # of events.
+                
+                if not ((event_names is None) or (event_name in event_names)):
+                    #print("!!!!%s not defined in the iteration file !!!!"%event_name)
+                    continue
+                
+                output_folder = self.comm.waveforms.get_waveform_folder(
+                    event_name=event_name, data_type="synthetic",
+                    tag_or_iteration="ITERATION_%s"%iteration_name)
+                if not os.path.exists(output_folder):
+                    os.makedirs(output_folder)
+
+                # Get the event.
+                event = self.comm.events.get(event_name)
+                
+                # get the source
+                source=instaseis.Source.parse(event["filename"])
+                event["source"] = source
+
+                try:
+                    # Get the stations.
+                    stations = self.comm.query\
+                        .get_all_stations_for_event(event_name)
+                    # Get the processed waveform data.
+                    waveforms = \
+                        self.comm.waveforms.get_metadata_processed(event_name, processing_tag)
+                except LASIFNotFoundError:
+                    warnings.warn(
+                        "No data found for event '%s'. Did you delete data "
+                        "after the iteration has been created?" % event_name)
+                    continue
+
+                # Group by station name.
+                def func(x):
+                    return ".".join(x["channel_id"].split(".")[:2])
+
+                waveforms.sort(key=func)
+                for station_name, channels in  \
+                        itertools.groupby(waveforms, func):
+                    channels = list(channels)
+                    # Filter waveforms with no available station files
+                    # or coordinates.
+                    
+                    if station_name not in stations:
+                        continue
+
+                    # Group by location.
+                    def get_loc_id(x):
+                        return x["channel_id"].split(".")[2]
+
+                    channels.sort(key=get_loc_id)
+                    locations = []
+                    for loc_id, chans in itertools.groupby(channels,
+                                                           get_loc_id):
+                        locations.append((loc_id, list(chans)))
+                    locations.sort(key=lambda x: x[0])
+
+                    if len(locations) > 1:
+                        msg = ("More than one location found for event "
+                               "'%s' at station '%s'. The alphabetically "
+                               "first one will be chosen." %
+                               (event_name, station_name))
+                        warnings.warn(msg, LASIFWarning)
+                    location = locations[0][1]
+
+                    # Loop over each found channel.
+                    for channel in location:
+                        channel.update(stations[station_name])
+                        channel["component"]= channel["channel_id"].split('.')[-1][-1]
+                        
+                        input_filename = channel["filename"]
+                        output_filename = os.path.join(
+                            output_folder,
+                            os.path.basename(input_filename))
+                        # Skip already processed files.
+                        #if os.path.exists(output_filename):
+                        #    continue
+                        station_filename = \
+                            self.comm.stations.get_channel_filename(channel["channel_id"],
+                                                 channel["starttime"])
+                        receiver = instaseis.Receiver.parse(station_filename)[0]
+                        
+                        # compute the P-wave arrival time to be used for SNR calculation
+                        dist_in_deg = locations2degrees(channel["latitude"], channel["longitude"], 
+                                                        event["latitude"], event["longitude"])
+                        tts = earth_model.get_travel_times(source_depth_in_km=event["depth_in_km"],
+                                                     distance_in_degree=dist_in_deg,
+                                                     phase_list=['P'])
+                        
+                        if len(tts)==0:
+                            print("No P wave for epicentral distance %f"%dist_in_deg)
+                            continue
+                        else:
+                            # check the purist name
+                            if len(tts)>1:
+                                first_tt_arrival = tts[[i for i,j in enumerate(tts) if j.purist_name=='P'][0]].time
+                            else:
+                                first_tt_arrival  = tts[0].time
+                            
+
+                        ret_dict = {
+                            "process_params": process_params,
+                            "input_filename": input_filename,
+                            "output_filename": output_filename,
+                            "channel": channel["channel"],
+                            "station": channel["station"],
+                            "component": channel["component"],
+                            "station_coordinates": {
+                                "latitude": channel["latitude"],
+                                "longitude": channel["longitude"],
+                                "elevation_in_m": channel["elevation_in_m"],
+                                "local_depth_in_m": channel[
+                                    "local_depth_in_m"],
+                            },
+                            "station_filename": station_filename,
+                            "receiver": receiver,
+                            "event_information": event,
+                            "event_name": event_name,
+                            "first_P_arrival":first_tt_arrival
+                        }
+                        
+                        yield ret_dict
+
+        # Only rank 0 needs to know what has to be processsed.
+        if MPI.COMM_WORLD.rank == 0:
+            to_be_processed = [{"db": db, "processing_info": _i, "iteration": iteration}
+                               for _i in processing_instaseis_synthetics_generator()]
+        else:
+            to_be_processed = None
+        
+        # Load project specific synthetics computing function.
+        instaseis_synthetics_function = self.comm.project.get_project_function(
+            "instaseis_synthetics_function")
+        
+
+        logfile = self.comm.project.get_log_file(
+            "SYNTHETICS", "instaseis_synthetics_iteration_%s" % (str(
+                iteration.name)))
+        
+        '''
+        distribute_across_ranks(
+            function=instaseis_synthetics_function, items=to_be_processed,
+            get_name=lambda x: x["processing_info"]["input_filename"],
+            logfile=logfile)
+        '''
+        
+        # Load project specific stf_deconvolution function.
+        stf_deconvolution = self.comm.project.get_project_function(
+            "stf_deconvolution") 
+        
+        # Loop over the chosen events.
+        for event_name, event in iteration.events.iteritems():
+            if not ((event_names is None) or (event_name in event_names)):
+                continue
+
+            one_event_to_be_processed = [proc for proc in to_be_processed
+                                         if event_name in proc["processing_info"]["event_name"]]
+            
+            output_folder = self.comm.waveforms.get_waveform_folder(
+                    event_name=event_name, data_type="stf",
+                    tag_or_iteration='ITERATION_%s'%iteration_name)
+            if not os.path.exists(output_folder):
+                    os.makedirs(output_folder)
+                    
+            print("Estimating the stf for %s"%event_name)
+            stf_deconvolution(one_event_to_be_processed, output_folder, components)
+        
+        
+        
+        
 
     def select_windows(self, event, iteration):
         """

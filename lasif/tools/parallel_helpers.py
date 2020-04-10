@@ -168,11 +168,13 @@ def distribute_across_ranks(function, items, get_name, logfile):
 
     for _i, item in enumerate(items):
         results.append(_execute_wrapped_function(function, item))
+        
 
         if MPI.COMM_WORLD.rank == 0:
             print(("Approximately %i of %i items have been processed." % (
                 min((_i + 1) * MPI.COMM_WORLD.size, total_length),
-                total_length)))
+                total_length))
+    #print(results)
 
     results = MPI.COMM_WORLD.gather(results, root=0)
 

@@ -18,6 +18,42 @@ from obspy.imaging.beachball import beach
 from obspy.signal.tf_misfit import plot_tfr
 
 
+def plot_waveform_section(axis,stream, offsets, reftime = None, scale=5., colors=None, lw = 1, type='normal'):
+    """
+    Create a waveform gather plot for one event.
+
+    """
+    if reftime ==None:
+        reftime = stream[0].stats.starttime
+    if colors==None:
+        colors='k'
+    if len(offsets)==0:
+        offsets=np.arange(len(stream))
+        
+    def sect_init_time(stream,reftime):
+        """
+        Define the time vector for each trace
+        """
+        tr_times = []
+        for tr in stream:
+            tr_times.append(
+                (np.arange(tr.stats.npts) +
+                 (tr.stats.starttime - reftime)) * tr.stats.delta)
+        time_min = np.concatenate(tr_times).min()
+        time_max = np.concatenate(tr_times).max()
+        return time_min, time_max, len(np.concatenate(tr_times))/len(tr_times)
+    
+    time_lim = sect_init_time(stream,reftime)
+    for tr, offset in zip(stream,offsets):
+        axis.plot(tr.times(), tr.data/tr.data.max()*scale + offset,
+                  color=colors,alpha=0.5, linewidth=lw)
+        if type == "wiggle":
+            axis.fill_between(tr.times(),offset,tr.data/tr.data.max()*scale + offset,
+                              where=(tr.data/tr.data.max()*scale + offset>offset),
+                              color=colors,alpha=0.5)
+    axis.set_xlim(time_lim[0],time_lim[1])
+
+
 def plot_events(events, map_object, beachball_size=0.02):
     """
     """

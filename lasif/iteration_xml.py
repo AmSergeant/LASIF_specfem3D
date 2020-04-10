@@ -78,7 +78,10 @@ class Iteration(object):
             float(self._get(prep, "highpass_period"))
         self.data_preprocessing["lowpass_period"] = \
             float(self._get(prep, "lowpass_period"))
-
+	self.data_preprocessing["seconds_prior_arrival"] = \
+            float(self._get(prep, "seconds_prior_arrival"))
+	self.data_preprocessing["window_length_in_sec"] = \
+            float(self._get(prep, "window_length_in_sec"))
         self.solver_settings = \
             _recursive_dict(root.find("solver_parameters"))[1]
 
@@ -159,11 +162,15 @@ class Iteration(object):
         dt = self.solver_settings["solver_settings"][
             "simulation_parameters"]["time_increment"]
 
+	seconds_prior_arrival = self.data_preprocessing["seconds_prior_arrival"]
+	window_length_in_sec = self.data_preprocessing["window_length_in_sec"]
         return {
             "highpass": float(highpass),
             "lowpass": float(lowpass),
             "npts": int(npts),
-            "dt": float(dt)}
+            "dt": float(dt),
+	    "seconds_prior_arrival": float(seconds_prior_arrival),
+	    "window_length_in_sec": float(window_length_in_sec)}
 
     @property
     def processing_tag(self):
@@ -197,7 +204,9 @@ class Iteration(object):
             "\tPreprocessing Settings:\n"
             "\t\tHighpass Period: {hp:.3f} s\n"
             "\t\tLowpass Period: {lp:.3f} s\n"
-            "\tSolver: {solver} | {timesteps} timesteps (dt: {dt}s)\n"
+            "\t\tSeconds prior phase arrival: {prior_sec:.3f} s\n"
+	    "\t\tPhase window length: {window:.3f} s\n"
+	    "\tSolver: {solver} | {timesteps} timesteps (dt: {dt}s)\n"
             "\t{event_count} events recorded at {station_count} "
             "unique stations\n"
             "\t{pair_count} event-station pairs (\"rays\")")
@@ -215,6 +224,8 @@ class Iteration(object):
             self=self, comments=comments,
             hp=self.data_preprocessing["highpass_period"],
             lp=self.data_preprocessing["lowpass_period"],
+	    prior_sec = self.data_preprocessing["seconds_prior_arrival"],
+            window = self.data_preprocessing["window_length_in_sec"],
             solver=self.solver_settings["solver"],
             timesteps=self.solver_settings["solver_settings"][
                 "simulation_parameters"]["number_of_time_steps"],
@@ -249,7 +260,11 @@ class Iteration(object):
                 E.highpass_period(
                     str(self.data_preprocessing["highpass_period"])),
                 E.lowpass_period(
-                    str(self.data_preprocessing["lowpass_period"]))
+                    str(self.data_preprocessing["lowpass_period"])),
+		E.seconds_prior_arrival(
+                    str(self.data_preprocessing["seconds_prior_arrival"])),
+		E.window_length_in_sec(
+                    str(self.data_preprocessing["window_length_in_sec"]))
             ),
             E.solver_parameters(
                 E.solver(self.solver_settings["solver"]),
@@ -337,7 +352,9 @@ def _recursive_etree(dictionary):
 
 
 def create_iteration_xml_string(iteration_name, solver_name, events,
-                                min_period, max_period, quiet=False):
+                                min_period, max_period,
+				seconds_prior_arrival, window_length_in_sec, 
+				quiet=False):
     """
     Creates a new iteration string.
 
@@ -349,6 +366,8 @@ def create_iteration_xml_string(iteration_name, solver_name, events,
         list of station ids for this event.
     :param min_period: The minimum period for the iteration.
     :param max_period: The maximum period for the iteration.
+    :param seconds_prior_arrival: nb of seconds prior the theoretical phase arrival time used to window seismograms for quality control.
+    :param window_length_in_sec: nb of seconds of the time window used to window seismograms for quality control.
     :param quiet: Do not print anything if set to `True`.
     """
     solver_doc = _get_default_solver_settings(solver_name, min_period,
@@ -387,7 +406,9 @@ def create_iteration_xml_string(iteration_name, solver_name, events,
         E.scale_data_to_synthetics("true"),
         E.data_preprocessing(
             E.highpass_period(str(max_period)),
-            E.lowpass_period(str(min_period))),
+            E.lowpass_period(str(min_period)),
+	    E.seconds_prior_arrival(str(seconds_prior_arrival)),
+	    E.window_length_in_sec(str(window_length_in_sec))),
         E.solver_parameters(
             E.solver(solver_name),
             solver_doc),

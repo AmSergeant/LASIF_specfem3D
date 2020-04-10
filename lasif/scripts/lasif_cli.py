@@ -215,6 +215,66 @@ def lasif_shell(parser, args):
     embed(display_banner=False)
 
 
+
+@command_group("Plotting")
+def lasif_plot_preprocessed_waveforms(parser, args):
+    """
+    Plot seismic waveform gather resulting from data preprocessing steps
+    """
+    parser.add_argument("iteration_name", help="name of the iteration")
+    parser.add_argument("event_name", help="name of the event to plot waveform gather")
+    parser.add_argument("--components", default="ENZ", help="list of components to plot, examples: ENZ, or Z or RTZ")
+    parser.add_argument("--raw", default="False", choices=["False", "True"],
+                        help="For additionally plotting non-selected raw waveforms on top, False by default")
+    parser.add_argument("--scaling", default=0.5,
+                        help="Float for scaling the waveforms, 0.5 by default")
+    
+    args = parser.parse_args(args)
+    iteration_name = args.iteration_name
+    event_name = args.event_name
+    comps = args.components
+    raw = args.raw
+    scale = float(args.scaling)
+    components=[]
+    for comp in comps:
+        components.append(comp)
+           
+    comm = _find_project_comm(".", args.read_only_caches)
+    comm.visualizations.plot_preprocessed_waveforms(event_name, iteration_name, 
+                                                    components, scaling = scale, plot_raw=raw)
+
+    import matplotlib.pyplot as plt
+    plt.show()
+    
+    
+@command_group("Plotting")
+def lasif_plot_synthetic_waveforms(parser, args):
+    """
+    Plot seismic waveform gather for preprocessed data and synthetic waveforms
+    """
+    parser.add_argument("iteration_name", help="name of the iteration")
+    parser.add_argument("event_name", help="name of the event to plot waveform gather")
+    parser.add_argument("--components", default="ENZ", help="list of components to plot, examples: ENZ, or Z or RTZ")
+    parser.add_argument("--scaling", default=0.5,
+                        help="Float for scaling the waveforms, 0.5 by default")
+    
+    args = parser.parse_args(args)
+    iteration_name = args.iteration_name
+    event_name = args.event_name
+    scale = float(args.scaling)
+    comps = args.components
+    components=[]
+    for comp in comps:
+        components.append(comp)
+           
+    comm = _find_project_comm(".", args.read_only_caches)
+    comm.visualizations.plot_synthetic_waveforms(event_name, iteration_name, 
+                                                    components, scaling = scale)
+
+    import matplotlib.pyplot as plt
+    plt.show()
+    
+
 @command_group("Plotting")
 def lasif_plot_event(parser, args):
     """
@@ -225,12 +285,17 @@ def lasif_plot_event(parser, args):
                         help="the type of map plot. "
                         "``local``: for map bounded to the domain, "
                         "``teleseismic``: for global map for teleseismic configuration, ")
+    parser.add_argument("--azimuthal_proj", default="False", choices=["True", "False"],
+                        help="the type of map projection. "
+                        "``False``: for classic map projection, by default"
+                        "``True``: for Azimuthal Equidistant Projection centered on the domain, ")
     args = parser.parse_args(args)
     event_name = args.event_name
     config=args.config
-
+    azimuthal_proj=args.azimuthal_proj
+    
     comm = _find_project_comm(".", args.read_only_caches)
-    comm.visualizations.plot_event(event_name,config)
+    comm.visualizations.plot_event(event_name,config,azimuthal_proj)
 
     import matplotlib.pyplot as plt
     plt.show()
@@ -256,17 +321,23 @@ def lasif_plot_events(parser, args):
                         help="the type of map plot. "
                         "``local``: for map bounded to the domain, "
                         "``teleseismic``: for global map for teleseismic configuration, ")
+    parser.add_argument("--azimuthal_proj", default="False", choices=["True", "False"],
+                        help="the type of map projection. "
+                        "``False``: for classic map projection, by default"
+                        "``True``: for Azimuthal Equidistant Projection centered on the domain, ")
     args = parser.parse_args(args)
     plot_type = args.type
     config=args.config
-
+    azimuthal_proj=args.azimuthal_proj
+    
     comm = _find_project_comm(".", args.read_only_caches)
-    comm.visualizations.plot_events(plot_type, config)
+    comm.visualizations.plot_events(plot_type, config, azimuthal_proj)
 
     import matplotlib.pyplot as plt
     plt.show()
 
 
+  
 @command_group("Plotting")
 def lasif_plot_stations(parser,args):
     """
@@ -923,23 +994,78 @@ def lasif_create_new_iteration(parser, args):
                         choices=("SES3D_4_1", "SES3D_2_0",
                                  "SPECFEM3D_CARTESIAN",
                                  "SPECFEM3D_GLOBE_CEM"))
+    parser.add_argument("--seconds_prior", type=float, default=5.,
+                        help="nb of seconds prior the theoretical phase arrival time used to window seismograms for quality control, default 5")
+    parser.add_argument("--window_length", type=float, default=50.,
+                        help="Time window length in seconds used to window the phase of interest in the seismograms, used for suqlity control, default 50")
+    
     args = parser.parse_args(args)
     iteration_name = args.iteration_name
     solver_name = args.solver_name
     min_period = args.min_period
     max_period = args.max_period
+    seconds_prior_arrival = args.seconds_prior
+    window_length_in_sec = args.window_length
     if min_period >= max_period:
         msg = "min_period needs to be smaller than max_period."
         raise LASIFCommandLineException(msg)
-
+    if seconds_prior_arrival >= window_length_in_sec:
+        msg = "seconds_prior needs to be smaller than window_length."
+        raise LASIFCommandLineException(msg)
+    
     comm = _find_project_comm(".", args.read_only_caches)
+    #print(comm.query.get_stations_for_all_events())
     comm.iterations.create_new_iteration(
         iteration_name=iteration_name,
         solver_name=solver_name,
         events_dict=comm.query.get_stations_for_all_events(),
         min_period=min_period,
-        max_period=max_period)
+        max_period=max_period,
+        seconds_prior_arrival=seconds_prior_arrival,
+        window_length_in_sec=window_length_in_sec)
+    
 
+@command_group("Iteration Management")
+def lasif_update_iteration(parser, args):
+    """
+    Create a new iteration.
+    """
+    parser.add_argument("iteration_name", help="name of the current iteration to update")
+    parser.add_argument("new_iteration_name", help="name of the new iteration")
+        
+    args = parser.parse_args(args)
+    iteration_name = args.iteration_name
+    new_iteration_name = args.new_iteration_name
+    
+    
+    if new_iteration_name == iteration_name:
+        msg = "The new iteration name should be different than the current iteration names."
+        raise LASIFCommandLineException(msg)
+    
+    
+    comm = _find_project_comm(".", args.read_only_caches)
+    iteration = comm.iterations.get(iteration_name)
+    solver_name = iteration.solver_settings["solver"].replace(" ", "_")
+    process_params = iteration.get_process_params()
+    min_period = 1. / process_params["lowpass"]
+    max_period = 1. / process_params["highpass"]
+    seconds_prior_arrival = process_params["seconds_prior_arrival"]
+    window_length_in_sec= process_params["window_length_in_sec"]
+    
+    
+    events_dict = comm.query.get_stations_for_all_processed_events(iteration_name)
+    #print(events_dict)
+    '''comm.iterations.create_new_iteration(
+        iteration_name=new_iteration_name,
+        solver_name=solver_name,
+        events_dict=events_dict,
+        min_period=min_period,
+        max_period=max_period,
+        seconds_prior_arrival=seconds_prior_arrival,
+        window_length_in_sec=window_length_in_sec)
+    '''
+    comm.iterations.update_iteration(iteration_name,
+                                    new_iteration_name, events_dict)
 
 @command_group("Iteration Management")
 def lasif_create_successive_iteration(parser, args):
@@ -1251,9 +1377,23 @@ def lasif_preprocess_data(parser, args):
     parser.add_argument(
         "events", help="One or more events. If none given, all will be done.",
         nargs="*")
+    parser.add_argument("--snr", 
+            help="Relative noise level threshold above which data trace will be disregarded, 0.1 by default")
+    parser.add_argument("--components", default="ENZ", help="list of components to process, examples: ENZ, or Z or RTZ")
+    parser.add_argument("--svd_selection",default="False", choices=["True", "False"],
+                        help="``True``: for teleseismic configuration and waveform selection based on their similarity, "
+                        "``False``: preferred for regional waveforms, no selection applied ")
+    
     args = parser.parse_args(args)
     iteration_name = args.iteration_name
     events = args.events if args.events else None
+    svd_selection = args.svd_selection
+    noise_threshold = float(args.snr) if args.snr else None
+    comps = args.components
+    components=[]
+    for comp in comps:
+        components.append(comp)
+    
 
     comm = _find_project_comm_mpi(".", args.read_only_caches)
 
@@ -1265,9 +1405,11 @@ def lasif_preprocess_data(parser, args):
                    "get a list of all available iterations.") % iteration_name
             exceptions.append(msg)
 
+        
         # Check if the event ids are valid.
         if not exceptions and events:
             for event_name in events:
+                
                 if not comm.events.has_event(event_name):
                     msg = "Event '%s' not found." % event_name
                     exceptions.append(msg)
@@ -1277,9 +1419,94 @@ def lasif_preprocess_data(parser, args):
     exceptions = MPI.COMM_WORLD.bcast(exceptions, root=0)
     if exceptions:
         raise LASIFCommandLineException(exceptions[0])
+        
+    
+    comm.actions.preprocess_data(iteration_name, components, svd_selection, noise_threshold, events)
 
-    comm.actions.preprocess_data(iteration_name, events)
 
+@mpi_enabled
+@command_group("Iteration Management")
+def lasif_deconvolve_stf(parser, args):
+    """
+    Launch source wavelet estimation.
+
+    This function works with MPI. Don't use too many cores, I/O quickly
+    becomes the limiting factor. It also works without MPI but then only one
+    core actually does any work.
+    """
+    parser.add_argument("iteration_name", help="name of the iteration")
+    parser.add_argument(
+        "events", help="One or more events. If none given, all will be done.",
+        nargs="*")
+    parser.add_argument("--components", default="ENZ", help="list of components to process, examples: ENZ, or Z or RTZ")
+        
+    args = parser.parse_args(args)
+    iteration_name = args.iteration_name
+    events = args.events if args.events else None
+    comps = args.components
+    components=[]
+    for comp in comps:
+        components.append(comp)
+    
+
+    comm = _find_project_comm_mpi(".", args.read_only_caches)
+
+    # No need to perform these checks on all ranks.
+    exceptions = []
+    if MPI.COMM_WORLD.rank == 0:
+        if not comm.iterations.has_iteration(iteration_name):
+            msg = ("Iteration '%s' not found. Use 'lasif list_iterations' to "
+                   "get a list of all available iterations.") % iteration_name
+            exceptions.append(msg)
+
+        
+        # Check if the event ids are valid.
+        if not exceptions and events:
+            for event_name in events:
+                
+                if not comm.events.has_event(event_name):
+                    msg = "Event '%s' not found." % event_name
+                    exceptions.append(msg)
+                    break
+
+    # Raise any exceptions on all ranks if necessary.
+    exceptions = MPI.COMM_WORLD.bcast(exceptions, root=0)
+    if exceptions:
+        raise LASIFCommandLineException(exceptions[0])
+        
+    
+    comm.actions.stf_estimate(iteration_name, components, events)
+    
+@command_group("Plotting")
+def lasif_plot_synthetic_from_stf(parser, args):
+    """
+    Plot seismic waveform gather for preprocessed data and synthetic waveforms
+    """
+    parser.add_argument("iteration_name", help="name of the iteration")
+    parser.add_argument("event_name", help="name of the event to plot waveform gather")
+    parser.add_argument("--components", default="ENZ", help="list of components to plot, examples: ENZ, or Z or RTZ")
+    parser.add_argument("--scaling", default=0.5,
+                        help="Float for scaling the waveforms, 0.5 by default")
+    parser.add_argument("--raw", default="True", choices=["False", "True"],
+                        help="For additionally plotting initial synthetics on top, True by default")
+    
+    args = parser.parse_args(args)
+    iteration_name = args.iteration_name
+    event_name = args.event_name
+    scale = args.scaling
+    raw = args.raw
+    comps = args.components
+    components=[]
+    for comp in comps:
+        components.append(comp)
+           
+    comm = _find_project_comm(".", args.read_only_caches)
+    comm.visualizations.plot_synthetic_from_stf(event_name, iteration_name, 
+                                                    components, scaling = float(scale), plot_raw=raw)
+
+    import matplotlib.pyplot as plt
+    plt.show()
+    
 
 @command_group("Iteration Management")
 def lasif_plot_q_model(parser, args):
