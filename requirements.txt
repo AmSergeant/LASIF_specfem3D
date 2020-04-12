@@ -1,1 +1,2 @@
 git+https://github.com/matplotlib/basemap.git
+https://github.com/krischer/wfs_input_generator/archive/master.zip
