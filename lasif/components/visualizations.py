@@ -201,7 +201,7 @@ class VisualizationsComponent(Component):
                     type="raydensity_plots", tag="raydensity"),
                 "raydensity.png")
             plt.savefig(outfile, dpi=200, transparent=True)
-            print "Saved picture at %s" % outfile
+            print ("Saved picture at %s" % outfile)
 
     def plot_preprocessed_waveforms(
             self,
