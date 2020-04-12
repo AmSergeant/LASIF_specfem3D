@@ -53,7 +53,7 @@ setup_config = dict(
     license="GNU General Public License, version 3 (GPLv3)",
     platforms="OS Independent",
     install_requires=[
-        "obspy>=1.0.1",
+        "obspy>=1.1.0",
         "progressbar",
         "geographiclib",
         "numpy",
