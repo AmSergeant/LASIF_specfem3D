@@ -12,10 +12,10 @@ special purpose tool that does what I need it to do.
     GNU General Public License, Version 3
     (http://www.gnu.org/copyleft/gpl.html)
 """
-from __future__ import absolute_import, print_function
 
-from PyQt4 import QtGui
-from PyQt4.QtCore import pyqtSlot
+
+from PyQt5 import QtGui, QtWidgets
+from PyQt5.QtCore import pyqtSlot
 
 from glob import iglob
 import imp
@@ -62,12 +62,12 @@ def compile_and_import_ui_files():
         try:
             import_name = os.path.splitext(os.path.basename(py_ui_file))[0]
             globals()[import_name] = imp.load_source(import_name, py_ui_file)
-        except ImportError, e:
+        except ImportError as e:
             print("Error importing %s" % py_ui_file)
             print(e.message)
 
 
-class Window(QtGui.QMainWindow):
+class Window(QtWidgets.QMainWindow):
     def __init__(self, comm):
         QtGui.QMainWindow.__init__(self)
         # LASIF communicator instances.
@@ -147,10 +147,10 @@ class Window(QtGui.QMainWindow):
             [0.25, 0.08, 0.7, 0.89], axisbg='none')
         self.axes["depth_profile"].invert_yaxis()
 
-        for axis in self.axes.values():
+        for axis in list(self.axes.values()):
             axis.clear()
 
-        for figure in self.figures.values():
+        for figure in list(self.figures.values()):
             figure.set_facecolor('none')
 
         # Plot the map.
@@ -167,7 +167,7 @@ class Window(QtGui.QMainWindow):
         """
         Draw the canvases.
         """
-        for fig in self.figures.values():
+        for fig in list(self.figures.values()):
             fig.canvas.draw()
 
     def _clear_current_state(self):
@@ -244,7 +244,7 @@ class Window(QtGui.QMainWindow):
         self.current_state["depth"] = depth
         self.current_state["style"] = style
 
-        if None in self.current_state.values():
+        if None in list(self.current_state.values()):
             return
 
         self.model.parse_component(component)
@@ -288,7 +288,7 @@ class Window(QtGui.QMainWindow):
         for _i in self.plot_state["depth_profile_line"]:
             try:
                 _i.remove()
-            except:
+            except BaseException:
                 pass
             del _i
         self.plot_state["depth_profile_line"] = []

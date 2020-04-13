@@ -37,10 +37,10 @@ def read_event_list(filename):
                 continue
             index, date, colat, lon, depth, exp, Mrr, Mtt, Mpp, Mrt, Mrp, \
                 Mtp, time, Mw = line[:14]
-            index, exp = map(int, (index, exp))
-            colat, lon, depth, Mrr, Mtt, Mpp, Mrt, Mrp, Mtp, Mw = map(
-                float, (colat, lon, depth, Mrr, Mtt, Mpp, Mrt, Mrp, Mtp, Mw))
-            year, month, day = map(int, date.split("/"))
+            index, exp = list(map(int, (index, exp)))
+            colat, lon, depth, Mrr, Mtt, Mpp, Mrt, Mrp, Mtp, Mw = list(map(
+                float, (colat, lon, depth, Mrr, Mtt, Mpp, Mrt, Mrp, Mtp, Mw)))
+            year, month, day = list(map(int, date.split("/")))
             split_time = time.split(":")
             if len(split_time) == 3:
                 hour, minute, second = split_time
@@ -50,7 +50,7 @@ def read_event_list(filename):
             else:
                 raise NotImplementedError
             microsecond = int(microsecond) * 10 ** (6 - len(microsecond))
-            hour, minute, second = map(int, (hour, minute, second))
+            hour, minute, second = list(map(int, (hour, minute, second)))
             event_time = UTCDateTime(year, month, day, hour, minute, second,
                                      microsecond)
             event = {
@@ -77,7 +77,7 @@ def event_list_to_quakeml(filename, folder):
     events = read_event_list(filename)
     if not os.path.exists(folder):
         os.makedirs(folder)
-    for key, value in events.iteritems():
+    for key, value in events.items():
         filename = os.path.join(folder, "%s%sxml" % (key, os.path.extsep))
         event_to_quakeml(value, filename)
 

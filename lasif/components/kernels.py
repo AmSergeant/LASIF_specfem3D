@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import
+
 
 import glob
 import os
@@ -18,6 +18,7 @@ class KernelsComponent(Component):
     :param communicator: The communicator instance.
     :param component_name: The name of this component for the communicator.
     """
+
     def __init__(self, kernels_folder, communicator, component_name):
         self._folder = kernels_folder
         super(KernelsComponent, self).__init__(communicator,
@@ -103,7 +104,7 @@ class KernelsComponent(Component):
                 "directory or add a model with the same dimension to LASIF. "
                 "LASIF will then be able to figure out the dimensions of it.")
             raise LASIFNotFoundError(msg)
-        print("Copied boxfile from '%s' to '%s'." % (model_dir, kernel_dir))
+        print(("Copied boxfile from '%s' to '%s'." % (model_dir, kernel_dir)))
         shutil.copyfile(boxfile, os.path.join(kernel_dir, "boxfile"))
 
     def get_model_handler(self, iteration, event):

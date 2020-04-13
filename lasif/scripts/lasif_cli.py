@@ -40,34 +40,32 @@ should scale fairly well and makes it trivial to add new methods.
     GNU General Public License, Version 3
     (http://www.gnu.org/copyleft/gpl.html)
 """
+from lasif.components.project import Project
+from lasif import LASIFNotFoundError
+from mpi4py import MPI
+import warnings
+import traceback
+import time
+import sys
+import progressbar
+import itertools
+import difflib
+import colorama
+import collections
+import argparse
 import os
 import lasif
 from lasif import LASIFError
 
 os.environ["OPENBLAS_NUM_THREADS"] = "1"
 
-import argparse
-import collections
-import colorama
-import difflib
-import itertools
-import progressbar
-import sys
-import time
-import traceback
-import warnings
-
-from mpi4py import MPI
-
-from lasif import LASIFNotFoundError
-from lasif.components.project import Project
 
 # Try to disable the ObsPy deprecation warnings. This makes LASIF work with
 # the latest ObsPy stable and the master.
 try:
     # It only exists for certain ObsPy versions.
     from obspy.core.util.deprecation_helpers import ObsPyDeprecationWarning
-except:
+except BaseException:
     pass
 else:
     warnings.filterwarnings("ignore", category=ObsPyDeprecationWarning)
@@ -135,7 +133,7 @@ def _find_project_comm(folder, read_only_caches):
     """
     max_folder_depth = 10
     folder = folder
-    for _ in xrange(max_folder_depth):
+    for _ in range(max_folder_depth):
         if os.path.exists(os.path.join(folder, "config.xml")):
             return Project(
                 os.path.abspath(folder),
@@ -215,65 +213,79 @@ def lasif_shell(parser, args):
     embed(display_banner=False)
 
 
-
 @command_group("Plotting")
 def lasif_plot_preprocessed_waveforms(parser, args):
     """
     Plot seismic waveform gather resulting from data preprocessing steps
     """
     parser.add_argument("iteration_name", help="name of the iteration")
-    parser.add_argument("event_name", help="name of the event to plot waveform gather")
-    parser.add_argument("--components", default="ENZ", help="list of components to plot, examples: ENZ, or Z or RTZ")
-    parser.add_argument("--raw", default="False", choices=["False", "True"],
-                        help="For additionally plotting non-selected raw waveforms on top, False by default")
+    parser.add_argument(
+        "event_name",
+        help="name of the event to plot waveform gather")
+    parser.add_argument(
+        "--components",
+        default="ENZ",
+        help="list of components to plot, examples: ENZ, or Z or RTZ")
+    parser.add_argument(
+        "--raw",
+        default="False",
+        choices=[
+            "False",
+            "True"],
+        help="For additionally plotting non-selected raw waveforms on top, False by default")
     parser.add_argument("--scaling", default=0.5,
                         help="Float for scaling the waveforms, 0.5 by default")
-    
+
     args = parser.parse_args(args)
     iteration_name = args.iteration_name
     event_name = args.event_name
     comps = args.components
     raw = args.raw
     scale = float(args.scaling)
-    components=[]
+    components = []
     for comp in comps:
         components.append(comp)
-           
+
     comm = _find_project_comm(".", args.read_only_caches)
-    comm.visualizations.plot_preprocessed_waveforms(event_name, iteration_name, 
-                                                    components, scaling = scale, plot_raw=raw)
+    comm.visualizations.plot_preprocessed_waveforms(
+        event_name, iteration_name, components, scaling=scale, plot_raw=raw)
 
     import matplotlib.pyplot as plt
     plt.show()
-    
-    
+
+
 @command_group("Plotting")
 def lasif_plot_synthetic_waveforms(parser, args):
     """
     Plot seismic waveform gather for preprocessed data and synthetic waveforms
     """
     parser.add_argument("iteration_name", help="name of the iteration")
-    parser.add_argument("event_name", help="name of the event to plot waveform gather")
-    parser.add_argument("--components", default="ENZ", help="list of components to plot, examples: ENZ, or Z or RTZ")
+    parser.add_argument(
+        "event_name",
+        help="name of the event to plot waveform gather")
+    parser.add_argument(
+        "--components",
+        default="ENZ",
+        help="list of components to plot, examples: ENZ, or Z or RTZ")
     parser.add_argument("--scaling", default=0.5,
                         help="Float for scaling the waveforms, 0.5 by default")
-    
+
     args = parser.parse_args(args)
     iteration_name = args.iteration_name
     event_name = args.event_name
     scale = float(args.scaling)
     comps = args.components
-    components=[]
+    components = []
     for comp in comps:
         components.append(comp)
-           
+
     comm = _find_project_comm(".", args.read_only_caches)
-    comm.visualizations.plot_synthetic_waveforms(event_name, iteration_name, 
-                                                    components, scaling = scale)
+    comm.visualizations.plot_synthetic_waveforms(event_name, iteration_name,
+                                                 components, scaling=scale)
 
     import matplotlib.pyplot as plt
     plt.show()
-    
+
 
 @command_group("Plotting")
 def lasif_plot_event(parser, args):
@@ -281,26 +293,36 @@ def lasif_plot_event(parser, args):
     Plot a single event including stations on a map.
     """
     parser.add_argument("event_name", help="name of the event to plot")
-    parser.add_argument("--config", default="local", choices=["local", "teleseismic"],
-                        help="the type of map plot. "
-                        "``local``: for map bounded to the domain, "
-                        "``teleseismic``: for global map for teleseismic configuration, ")
-    parser.add_argument("--azimuthal_proj", default="False", choices=["True", "False"],
-                        help="the type of map projection. "
-                        "``False``: for classic map projection, by default"
-                        "``True``: for Azimuthal Equidistant Projection centered on the domain, ")
+    parser.add_argument(
+        "--config",
+        default="local",
+        choices=[
+            "local",
+            "teleseismic"],
+        help="the type of map plot. "
+        "``local``: for map bounded to the domain, "
+        "``teleseismic``: for global map for teleseismic configuration, ")
+    parser.add_argument(
+        "--azimuthal_proj",
+        default="False",
+        choices=[
+            "True",
+            "False"],
+        help="the type of map projection. "
+        "``False``: for classic map projection, by default"
+        "``True``: for Azimuthal Equidistant Projection centered on the domain, ")
     args = parser.parse_args(args)
     event_name = args.event_name
-    config=args.config
-    azimuthal_proj=args.azimuthal_proj
-    
+    config = args.config
+    azimuthal_proj = args.azimuthal_proj
+
     comm = _find_project_comm(".", args.read_only_caches)
-    comm.visualizations.plot_event(event_name,config,azimuthal_proj)
+    comm.visualizations.plot_event(event_name, config, azimuthal_proj)
 
     import matplotlib.pyplot as plt
     plt.show()
-    
-    
+
+
 @command_group("Plotting")
 def lasif_plot_events(parser, args):
     """
@@ -317,19 +339,29 @@ def lasif_plot_events(parser, args):
                         "``map``: beachballs on a map, "
                         "``depth``: depth distribution histogram, "
                         "``time``: time distribution histogram")
-    parser.add_argument("--config", default="local", choices=["local", "teleseismic"],
-                        help="the type of map plot. "
-                        "``local``: for map bounded to the domain, "
-                        "``teleseismic``: for global map for teleseismic configuration, ")
-    parser.add_argument("--azimuthal_proj", default="False", choices=["True", "False"],
-                        help="the type of map projection. "
-                        "``False``: for classic map projection, by default"
-                        "``True``: for Azimuthal Equidistant Projection centered on the domain, ")
+    parser.add_argument(
+        "--config",
+        default="local",
+        choices=[
+            "local",
+            "teleseismic"],
+        help="the type of map plot. "
+        "``local``: for map bounded to the domain, "
+        "``teleseismic``: for global map for teleseismic configuration, ")
+    parser.add_argument(
+        "--azimuthal_proj",
+        default="False",
+        choices=[
+            "True",
+            "False"],
+        help="the type of map projection. "
+        "``False``: for classic map projection, by default"
+        "``True``: for Azimuthal Equidistant Projection centered on the domain, ")
     args = parser.parse_args(args)
     plot_type = args.type
-    config=args.config
-    azimuthal_proj=args.azimuthal_proj
-    
+    config = args.config
+    azimuthal_proj = args.azimuthal_proj
+
     comm = _find_project_comm(".", args.read_only_caches)
     comm.visualizations.plot_events(plot_type, config, azimuthal_proj)
 
@@ -337,25 +369,30 @@ def lasif_plot_events(parser, args):
     plt.show()
 
 
-  
 @command_group("Plotting")
-def lasif_plot_stations(parser,args):
+def lasif_plot_stations(parser, args):
     """
     Plot a single event including stations on a map.
     """
-    parser.add_argument("--relief", type=int, default=1, choices=[1,0],
-                        help="Boolean for plotting relief as a background image. "
-                        "1: relief background, "
-                        "0: no relief background, ")
+    parser.add_argument(
+        "--relief",
+        type=int,
+        default=1,
+        choices=[
+            1,
+            0],
+        help="Boolean for plotting relief as a background image. "
+        "1: relief background, "
+        "0: no relief background, ")
     args = parser.parse_args(args)
     plot_type = args.relief
-    
+
     comm = _find_project_comm(".", args.read_only_caches)
     comm.visualizations.plot_stations(plot_type)
 
     import matplotlib.pyplot as plt
-    plt.show()    
-    
+    plt.show()
+
 
 @command_group("Plotting")
 def lasif_plot_raydensity(parser, args):
@@ -403,29 +440,44 @@ def lasif_add_gcmt_events(parser, args):
                         help="minimum year from which to add events")
     parser.add_argument("--max_year", default=None, type=int,
                         help="maximum year from which to add events")
-    parser.add_argument("--domain", default=1, type=int,
-                        help="Flag for download events in the defined domain, 1: In 0: Out")
-    parser.add_argument("--min_dist", default=30.0, type=float,
-                        help="minimum epicentral distance from the domain center in degree")
-    parser.add_argument("--max_dist", default=100.0, type=float,
-                        help="maximum epicentral distance from the domain center in degree")
-    parser.add_argument("--select", default=1, type=int,
-                        help="Flag for statistical selection of the events based on their spatial and time distibution")
-    
+    parser.add_argument(
+        "--domain",
+        default=1,
+        type=int,
+        help="Flag for download events in the defined domain, 1: In 0: Out")
+    parser.add_argument(
+        "--min_dist",
+        default=30.0,
+        type=float,
+        help="minimum epicentral distance from the domain center in degree")
+    parser.add_argument(
+        "--max_dist",
+        default=100.0,
+        type=float,
+        help="maximum epicentral distance from the domain center in degree")
+    parser.add_argument(
+        "--select",
+        default=1,
+        type=int,
+        help="Flag for statistical selection of the events based on their spatial and time distibution")
 
     args = parser.parse_args(args)
 
     from lasif.tools.query_gcmt_catalog import add_new_events
     comm = _find_project_comm(".", args.read_only_caches)
-    
-    add_new_events(comm=comm, count=args.count,
-                   min_magnitude=args.min_magnitude,
-                   max_magnitude=args.max_magnitude,
-                   min_year=args.min_year, max_year=args.max_year,
-                   domain=args.domain, min_dist=args.min_dist, max_dist=args.max_dist,
-                   threshold_distance_in_km=args.min_distance,
-                   statistical_selection=args.select)
-    
+
+    add_new_events(
+        comm=comm,
+        count=args.count,
+        min_magnitude=args.min_magnitude,
+        max_magnitude=args.max_magnitude,
+        min_year=args.min_year,
+        max_year=args.max_year,
+        domain=args.domain,
+        min_dist=args.min_dist,
+        max_dist=args.max_dist,
+        threshold_distance_in_km=args.min_distance,
+        statistical_selection=args.select)
 
 
 @command_group("Project Management")
@@ -436,7 +488,7 @@ def lasif_info(parser, args):
     args = parser.parse_args(args)
 
     comm = _find_project_comm(".", args.read_only_caches)
-    print(comm.project)
+    print((comm.project))
 
 
 @command_group("Data Acquisition")
@@ -444,23 +496,30 @@ def lasif_download_data(parser, args):
     """
     Download waveform and station data for one event.
     """
-    parser.add_argument("--e", default=None, 
-                        help="name of the event, if not specified will download all events")
+    parser.add_argument(
+        "--e",
+        default=None,
+        help="name of the event, if not specified will download all events")
     parser.add_argument("--providers", default=None,
                         type=str, nargs="+",
                         help="FDSN providers to query. Will use all known "
                              "ones if not set.")
-    parser.add_argument("--networks", default=None,
-                        type=str, 
-                        help="seismic networks (comma separated) to download in the domain, eg. ``IU,G`` ")
-    
+    parser.add_argument(
+        "--networks",
+        default=None,
+        type=str,
+        help="seismic networks (comma separated) to download in the domain, eg. ``IU,G`` ")
+
     args = parser.parse_args(args)
     event_name = args.e
     providers = args.providers
     networks = args.networks
 
     comm = _find_project_comm(".", args.read_only_caches)
-    comm.downloads.download_data(event_name, providers=providers, networks=networks)
+    comm.downloads.download_data(
+        event_name,
+        providers=providers,
+        networks=networks)
 
 
 @command_group("Event Management")
@@ -484,8 +543,8 @@ def lasif_list_events(parser, args):
                                         "be specified.")
 
     if args.list is False:
-        print("%i event%s in project:" % (comm.events.count(),
-              "s" if comm.events.count() != 1 else ""))
+        print(("%i event%s in project:" %
+               (comm.events.count(), "s" if comm.events.count() != 1 else "")))
 
     if args.details is True:
         tab = PrettyTable(["Event Name", "Lat/Lng/Depth(km)/Mag",
@@ -544,10 +603,10 @@ def lasif_list_models(parser, args):
 
     comm = _find_project_comm(".", args.read_only_caches)
     models = comm.models.list()
-    print("%i model%s in project:" % (len(models), "s" if len(models) != 1
-          else ""))
+    print(("%i model%s in project:" % (len(models), "s" if len(models) != 1
+                                       else "")))
     for model in models:
-        print ("\t%s" % model)
+        print(("\t%s" % model))
 
 
 @command_group("Project Management")
@@ -559,11 +618,11 @@ def lasif_list_kernels(parser, args):
 
     comm = _find_project_comm(".", args.read_only_caches)
     kernels = comm.kernels.list()
-    print("%i kernel%s in project:" % (
-        len(kernels), "s" if len(kernels) != 1 else ""))
+    print(("%i kernel%s in project:" % (
+        len(kernels), "s" if len(kernels) != 1 else "")))
     for kernel in kernels:
-        print("\tIteration %3s and Event %s" % (kernel["iteration"],
-                                                kernel["event"]))
+        print(("\tIteration %3s and Event %s" % (kernel["iteration"],
+                                                 kernel["event"])))
 
 
 @command_group("Plotting")
@@ -598,20 +657,20 @@ def lasif_plot_wavefield(parser, args):
         print(handler)
         print("")
 
-        inp = raw_input("Enter 'COMPONENT DEPTH' "
-                        "('quit/exit' to exit): ").strip()
+        inp = input("Enter 'COMPONENT DEPTH' "
+                    "('quit/exit' to exit): ").strip()
         if inp.lower() in ["quit", "q", "exit", "leave"]:
             break
         try:
             component, timestep, depth = inp.split()
-        except:
+        except BaseException:
             continue
 
         component = component = "%s %s" % (component, timestep)
 
         try:
             handler.parse_component(component)
-        except:
+        except BaseException:
             continue
         handler.plot_depth_slice(component, float(depth))
 
@@ -635,13 +694,13 @@ def lasif_event_info(parser, args):
 
     event_dict = comm.events.get(event_name)
 
-    print("Earthquake with %.1f %s at %s" % (
+    print(("Earthquake with %.1f %s at %s" % (
           event_dict["magnitude"], event_dict["magnitude_type"],
-          event_dict["region"]))
-    print("\tLatitude: %.3f, Longitude: %.3f, Depth: %.1f km" % (
+          event_dict["region"])))
+    print(("\tLatitude: %.3f, Longitude: %.3f, Depth: %.1f km" % (
           event_dict["latitude"], event_dict["longitude"],
-          event_dict["depth_in_km"]))
-    print("\t%s UTC" % str(event_dict["origin_time"]))
+          event_dict["depth_in_km"])))
+    print(("\t%s UTC" % str(event_dict["origin_time"])))
 
     try:
         stations = comm.query.get_all_stations_for_event(event_name)
@@ -650,8 +709,8 @@ def lasif_event_info(parser, args):
 
     if verbose:
         from lasif.utils import table_printer
-        print("\nStation and waveform information available at %i "
-              "stations:\n" % len(stations))
+        print(("\nStation and waveform information available at %i "
+               "stations:\n" % len(stations)))
         header = ["id", "latitude", "longitude", "elevation_in_m",
                   "local depth"]
         keys = sorted(stations.keys())
@@ -661,8 +720,8 @@ def lasif_event_info(parser, args):
             for key in keys]
         table_printer(header, data)
     else:
-        print("\nStation and waveform information available at %i stations. "
-              "Use '-v' to print them." % len(stations))
+        print(("\nStation and waveform information available at %i stations. "
+               "Use '-v' to print them." % len(stations)))
 
 
 @command_group("Plotting")
@@ -716,8 +775,8 @@ def lasif_generate_all_input_files(parser, args):
     it = comm.iterations.get(iteration_name)
     events = sorted(it.events.keys())
     for _i, event in enumerate(events):
-        print("Generating input files for event %i of %i..." % (_i + 1,
-                                                                len(events)))
+        print(("Generating input files for event %i of %i..." % (_i + 1,
+                                                                 len(events))))
         comm.actions.generate_input_files(iteration_name, event,
                                           simulation_type)
 
@@ -765,14 +824,14 @@ def lasif_init_project(parser, args):
     folder_path = os.path.abspath(folder_path)
     try:
         os.makedirs(folder_path)
-    except:
+    except BaseException:
         msg = "Failed creating directory %s. Permissions?" % folder_path
         raise LASIFCommandLineException(msg)
 
     Project(project_root_path=folder_path,
             init_project=os.path.basename(folder_path))
 
-    print("Initialized project in: \n\t%s" % folder_path)
+    print(("Initialized project in: \n\t%s" % folder_path))
 
 
 @command_group("Iteration Management")
@@ -848,16 +907,16 @@ def lasif_select_all_windows(parser, args):
 
     for _i, event in enumerate(events):
         if MPI.COMM_WORLD.rank == 0:
-            print("\n{green}"
-                  "==========================================================="
-                  "{reset}".format(green=colorama.Fore.GREEN,
-                                   reset=colorama.Style.RESET_ALL))
-            print("Starting window selection for event %i of %i..." % (
-                  _i + 1, len(events)))
-            print("{green}"
-                  "==========================================================="
-                  "{reset}\n".format(green=colorama.Fore.GREEN,
-                                     reset=colorama.Style.RESET_ALL))
+            print(("\n{green}"
+                   "==========================================================="
+                   "{reset}".format(green=colorama.Fore.GREEN,
+                                    reset=colorama.Style.RESET_ALL)))
+            print(("Starting window selection for event %i of %i..." % (
+                  _i + 1, len(events))))
+            print(("{green}"
+                   "==========================================================="
+                   "{reset}\n".format(green=colorama.Fore.GREEN,
+                                      reset=colorama.Style.RESET_ALL)))
         MPI.COMM_WORLD.barrier()
         comm.actions.select_windows(event, iteration)
 
@@ -994,11 +1053,17 @@ def lasif_create_new_iteration(parser, args):
                         choices=("SES3D_4_1", "SES3D_2_0",
                                  "SPECFEM3D_CARTESIAN",
                                  "SPECFEM3D_GLOBE_CEM"))
-    parser.add_argument("--seconds_prior", type=float, default=5.,
-                        help="nb of seconds prior the theoretical phase arrival time used to window seismograms for quality control, default 5")
-    parser.add_argument("--window_length", type=float, default=50.,
-                        help="Time window length in seconds used to window the phase of interest in the seismograms, used for suqlity control, default 50")
-    
+    parser.add_argument(
+        "--seconds_prior",
+        type=float,
+        default=5.,
+        help="nb of seconds prior the theoretical phase arrival time used to window seismograms for quality control, default 5")
+    parser.add_argument(
+        "--window_length",
+        type=float,
+        default=50.,
+        help="Time window length in seconds used to window the phase of interest in the seismograms, used for suqlity control, default 50")
+
     args = parser.parse_args(args)
     iteration_name = args.iteration_name
     solver_name = args.solver_name
@@ -1012,9 +1077,9 @@ def lasif_create_new_iteration(parser, args):
     if seconds_prior_arrival >= window_length_in_sec:
         msg = "seconds_prior needs to be smaller than window_length."
         raise LASIFCommandLineException(msg)
-    
+
     comm = _find_project_comm(".", args.read_only_caches)
-    #print(comm.query.get_stations_for_all_events())
+    # print(comm.query.get_stations_for_all_events())
     comm.iterations.create_new_iteration(
         iteration_name=iteration_name,
         solver_name=solver_name,
@@ -1023,26 +1088,26 @@ def lasif_create_new_iteration(parser, args):
         max_period=max_period,
         seconds_prior_arrival=seconds_prior_arrival,
         window_length_in_sec=window_length_in_sec)
-    
+
 
 @command_group("Iteration Management")
 def lasif_update_iteration(parser, args):
     """
     Create a new iteration.
     """
-    parser.add_argument("iteration_name", help="name of the current iteration to update")
+    parser.add_argument(
+        "iteration_name",
+        help="name of the current iteration to update")
     parser.add_argument("new_iteration_name", help="name of the new iteration")
-        
+
     args = parser.parse_args(args)
     iteration_name = args.iteration_name
     new_iteration_name = args.new_iteration_name
-    
-    
+
     if new_iteration_name == iteration_name:
         msg = "The new iteration name should be different than the current iteration names."
         raise LASIFCommandLineException(msg)
-    
-    
+
     comm = _find_project_comm(".", args.read_only_caches)
     iteration = comm.iterations.get(iteration_name)
     solver_name = iteration.solver_settings["solver"].replace(" ", "_")
@@ -1050,11 +1115,11 @@ def lasif_update_iteration(parser, args):
     min_period = 1. / process_params["lowpass"]
     max_period = 1. / process_params["highpass"]
     seconds_prior_arrival = process_params["seconds_prior_arrival"]
-    window_length_in_sec= process_params["window_length_in_sec"]
-    
-    
-    events_dict = comm.query.get_stations_for_all_processed_events(iteration_name)
-    #print(events_dict)
+    window_length_in_sec = process_params["window_length_in_sec"]
+
+    events_dict = comm.query.get_stations_for_all_processed_events(
+        iteration_name)
+    # print(events_dict)
     '''comm.iterations.create_new_iteration(
         iteration_name=new_iteration_name,
         solver_name=solver_name,
@@ -1065,7 +1130,8 @@ def lasif_update_iteration(parser, args):
         window_length_in_sec=window_length_in_sec)
     '''
     comm.iterations.update_iteration(iteration_name,
-                                    new_iteration_name, events_dict)
+                                     new_iteration_name, events_dict)
+
 
 @command_group("Iteration Management")
 def lasif_create_successive_iteration(parser, args):
@@ -1122,10 +1188,10 @@ def lasif_compare_misfits(parser, args):
         # Split into a number of events per MPI process.
         events = split(events, MPI.COMM_WORLD.size)
 
-        print " => Calculating misfit change from iteration '%s' to " \
-            "iteration '%s' ..." % (from_it.name, to_it.name)
-        print " => Launching calculations on %i core(s)\n" % \
-            MPI.COMM_WORLD.size
+        print(" => Calculating misfit change from iteration '%s' to "
+              "iteration '%s' ..." % (from_it.name, to_it.name))
+        print(" => Launching calculations on %i core(s)\n" %
+              MPI.COMM_WORLD.size)
 
     else:
         events = None
@@ -1187,7 +1253,7 @@ def lasif_compare_misfits(parser, args):
                 except LASIFAdjointSourceCalculationError:
                     continue
                 except LASIFNotFoundError as e:
-                    print str(e)
+                    print(str(e))
                     continue
 
                 try:
@@ -1217,7 +1283,7 @@ def lasif_compare_misfits(parser, args):
             total_misfit_to += channel_misfit_to
 
             if (misfit_to - misfit_from) < -1.5:
-                print(event, channel, misfit_from - misfit_to)
+                print((event, channel, misfit_from - misfit_to))
             all_events[event].append(misfit_to - misfit_from)
         if MPI.COMM_WORLD.rank == 0:
             pbar.finish()
@@ -1238,15 +1304,15 @@ def lasif_compare_misfits(parser, args):
     if not all_events:
         raise LASIFCommandLineException("No misfit values could be compared.")
 
-    print "\nTotal misfit in Iteration %s: %g" % (from_it.name,
-                                                  total_misfit_from)
-    print "Total misfit in Iteration %s: %g" % (to_it.name,
-                                                total_misfit_to)
+    print("\nTotal misfit in Iteration %s: %g" % (from_it.name,
+                                                  total_misfit_from))
+    print("Total misfit in Iteration %s: %g" % (to_it.name,
+                                                total_misfit_to))
 
     _ending_time = time.time()
 
-    print "\n => Computation time: %.1f seconds" % (_ending_time -
-                                                    _starting_time)
+    print("\n => Computation time: %.1f seconds" % (_ending_time -
+                                                    _starting_time))
 
     import matplotlib.pylab as plt
     import numpy as np
@@ -1270,7 +1336,7 @@ def lasif_compare_misfits(parser, args):
         type="misfit_comparisons", tag="misfit_comparision")
     filename = os.path.join(output_folder, "misfit_comparision.pdf")
     plt.savefig(filename)
-    print "\nSaved figure to '%s'" % os.path.relpath(filename)
+    print("\nSaved figure to '%s'" % os.path.relpath(filename))
 
 
 @command_group("Iteration Management")
@@ -1288,11 +1354,11 @@ def lasif_migrate_windows(parser, args):
     from_it = comm.iterations.get(args.from_iteration)
     to_it = comm.iterations.get(args.to_iteration)
 
-    print "Migrating windows from iteration '%s' to iteration '%s'..." % (
-        from_it.name, to_it.name)
+    print("Migrating windows from iteration '%s' to iteration '%s'..." % (
+        from_it.name, to_it.name))
 
-    for event_name, stations in to_it.events.items():
-        stations = stations["stations"].keys()
+    for event_name, stations in list(to_it.events.items()):
+        stations = list(stations["stations"].keys())
 
         window_group_from = comm.windows.get(event_name, from_it.name)
         window_group_to = comm.windows.get(event_name, to_it.name)
@@ -1301,7 +1367,7 @@ def lasif_migrate_windows(parser, args):
         contents = contents_from - contents_to
 
         # Remove all not part of this iterations station.
-        filtered_contents = itertools.ifilter(
+        filtered_contents = filter(
             lambda x: ".".join(x.split(".")[:2]) in stations,
             contents)
 
@@ -1324,10 +1390,10 @@ def lasif_list_iterations(parser, args):
 
     it_len = comm.iterations.count()
 
-    print("%i iteration%s in project:" % (it_len,
-          "s" if it_len != 1 else ""))
+    print(("%i iteration%s in project:" % (it_len,
+                                           "s" if it_len != 1 else "")))
     for iteration in comm.iterations.list():
-        print ("\t%s" % iteration)
+        print(("\t%s" % iteration))
 
 
 @command_group("Iteration Management")
@@ -1345,7 +1411,7 @@ def lasif_iteration_info(parser, args):
                "a list of all available iterations.") % iteration_name
         raise LASIFCommandLineException(msg)
 
-    print(comm.iterations.get(iteration_name))
+    print((comm.iterations.get(iteration_name)))
 
 
 @command_group("Project Management")
@@ -1377,23 +1443,31 @@ def lasif_preprocess_data(parser, args):
     parser.add_argument(
         "events", help="One or more events. If none given, all will be done.",
         nargs="*")
-    parser.add_argument("--snr", 
-            help="Relative noise level threshold above which data trace will be disregarded, 0.1 by default")
-    parser.add_argument("--components", default="ENZ", help="list of components to process, examples: ENZ, or Z or RTZ")
-    parser.add_argument("--svd_selection",default="False", choices=["True", "False"],
-                        help="``True``: for teleseismic configuration and waveform selection based on their similarity, "
-                        "``False``: preferred for regional waveforms, no selection applied ")
-    
+    parser.add_argument(
+        "--snr",
+        help="Relative noise level threshold above which data trace will be disregarded, 0.1 by default")
+    parser.add_argument(
+        "--components",
+        default="ENZ",
+        help="list of components to process, examples: ENZ, or Z or RTZ")
+    parser.add_argument(
+        "--svd_selection",
+        default="False",
+        choices=[
+            "True",
+            "False"],
+        help="``True``: for teleseismic configuration and waveform selection based on their similarity, "
+        "``False``: preferred for regional waveforms, no selection applied ")
+
     args = parser.parse_args(args)
     iteration_name = args.iteration_name
     events = args.events if args.events else None
     svd_selection = args.svd_selection
     noise_threshold = float(args.snr) if args.snr else None
     comps = args.components
-    components=[]
+    components = []
     for comp in comps:
         components.append(comp)
-    
 
     comm = _find_project_comm_mpi(".", args.read_only_caches)
 
@@ -1405,11 +1479,10 @@ def lasif_preprocess_data(parser, args):
                    "get a list of all available iterations.") % iteration_name
             exceptions.append(msg)
 
-        
         # Check if the event ids are valid.
         if not exceptions and events:
             for event_name in events:
-                
+
                 if not comm.events.has_event(event_name):
                     msg = "Event '%s' not found." % event_name
                     exceptions.append(msg)
@@ -1419,9 +1492,13 @@ def lasif_preprocess_data(parser, args):
     exceptions = MPI.COMM_WORLD.bcast(exceptions, root=0)
     if exceptions:
         raise LASIFCommandLineException(exceptions[0])
-        
-    
-    comm.actions.preprocess_data(iteration_name, components, svd_selection, noise_threshold, events)
+
+    comm.actions.preprocess_data(
+        iteration_name,
+        components,
+        svd_selection,
+        noise_threshold,
+        events)
 
 
 @mpi_enabled
@@ -1438,16 +1515,18 @@ def lasif_deconvolve_stf(parser, args):
     parser.add_argument(
         "events", help="One or more events. If none given, all will be done.",
         nargs="*")
-    parser.add_argument("--components", default="ENZ", help="list of components to process, examples: ENZ, or Z or RTZ")
-        
+    parser.add_argument(
+        "--components",
+        default="ENZ",
+        help="list of components to process, examples: ENZ, or Z or RTZ")
+
     args = parser.parse_args(args)
     iteration_name = args.iteration_name
     events = args.events if args.events else None
     comps = args.components
-    components=[]
+    components = []
     for comp in comps:
         components.append(comp)
-    
 
     comm = _find_project_comm_mpi(".", args.read_only_caches)
 
@@ -1459,11 +1538,10 @@ def lasif_deconvolve_stf(parser, args):
                    "get a list of all available iterations.") % iteration_name
             exceptions.append(msg)
 
-        
         # Check if the event ids are valid.
         if not exceptions and events:
             for event_name in events:
-                
+
                 if not comm.events.has_event(event_name):
                     msg = "Event '%s' not found." % event_name
                     exceptions.append(msg)
@@ -1473,40 +1551,54 @@ def lasif_deconvolve_stf(parser, args):
     exceptions = MPI.COMM_WORLD.bcast(exceptions, root=0)
     if exceptions:
         raise LASIFCommandLineException(exceptions[0])
-        
-    
+
     comm.actions.stf_estimate(iteration_name, components, events)
-    
+
+
 @command_group("Plotting")
 def lasif_plot_synthetic_from_stf(parser, args):
     """
     Plot seismic waveform gather for preprocessed data and synthetic waveforms
     """
     parser.add_argument("iteration_name", help="name of the iteration")
-    parser.add_argument("event_name", help="name of the event to plot waveform gather")
-    parser.add_argument("--components", default="ENZ", help="list of components to plot, examples: ENZ, or Z or RTZ")
+    parser.add_argument(
+        "event_name",
+        help="name of the event to plot waveform gather")
+    parser.add_argument(
+        "--components",
+        default="ENZ",
+        help="list of components to plot, examples: ENZ, or Z or RTZ")
     parser.add_argument("--scaling", default=0.5,
                         help="Float for scaling the waveforms, 0.5 by default")
-    parser.add_argument("--raw", default="True", choices=["False", "True"],
-                        help="For additionally plotting initial synthetics on top, True by default")
-    
+    parser.add_argument(
+        "--raw",
+        default="True",
+        choices=[
+            "False",
+            "True"],
+        help="For additionally plotting initial synthetics on top, True by default")
+
     args = parser.parse_args(args)
     iteration_name = args.iteration_name
     event_name = args.event_name
     scale = args.scaling
     raw = args.raw
     comps = args.components
-    components=[]
+    components = []
     for comp in comps:
         components.append(comp)
-           
+
     comm = _find_project_comm(".", args.read_only_caches)
-    comm.visualizations.plot_synthetic_from_stf(event_name, iteration_name, 
-                                                    components, scaling = float(scale), plot_raw=raw)
+    comm.visualizations.plot_synthetic_from_stf(
+        event_name,
+        iteration_name,
+        components,
+        scaling=float(scale),
+        plot_raw=raw)
 
     import matplotlib.pyplot as plt
     plt.show()
-    
+
 
 @command_group("Iteration Management")
 def lasif_plot_q_model(parser, args):
@@ -1575,13 +1667,17 @@ def lasif_plot_windows(parser, args):
 
         window_manager = comm.windows.get(event_name, iteration_name)
         for window_group in window_manager:
-            window_group.plot(show=False, filename=os.path.join(output_folder,
-                              "%s.png" % window_group.channel_id))
+            window_group.plot(
+                show=False,
+                filename=os.path.join(
+                    output_folder,
+                    "%s.png" %
+                    window_group.channel_id))
             sys.stdout.write(".")
             sys.stdout.flush()
         print("\nDone")
 
-        print("Done. Written output to folder %s." % output_folder)
+        print(("Done. Written output to folder %s." % output_folder))
 
 
 @command_group("Project Management")
@@ -1653,23 +1749,23 @@ def lasif_iteration_status(parser, args):
     status = comm.query.get_iteration_status(iteration_name)
     iteration = comm.iterations.get(iteration_name)
 
-    print("Iteration %s is defined for %i events:" % (iteration_name,
-                                                      len(iteration.events)))
+    print(("Iteration %s is defined for %i events:" % (iteration_name,
+                                                       len(iteration.events))))
     for event in sorted(status.keys()):
         st = status[event]
-        print("\t%s" % event)
+        print(("\t%s" % event))
 
-        print("\t\t%.2f %% of the events stations have picked windows" %
-              (st["fraction_of_stations_that_have_windows"] * 100))
+        print(("\t\t%.2f %% of the events stations have picked windows" %
+               (st["fraction_of_stations_that_have_windows"] * 100)))
         if st["missing_raw"]:
-            print("\t\tLacks raw data for %i stations" %
-                  len(st["missing_raw"]))
+            print(("\t\tLacks raw data for %i stations" %
+                   len(st["missing_raw"])))
         if st["missing_processed"]:
-            print("\t\tLacks processed data for %i stations" %
-                  len(st["missing_processed"]))
+            print(("\t\tLacks processed data for %i stations" %
+                   len(st["missing_processed"])))
         if st["missing_synthetic"]:
-            print("\t\tLacks synthetic data for %i stations" %
-                  len(st["missing_synthetic"]))
+            print(("\t\tLacks synthetic data for %i stations" %
+                   len(st["missing_synthetic"])))
 
 
 def lasif_tutorial(parser, args):
@@ -1715,20 +1811,20 @@ def lasif_debug(parser, args):
     for filename in args.files:
         filename = os.path.relpath(filename)
         if not os.path.exists(filename):
-            print("{red}Path '{f}' does not exist.{reset}\n".format(
+            print(("{red}Path '{f}' does not exist.{reset}\n".format(
                 f=filename, red=colorama.Fore.RED,
-                reset=colorama.Style.RESET_ALL))
+                reset=colorama.Style.RESET_ALL)))
             continue
-        print("{green}Path '{f}':{reset}".format(
+        print(("{green}Path '{f}':{reset}".format(
             f=filename, green=colorama.Fore.GREEN,
-            reset=colorama.Style.RESET_ALL))
+            reset=colorama.Style.RESET_ALL)))
 
         try:
             info = comm.query.what_is(filename)
         except LASIFError as e:
             info = "Error: %s" % e.message
 
-        print("\t" + info)
+        print(("\t" + info))
         print("")
 
 
@@ -1779,7 +1875,7 @@ def _get_cmd_description(fct):
     """
     try:
         return fct.__doc__.strip().split("\n")[0].strip()
-    except:
+    except BaseException:
         return ""
 
 
@@ -1787,7 +1883,7 @@ def _print_generic_help(fcts):
     """
     Small helper function printing a generic help message.
     """
-    print(100 * "#")
+    print((100 * "#"))
     header = ("{default_style}LASIF - Large Scale Seismic "
               "{inverted_style}Inversion"
               "{default_style} Framework{reset_style}  [Version {version}]"
@@ -1798,30 +1894,30 @@ def _print_generic_help(fcts):
                   colorama.Back.WHITE,
                   reset_style=colorama.Style.RESET_ALL,
                   version=lasif.__version__))
-    print("    " + header)
+    print(("    " + header))
     print("    http://krischer.github.io/LASIF")
-    print(100 * "#")
-    print("\n{cmd}usage: lasif [--help] COMMAND [ARGS]{reset}\n".format(
+    print((100 * "#"))
+    print(("\n{cmd}usage: lasif [--help] COMMAND [ARGS]{reset}\n".format(
         cmd=colorama.Style.BRIGHT + colorama.Fore.RED,
-        reset=colorama.Style.RESET_ALL))
+        reset=colorama.Style.RESET_ALL)))
 
     # Group the functions. Functions with no group will be placed in the group
     # "Misc".
     fct_groups = {}
-    for fct_name, fct in fcts.iteritems():
+    for fct_name, fct in fcts.items():
         group_name = fct.group_name if hasattr(fct, "group_name") else "Misc"
         fct_groups.setdefault(group_name, {})
         fct_groups[group_name][fct_name] = fct
 
     # Print in a grouped manner.
-    for group_name in sorted(fct_groups.iterkeys()):
-        print("{0:=>25s} Functions".format(" " + group_name))
+    for group_name in sorted(fct_groups.keys()):
+        print(("{0:=>25s} Functions".format(" " + group_name)))
         current_fcts = fct_groups[group_name]
         for name in sorted(current_fcts.keys()):
-            print("%s  %32s: %s%s%s" % (colorama.Fore.YELLOW, name,
-                  colorama.Fore.BLUE,
-                  _get_cmd_description(fcts[name]),
-                  colorama.Style.RESET_ALL))
+            print(("%s  %32s: %s%s%s" % (colorama.Fore.YELLOW, name,
+                                         colorama.Fore.BLUE,
+                                         _get_cmd_description(fcts[name]),
+                                         colorama.Style.RESET_ALL)))
     print("\nTo get help for a specific function type")
     print("\tlasif help FUNCTION  or\n\tlasif FUNCTION --help")
 
@@ -1831,7 +1927,7 @@ def _get_argument_parser(fct):
     Helper function to create a proper argument parser.
     """
     parser = argparse.ArgumentParser(
-        prog="lasif %s" % fct.func_name.replace("lasif_", ""),
+        prog="lasif %s" % fct.__name__.replace("lasif_", ""),
         description=_get_cmd_description(fct))
 
     parser.add_argument(
@@ -1845,7 +1941,7 @@ def _get_argument_parser(fct):
     exceptions = ["lasif_tutorial", "lasif_init_project",
                   "lasif_build_all_caches"]
 
-    if fct.func_name in exceptions:
+    if fct.__name__ in exceptions:
         return parser
 
     # Otherwise add the option to add caches in read-only mode.
@@ -1861,7 +1957,7 @@ def _get_functions():
     """
     # Get all functions in this script starting with "lasif_".
     fcts = {fct_name[len(FCT_PREFIX):]: fct for (fct_name, fct) in
-            globals().iteritems()
+            globals().items()
             if fct_name.startswith(FCT_PREFIX) and hasattr(fct, "__call__")}
     return fcts
 
@@ -1879,7 +1975,7 @@ def main():
     args = sys.argv[1:]
 
     if len(args) == 1 and args[0] == "--version":
-        print("LASIF version %s" % lasif.__version__)
+        print(("LASIF version %s" % lasif.__version__))
         sys.exit(0)
 
     # Print the generic help/introduction.
@@ -1905,8 +2001,10 @@ def main():
         sys.stderr.write("lasif: '{fct_name}' is not a LASIF command. See "
                          "'lasif --help'.\n".format(fct_name=fct_name))
         # Attempt to fuzzy match commands.
-        close_matches = sorted(difflib.get_close_matches(fct_name, fcts.keys(),
-                                                         n=4))
+        close_matches = sorted(
+            difflib.get_close_matches(
+                fct_name, list(
+                    fcts.keys()), n=4))
         if len(close_matches) == 1:
             sys.stderr.write("\nDid you mean this?\n\t{match}\n".format(
                 match=close_matches[0]))
@@ -1936,8 +2034,8 @@ def main():
     try:
         func(parser, further_args)
     except LASIFCommandLineException as e:
-        print(colorama.Fore.YELLOW + ("Error: %s\n" % str(e)) +
-              colorama.Style.RESET_ALL)
+        print((colorama.Fore.YELLOW + ("Error: %s\n" % str(e)) +
+               colorama.Style.RESET_ALL))
         sys.exit(1)
     except Exception as e:
         args = parser.parse_args(further_args)
@@ -1949,6 +2047,6 @@ def main():
             traceback.print_exc()
             ipdb.post_mortem(tb)
         else:
-            print(colorama.Fore.RED)
+            print((colorama.Fore.RED))
             traceback.print_exc()
-            print(colorama.Style.RESET_ALL)
+            print((colorama.Style.RESET_ALL))

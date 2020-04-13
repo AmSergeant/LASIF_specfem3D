@@ -92,7 +92,7 @@ def calculate_Q_model(N, f_min, f_max, iterations=30000,
     D = np.ones(N)
 
     if not quiet:
-        print "Starting to find optimal relaxation parameters."
+        print("Starting to find optimal relaxation parameters.")
 
     # STAGE I
     # Compute relaxation times for constant Q values and weights all equal
@@ -115,7 +115,7 @@ def calculate_Q_model(N, f_min, f_max, iterations=30000,
     # search for optimal parameters
     T = T_0
 
-    for _ in xrange(max_it):
+    for _ in range(max_it):
         # compute perturbed parameters
         tau_s_test = tau_s * (1.0 + (0.5 - rd.rand(N)) * T)
         D_test = D * (1.0 + (0.5 - rd.rand(1)) * T)
@@ -165,7 +165,7 @@ def calculate_Q_model(N, f_min, f_max, iterations=30000,
 
     T = T_0
 
-    for _ in xrange(max_it):
+    for _ in range(max_it):
         # compute perturbed parameters
         D_test = D * (1.0 + (0.5 - rd.rand(N)) * T)
         # compute test Q
@@ -222,14 +222,14 @@ def calculate_Q_model(N, f_min, f_max, iterations=30000,
     #  random search for optimal parameters
     T = T_0
 
-    for _ in xrange(max_it):
+    for _ in range(max_it):
         # compute perturbed parameters
         D_test_pert = D_pert * (1.0 + (0.5 - rd.rand(N)) * T)
 
         # compute test Q
         chi_test = 0.0
 
-        for n in xrange(len(Q_0)):
+        for n in range(len(Q_0)):
             A = 1.0
             B = 0.0
             for p in np.arange(N):
@@ -250,17 +250,16 @@ def calculate_Q_model(N, f_min, f_max, iterations=30000,
             chi = chi_test
 
     # sort weights and relaxation times
-    decorated = [(tau_s[i], D[i]) for i in range(N)]
-    decorated.sort()
+    decorated = sorted([(tau_s[i], D[i]) for i in range(N)])
 
     tau_s = [decorated[i][0] for i in range(N)]
     D = [decorated[i][1] for i in range(N)]
 
     if not quiet:
-        print "weights:             ", D
-        print "relaxation times:    ", tau_s
-        print "partial derivatives: ", (D_pert - D) / 0.1
-        print "cumulative rms error:", np.sqrt(chi / (len(Q) * len(Q_0)))
+        print("weights:             ", D)
+        print("relaxation times:    ", tau_s)
+        print("partial derivatives: ", (D_pert - D) / 0.1)
+        print("cumulative rms error:", np.sqrt(chi / (len(Q) * len(Q_0))))
 
     return np.array(D), np.array(tau_s)
 
@@ -297,7 +296,7 @@ def plot(D_p, tau_p, f_min=None, f_max=None):
         A = 0.0
         B = 0.0
         N = len(D_p)
-        for n in xrange(N):
+        for n in range(N):
             A = A + D_p[n] * w_plot ** 2 * tau_p[n] ** 2 / \
                 (1 + w_plot ** 2 * tau_p[n] ** 2)
             B = B + D_p[n] * w_plot * tau_p[n] / \

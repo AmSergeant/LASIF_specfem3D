@@ -44,7 +44,7 @@ def test_function_info_decorator():
     assert info.func_args == {"a": 4, "b": 0}
     assert info.result is None
     assert info.warnings == []
-    assert type(info.exception) is ZeroDivisionError
+    assert isinstance(info.exception, ZeroDivisionError)
     assert "ZeroDivisionError" in info.traceback
 
     @function_info()
@@ -135,7 +135,7 @@ def test_distribute_across_ranks(tmpdir):
     assert results[0].result is None
     assert results[0].func_args == {"a": 4, "b": 0, "c": 0}
     assert results[0].warnings == []
-    assert type(results[0].exception) is ZeroDivisionError
+    assert isinstance(results[0].exception, ZeroDivisionError)
     assert "ZeroDivisionError" in results[0].traceback
 
     assert results[1].result == 1

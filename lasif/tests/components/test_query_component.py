@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import
+
 
 import glob
 import inspect
@@ -194,7 +194,7 @@ def test_iteration_status(patch, comm):
 
     # Currenty the project has 4 files, that are not preprocessed.
     status = comm.query.get_iteration_status("1")
-    assert [event] == status.keys()
+    assert [event] == list(status.keys())
     assert status[event]["fraction_of_stations_that_have_windows"] == 0.0
     assert status[event]["missing_processed"] == \
         set(["HL.ARG", "HT.SIGR", "KO.KULA", "KO.RSDY"])
@@ -207,7 +207,7 @@ def test_iteration_status(patch, comm):
     comm.actions.preprocess_data("1", [event])
 
     status = comm.query.get_iteration_status("1")
-    assert [event] == status.keys()
+    assert [event] == list(status.keys())
     assert status[event]["fraction_of_stations_that_have_windows"] == 0.0
     assert status[event]["missing_processed"] == set()
     assert status[event]["missing_synthetic"] == \
@@ -273,7 +273,7 @@ def test_data_synthetic_iterator(patch, comm, recwarn):
         "HT.SIGR": {"latitude": 39.2114, "local_depth_in_m": 0.0,
                     "elevation_in_m": 93.0, "longitude": 25.8553}}
 
-    station_1 = iterator.next()
+    station_1 = next(iterator)
     assert station_1.coordinates == expected["HL.ARG"]
     assert len(station_1.data) == 3
     assert len(station_1.synthetics) == 3
@@ -282,7 +282,7 @@ def test_data_synthetic_iterator(patch, comm, recwarn):
     assert set([".".join(tr.id.split(".")[:2]) for tr in
                 station_1.synthetics]) == set(["HL.ARG"])
 
-    station_2 = iterator.next()
+    station_2 = next(iterator)
     assert station_2.coordinates == expected["HT.SIGR"]
     assert len(station_2.data) == 1
     assert len(station_2.synthetics) == 3

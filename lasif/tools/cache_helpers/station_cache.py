@@ -9,7 +9,7 @@ Station Cache class.
     GNU General Public License, Version 3
     (http://www.gnu.org/copyleft/gpl.html)
 """
-from __future__ import absolute_import
+
 
 import glob
 import os
@@ -43,6 +43,7 @@ class StationCache(FileInfoCache):
     RESP files: RESP.*
     StationXML: *.xml
     """
+
     def __init__(self, cache_db_file, root_folder, seed_folder, resp_folder,
                  stationxml_folder, read_only, show_progress=True):
         self.index_values = [
@@ -85,7 +86,7 @@ class StationCache(FileInfoCache):
         """
         try:
             p = Parser(filename)
-        except:
+        except BaseException:
             msg = "Not a valid SEED file?"
             raise StationCacheError(msg)
         channels = p.get_inventory()["channels"]
@@ -105,7 +106,7 @@ class StationCache(FileInfoCache):
         """
         try:
             inv = obspy.read_inventory(filename, format="stationxml")
-        except:
+        except BaseException:
             msg = "Not a valid StationXML file?"
             raise StationCacheError(msg)
 
@@ -141,7 +142,7 @@ class StationCache(FileInfoCache):
         try:
             channels = simple_resp_parser.get_inventory(filename,
                                                         remove_duplicates=True)
-        except:
+        except BaseException:
             msg = "Not a valid RESP file?"
             raise StationCacheError(msg)
 

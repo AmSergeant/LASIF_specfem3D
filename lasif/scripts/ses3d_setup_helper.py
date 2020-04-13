@@ -15,6 +15,7 @@ import itertools
 import numpy as np
 
 from lasif.data import OneDimensionalModel
+from functools import reduce
 
 
 # Arbitrary number but it is probably unlikely to run SES3D on more than
@@ -126,7 +127,7 @@ def get_domain_decompositions(nx, ny, nz, max_recommendations=5):
     # distributions.
 
     def sort_fct(x):
-        a, b, c = map(float, x)
+        a, b, c = list(map(float, x))
         # Get number of elements per core.
         a = nx / a
         b = ny / b
@@ -155,14 +156,14 @@ def get_ses3d_settings(dx, dy, dz, nx, ny, nz, max_recommendations):
 
     print("Possible recommended domain decompositions:\n")
     for comp in decompositions:
-        print(colorama.Fore.RED +
-              "Total CPU count: %5i; "
-              "CPUs in X: %3i (%2i elements/core), "
-              "CPUs in Y: %3i (%2i elements/core), "
-              "CPUs in Z: %3i (%2i elements/core)" %
-              (np.array(comp).prod(), comp[0], nx / comp[0],
-               comp[1], ny / comp[1], comp[2], nz / comp[2]) +
-              colorama.Style.RESET_ALL)
+        print((colorama.Fore.RED +
+               "Total CPU count: %5i; "
+               "CPUs in X: %3i (%2i elements/core), "
+               "CPUs in Y: %3i (%2i elements/core), "
+               "CPUs in Z: %3i (%2i elements/core)" %
+               (np.array(comp).prod(), comp[0], nx / comp[0],
+                comp[1], ny / comp[1], comp[2], nz / comp[2]) +
+               colorama.Style.RESET_ALL))
 
         x_extent = dx * 111.32
         y_extent = dy * 111.32
@@ -171,15 +172,15 @@ def get_ses3d_settings(dx, dy, dz, nx, ny, nz, max_recommendations):
         elem_size_y = y_extent / (ny + comp[1])
         elem_size_z = z_extent / (nz + comp[2])
 
-        print("  Extent in latitudinal  (X) direction: %7.1f km, "
-              "%5.1f km/element, %4i elements" % (x_extent, elem_size_x,
-                                                  nx + comp[0]))
-        print("  Extent in longitudinal (Y) direction: %7.1f km, "
-              "%5.1f km/element, %4i elements" % (y_extent, elem_size_y,
-                                                  ny + comp[1]))
-        print("  Extent in depth        (Z) direction: %7.1f km, "
-              "%5.1f km/element, %4i elements" % (z_extent, elem_size_z,
-                                                  nz + comp[2]))
+        print(("  Extent in latitudinal  (X) direction: %7.1f km, "
+               "%5.1f km/element, %4i elements" % (x_extent, elem_size_x,
+                                                   nx + comp[0])))
+        print(("  Extent in longitudinal (Y) direction: %7.1f km, "
+               "%5.1f km/element, %4i elements" % (y_extent, elem_size_y,
+                                                   ny + comp[1])))
+        print(("  Extent in depth        (Z) direction: %7.1f km, "
+               "%5.1f km/element, %4i elements" % (z_extent, elem_size_z,
+                                                   nz + comp[2])))
         element_sizes = [elem_size_x, elem_size_y, elem_size_z]
         min_element_size = min(element_sizes)
         max_element_size = max(element_sizes)
@@ -194,9 +195,9 @@ def get_ses3d_settings(dx, dy, dz, nx, ny, nz, max_recommendations):
                     np.linspace(15, dz, 400)]
         v_max = max(p_values)
         v_min = min(s_values)
-        print("  Wave velocities range from %.1f km/s to %.1f km/s. The "
-              "velocities of the top 15 km have not been analyzed to avoid "
-              "very slow layers." % (v_min, v_max))
+        print(("  Wave velocities range from %.1f km/s to %.1f km/s. The "
+               "velocities of the top 15 km have not been analyzed to avoid "
+               "very slow layers." % (v_min, v_max)))
 
         # criterion approximately 0.3 for SES3D.
         dt = 0.3 * dx_min / v_max
@@ -204,15 +205,15 @@ def get_ses3d_settings(dx, dy, dz, nx, ny, nz, max_recommendations):
         # agree quite well with data.
         minimum_period = 1.6 * max_element_size / v_min
 
-        print(colorama.Fore.GREEN +
-              "  Maximal recommended time step: %.3f s" % dt)
-        print("  Minimal resolvable period: %.1f s" % minimum_period +
-              colorama.Style.RESET_ALL)
+        print((colorama.Fore.GREEN +
+               "  Maximal recommended time step: %.3f s" % dt))
+        print(("  Minimal resolvable period: %.1f s" % minimum_period +
+               colorama.Style.RESET_ALL))
 
-        print(colorama.Fore.YELLOW + "  SES3D Settings: nx_global: %i, "
-              "ny_global: %i, nz_global: %i" % (nx, ny, nz))
-        print("                  px: %i, py: %i, px: %i" % (
-            comp[0], comp[1], comp[2]) + colorama.Style.RESET_ALL + "\n")
+        print((colorama.Fore.YELLOW + "  SES3D Settings: nx_global: %i, "
+               "ny_global: %i, nz_global: %i" % (nx, ny, nz)))
+        print(("                  px: %i, py: %i, px: %i" % (
+            comp[0], comp[1], comp[2]) + colorama.Style.RESET_ALL + "\n"))
 
 
 def main():

@@ -45,7 +45,7 @@ def is_SES3D(filename_or_file_object):
         opened_file = True
     try:
         first_line = filename_or_file_object.readline()
-    except:
+    except BaseException:
         if opened_file:
             filename_or_file_object.close()
         return False
@@ -101,15 +101,17 @@ def _read_SES3D(fh, headonly=False):
     # Skip receiver location line.
     fh.readline()
     rec_loc = fh.readline().split()
-    rec_x, rec_y, rec_z = map(float, [rec_loc[1], rec_loc[3], rec_loc[5]])
+    rec_x, rec_y, rec_z = list(
+        map(float, [rec_loc[1], rec_loc[3], rec_loc[5]]))
     # Skip the source location line.
     fh.readline()
     src_loc = fh.readline().split()
-    src_x, src_y, src_z = map(float, [src_loc[1], src_loc[3], src_loc[5]])
+    src_x, src_y, src_z = list(
+        map(float, [src_loc[1], src_loc[3], src_loc[5]]))
 
     # Read the data.
     if headonly is False:
-        data = np.array(map(float, fh.readlines()),
+        data = np.array(list(map(float, fh.readlines())),
                         dtype="float32")
     else:
         data = np.array([])

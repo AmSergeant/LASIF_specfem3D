@@ -78,9 +78,9 @@ class Iteration(object):
             float(self._get(prep, "highpass_period"))
         self.data_preprocessing["lowpass_period"] = \
             float(self._get(prep, "lowpass_period"))
-	self.data_preprocessing["seconds_prior_arrival"] = \
+        self.data_preprocessing["seconds_prior_arrival"] = \
             float(self._get(prep, "seconds_prior_arrival"))
-	self.data_preprocessing["window_length_in_sec"] = \
+        self.data_preprocessing["window_length_in_sec"] = \
             float(self._get(prep, "window_length_in_sec"))
         self.solver_settings = \
             _recursive_dict(root.find("solver_parameters"))[1]
@@ -99,7 +99,7 @@ class Iteration(object):
                             for _i in station.findall("comment") if _i.text]
                 self.events[event_name]["stations"][station_id] = {
                     "station_weight": float(self._get(station,
-                                            "station_weight")),
+                                                      "station_weight")),
                     "comments": comments}
 
     def get_source_time_function(self):
@@ -162,15 +162,15 @@ class Iteration(object):
         dt = self.solver_settings["solver_settings"][
             "simulation_parameters"]["time_increment"]
 
-	seconds_prior_arrival = self.data_preprocessing["seconds_prior_arrival"]
-	window_length_in_sec = self.data_preprocessing["window_length_in_sec"]
+        seconds_prior_arrival = self.data_preprocessing["seconds_prior_arrival"]
+        window_length_in_sec = self.data_preprocessing["window_length_in_sec"]
         return {
             "highpass": float(highpass),
             "lowpass": float(lowpass),
             "npts": int(npts),
             "dt": float(dt),
-	    "seconds_prior_arrival": float(seconds_prior_arrival),
-	    "window_length_in_sec": float(window_length_in_sec)}
+            "seconds_prior_arrival": float(seconds_prior_arrival),
+            "window_length_in_sec": float(window_length_in_sec)}
 
     @property
     def processing_tag(self):
@@ -205,8 +205,8 @@ class Iteration(object):
             "\t\tHighpass Period: {hp:.3f} s\n"
             "\t\tLowpass Period: {lp:.3f} s\n"
             "\t\tSeconds prior phase arrival: {prior_sec:.3f} s\n"
-	    "\t\tPhase window length: {window:.3f} s\n"
-	    "\tSolver: {solver} | {timesteps} timesteps (dt: {dt}s)\n"
+            "\t\tPhase window length: {window:.3f} s\n"
+            "\tSolver: {solver} | {timesteps} timesteps (dt: {dt}s)\n"
             "\t{event_count} events recorded at {station_count} "
             "unique stations\n"
             "\t{pair_count} event-station pairs (\"rays\")")
@@ -217,15 +217,15 @@ class Iteration(object):
             comments += "\n"
 
         all_stations = []
-        for ev in self.events.itervalues():
-            all_stations.extend(ev["stations"].iterkeys())
+        for ev in self.events.values():
+            all_stations.extend(iter(ev["stations"].keys()))
 
         return ret_str.format(
             self=self, comments=comments,
             hp=self.data_preprocessing["highpass_period"],
             lp=self.data_preprocessing["lowpass_period"],
-	    prior_sec = self.data_preprocessing["seconds_prior_arrival"],
-            window = self.data_preprocessing["window_length_in_sec"],
+            prior_sec=self.data_preprocessing["seconds_prior_arrival"],
+            window=self.data_preprocessing["window_length_in_sec"],
             solver=self.solver_settings["solver"],
             timesteps=self.solver_settings["solver_settings"][
                 "simulation_parameters"]["number_of_time_steps"],
@@ -261,9 +261,9 @@ class Iteration(object):
                     str(self.data_preprocessing["highpass_period"])),
                 E.lowpass_period(
                     str(self.data_preprocessing["lowpass_period"])),
-		E.seconds_prior_arrival(
+                E.seconds_prior_arrival(
                     str(self.data_preprocessing["seconds_prior_arrival"])),
-		E.window_length_in_sec(
+                E.window_length_in_sec(
                     str(self.data_preprocessing["window_length_in_sec"]))
             ),
             E.solver_parameters(
@@ -273,13 +273,13 @@ class Iteration(object):
         ])
 
         # Add all events.
-        for key, value in self.events.iteritems():
+        for key, value in self.events.items():
             event = E.event(
                 E.event_name(key),
                 E.event_weight(str(value["event_weight"])),
                 *[E.comment(_i) for _i in value["comments"] if _i]
             )
-            for station_id, station_value in value["stations"].iteritems():
+            for station_id, station_value in value["stations"].items():
                 event.append(E.station(
                     E.station_id(station_id),
                     E.station_weight(str(station_value["station_weight"])),
@@ -304,18 +304,18 @@ def _recursive_dict(element):
     text = element.text
     try:
         text = int(text)
-    except:
+    except BaseException:
         try:
             text = float(text)
-        except:
+        except BaseException:
             pass
-    if isinstance(text, basestring):
+    if isinstance(text, str):
         if text.lower() == "false":
             text = False
         elif text.lower() == "true":
             text = True
     return element.tag, \
-        OrderedDict(map(_recursive_dict, element)) or text
+        OrderedDict(list(map(_recursive_dict, element))) or text
 
 
 def _recursive_etree(dictionary):
@@ -326,17 +326,17 @@ def _recursive_etree(dictionary):
     import itertools
 
     contents = []
-    for key, value in dictionary.iteritems():
+    for key, value in dictionary.items():
         if key == "relaxation_parameter_list":
             # Wild iterator to arrive at the desired etree. If somebody else
             # ever reads this just look at the output and do it some other
             # way...
             contents.append(E.relaxation_parameter_list(
                 *[getattr(E, i[0])(str(i[1][1]), number=str(i[1][0]))
-                  for i in itertools.chain(*itertools.izip(
-                      itertools.izip_longest(
+                  for i in itertools.chain(*zip(
+                      itertools.zip_longest(
                           [], enumerate(value["tau"]), fillvalue="tau"),
-                      itertools.izip_longest(
+                      itertools.zip_longest(
                           [], enumerate(value["w"]), fillvalue="w")))]
             ))
             continue
@@ -353,8 +353,8 @@ def _recursive_etree(dictionary):
 
 def create_iteration_xml_string(iteration_name, solver_name, events,
                                 min_period, max_period,
-				seconds_prior_arrival, window_length_in_sec, 
-				quiet=False):
+                                seconds_prior_arrival, window_length_in_sec,
+                                quiet=False):
     """
     Creates a new iteration string.
 
@@ -390,7 +390,7 @@ def create_iteration_xml_string(iteration_name, solver_name, events,
     # Loop over all events.
     events_doc = []
     # Also over all stations.
-    for event_name, stations in events.iteritems():
+    for event_name, stations in events.items():
         stations_doc = [E.station(
             E.station_id(station),
             E.station_weight("1.0")) for station in stations]
@@ -407,8 +407,8 @@ def create_iteration_xml_string(iteration_name, solver_name, events,
         E.data_preprocessing(
             E.highpass_period(str(max_period)),
             E.lowpass_period(str(min_period)),
-	    E.seconds_prior_arrival(str(seconds_prior_arrival)),
-	    E.window_length_in_sec(str(window_length_in_sec))),
+            E.seconds_prior_arrival(str(seconds_prior_arrival)),
+            E.window_length_in_sec(str(window_length_in_sec))),
         E.solver_parameters(
             E.solver(solver_name),
             solver_doc),

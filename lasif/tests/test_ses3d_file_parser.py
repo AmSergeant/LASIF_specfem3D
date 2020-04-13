@@ -12,7 +12,7 @@ Test suite for the SES3D file parser.
 from glob import glob
 import inspect
 import os
-from StringIO import StringIO
+from io import StringIO
 
 import numpy as np
 

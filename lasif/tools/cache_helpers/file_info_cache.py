@@ -70,10 +70,10 @@ Example implementation:
     GNU General Public License, Version 3
     (http://www.gnu.org/copyleft/gpl.html)
 """
-from __future__ import absolute_import
+
 
 from binascii import crc32
-from itertools import izip
+
 import os
 import progressbar
 import sqlite3
@@ -86,11 +86,11 @@ from lasif import LASIFWarning
 # Table definition of the 'files' table. Used for creating and validating
 # the table.
 FILES_TABLE_DEFINITION = (
-    (u"id", u"INTEGER"),
-    (u"filename", u"TEXT"),
-    (u"filesize", u"INTEGER"),
-    (u"last_modified", u"REAL"),
-    (u"crc32_hash", u"INTEGER")
+    ("id", "INTEGER"),
+    ("filename", "TEXT"),
+    ("filesize", "INTEGER"),
+    ("last_modified", "REAL"),
+    ("crc32_hash", "INTEGER")
 )
 
 
@@ -100,6 +100,7 @@ class FileInfoCache(object):
 
     Intended to be subclassed.
     """
+
     def __init__(self, cache_db_file, root_folder,
                  read_only, pretty_name, show_progress=True):
         self.cache_db_file = cache_db_file
@@ -233,13 +234,13 @@ class FileInfoCache(object):
                 valid = self._validate_database()
                 if valid is not True:
                     self.db_conn.close()
-                    print("Cache '%s' is not valid anymore. This is most "
-                          "likely due to some recent LASIF update. Don't "
-                          "worry, LASIF will built it anew. Hang on..." %
-                          self.cache_db_file)
+                    print(("Cache '%s' is not valid anymore. This is most "
+                           "likely due to some recent LASIF update. Don't "
+                           "worry, LASIF will built it anew. Hang on..." %
+                           self.cache_db_file))
                     try:
                         os.remove(self.cache_db_file)
-                    except:
+                    except BaseException:
                         pass
                     self.db_conn = sqlite3.connect(self.cache_db_file)
                     self.db_cursor = self.db_conn.cursor()
@@ -349,7 +350,7 @@ class FileInfoCache(object):
         filenames = set(_i[0] for _i in filenames)
 
         # Filter to exclude all files not correctly indexed.
-        for key, value in self.files.iteritems():
+        for key, value in self.files.items():
             self.files[key] = list(filenames.intersection(set(value)))
 
     def update(self):
@@ -436,9 +437,9 @@ class FileInfoCache(object):
         # Remove all files no longer part of the cache DB.
         if db_files:
             if len(db_files) > 100:
-                print("Removing %i no longer existing files from the "
-                      "cache database. This might take a while ..." %
-                      len(db_files))
+                print(("Removing %i no longer existing files from the "
+                       "cache database. This might take a while ..." %
+                       len(db_files)))
             query = "DELETE FROM files WHERE filename IN (%s);" % \
                 ",".join(["'%s'" % _i for _i in db_files])
             self.db_cursor.execute(query)
@@ -468,7 +469,7 @@ class FileInfoCache(object):
             indices = [_i[0] for _i in self.index_values]
 
             for _i in self.db_cursor.execute(sql_query):
-                values = {key: value for (key, value) in izip(indices, _i)}
+                values = {key: value for (key, value) in zip(indices, _i)}
                 values["filename"] = os.path.abspath(_i[-1])
                 all_values.append(values)
         finally:
@@ -499,7 +500,7 @@ class FileInfoCache(object):
         indices = [_i[0] for _i in self.index_values]
 
         for _i in self.db_cursor.execute(sql_query):
-            values = {key: value for (key, value) in izip(indices, _i)}
+            values = {key: value for (key, value) in zip(indices, _i)}
             values["filename"] = os.path.abspath(os.path.join(
                 self.root_folder, _i[-1]))
             all_values.append(values)

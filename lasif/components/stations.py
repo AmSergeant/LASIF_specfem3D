@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import
+
 
 import os
 
@@ -35,6 +35,7 @@ class StationsComponent(Component):
     :param component_name: The name of this component for the
         communicator.
     """
+
     def __init__(self, stationxml_folder, seed_folder, resp_folder,
                  cache_folder, communicator, component_name):
         self.cache_folder = cache_folder

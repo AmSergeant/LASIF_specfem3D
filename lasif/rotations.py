@@ -146,7 +146,7 @@ def _get_rotation_matrix(axis, angle):
     """
     Returns the rotation matrix for the specified axis and angle.
     """
-    axis = map(float, axis) / np.linalg.norm(axis)
+    axis = list(map(float, axis)) / np.linalg.norm(axis)
     angle = np.deg2rad(angle)
 
     # Use c1, c2, and c3 as shortcuts for the rotation axis.
@@ -175,7 +175,7 @@ def get_spherical_unit_vectors(lat, lon):
     """
     colat = lat2colat(lat)
     # Convert to radian.
-    colat, lon = map(np.deg2rad, [colat, lon])
+    colat, lon = list(map(np.deg2rad, [colat, lon]))
 
     e_theta = _get_vector(np.cos(lon) * np.cos(colat),
                           np.sin(lon) * np.cos(colat),
@@ -228,7 +228,7 @@ def xyz_to_lat_lon_radius(*args):
     colat = np.arccos(xyz[2] / r)
     lon = np.arctan2(xyz[1], xyz[0])
     # Convert to degree.
-    colat, lon = map(np.float32, map(np.rad2deg, [colat, lon]))
+    colat, lon = list(map(np.float32, list(map(np.rad2deg, [colat, lon]))))
     lat = colat2lat(colat)
     return lat, lon, r
 
@@ -243,7 +243,7 @@ def lat_lon_radius_to_xyz(lat, lon, r):
     """
     colat = lat2colat(lat)
     # To radian
-    colat, lon = map(np.deg2rad, [colat, lon])
+    colat, lon = list(map(np.deg2rad, [colat, lon]))
     # Do the transformation
     x = r * np.sin(colat) * np.cos(lon)
     y = r * np.sin(colat) * np.sin(lon)
@@ -432,7 +432,7 @@ def get_border_latlng_list(
 
     # Rotate everything.
     for border in [north_border, south_border, east_border, west_border]:
-        for _i in xrange(number_of_points_per_side):
+        for _i in range(number_of_points_per_side):
             border[_i, 0], border[_i, 1] = rotate_lat_lon(
                 border[_i, 0], border[_i, 1], rotation_axis,
                 rotation_angle_in_degree)

@@ -25,6 +25,7 @@ class OneDimensionalModel(object):
     """
     Simple class dealing with 1D earth models.
     """
+
     def __init__(self, model_name):
         """
         :param model_name: The name of the used model. Possible names are:
@@ -34,7 +35,7 @@ class OneDimensionalModel(object):
             self._read_ak135f()
         else:
             msg = "Unknown model '%s'. Possible models: %s" % (
-                model_name, ", ".join(MODELS.keys()))
+                model_name, ", ".join(list(MODELS.keys())))
             raise ValueError(msg)
 
     def _read_ak135f(self):

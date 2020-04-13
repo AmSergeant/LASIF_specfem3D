@@ -7,6 +7,7 @@
     GNU General Public License, Version 3
     (http://www.gnu.org/copyleft/gpl.html)
 """
+from lasif.utils import get_event_filename
 import glob
 import inspect
 import numpy as np
@@ -18,14 +19,13 @@ from scipy.spatial import cKDTree
 
 EARTH_RADIUS = 6371.00
 
-from lasif.utils import get_event_filename
-
 
 class SphericalNearestNeighbour(object):
     """
     Spherical nearest neighbour queries using scipy's fast
     kd-tree implementation.
     """
+
     def __init__(self, data):
         cart_data = self.spherical2cartesian(data)
         self.data = data
@@ -79,11 +79,11 @@ def _read_GCMT_catalog(min_year=None, max_year=None):
 
     data_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(
         inspect.getfile(inspect.currentframe())))), "data", "GCMT_Catalog")
-    available_years = [_i for _i in os.listdir(data_dir) if _i.isdigit()]
-    available_years.sort()
-    print("LASIF currently contains GCMT data from %s to %s/%i." % (
+    available_years = sorted(
+        [_i for _i in os.listdir(data_dir) if _i.isdigit()])
+    print(("LASIF currently contains GCMT data from %s to %s/%i." % (
         available_years[0], available_years[-1],
-        len(glob.glob(os.path.join(data_dir, available_years[-1], "*.ndk*")))))
+        len(glob.glob(os.path.join(data_dir, available_years[-1], "*.ndk*"))))))
 
     available_years = [_i for _i in os.listdir(data_dir) if _i.isdigit() and
                        (min_year <= int(_i) <= max_year)]
@@ -92,7 +92,7 @@ def _read_GCMT_catalog(min_year=None, max_year=None):
     print("Parsing the GCMT catalog. This might take a while...")
     cat = Catalog()
     for year in available_years:
-        print("\tReading year %s ..." % year)
+        print(("\tReading year %s ..." % year))
         for filename in glob.glob(os.path.join(data_dir, str(year),
                                                "*.ndk*")):
             cat += obspy.read_events(filename, format="ndk")
@@ -100,8 +100,18 @@ def _read_GCMT_catalog(min_year=None, max_year=None):
     return cat
 
 
-def add_new_events(comm, count, min_magnitude, max_magnitude, min_year=None,
-                   max_year=None, domain=1, min_dist=30.0, max_dist=100.0, threshold_distance_in_km=50.0, statistical_selection=True):
+def add_new_events(
+        comm,
+        count,
+        min_magnitude,
+        max_magnitude,
+        min_year=None,
+        max_year=None,
+        domain=1,
+        min_dist=30.0,
+        max_dist=100.0,
+        threshold_distance_in_km=50.0,
+        statistical_selection=True):
     min_magnitude = float(min_magnitude)
     max_magnitude = float(max_magnitude)
 
@@ -112,7 +122,7 @@ def add_new_events(comm, count, min_magnitude, max_magnitude, min_year=None,
                      "magnitude <= %.2f" % max_magnitude)
 
     # Filtering catalog to only contain events in or outside the domain.
-    if domain==1:
+    if domain == 1:
         print("Filtering to only include events inside domain...")
         # Coordinates and the Catalog will have the same order!
         temp_cat = Catalog()
@@ -122,7 +132,7 @@ def add_new_events(comm, count, min_magnitude, max_magnitude, min_year=None,
             if not comm.query.point_in_domain(org.latitude, org.longitude):
                 continue
             temp_cat.events.append(event)
-            coordinates.append((org.latitude, org.longitude))      
+            coordinates.append((org.latitude, org.longitude))
     else:
         print("Filtering to only events outside domain within epicentral distance boundaries...")
         temp_cat = Catalog()
@@ -130,23 +140,22 @@ def add_new_events(comm, count, min_magnitude, max_magnitude, min_year=None,
         from obspy import geodetics
         coordinates = []
         for event in cat:
-            org = event.preferred_origin() or event.origins[0]      
-            dist_in_deg = geodetics.locations2degrees(central_point.latitude,
-                                                  central_point.longitude,
-                                                  org.latitude, org.longitude)
-            if dist_in_deg<min_dist:
+            org = event.preferred_origin() or event.origins[0]
+            dist_in_deg = geodetics.locations2degrees(
+                central_point.latitude, central_point.longitude, org.latitude, org.longitude)
+            if dist_in_deg < min_dist:
                 continue
-            if dist_in_deg>max_dist:
+            if dist_in_deg > max_dist:
                 continue
             temp_cat.events.append(event)
-            coordinates.append((org.latitude, org.longitude))    
+            coordinates.append((org.latitude, org.longitude))
     cat = temp_cat
 
     chosen_events = []
 
-    print("%i valid events remain." % len(cat))
+    print(("%i valid events remain." % len(cat)))
 
-    existing_events = comm.events.get_all_events().values()
+    existing_events = list(comm.events.get_all_events().values())
     # Get the coordinates of all existing events.
     existing_coordinates = [
         (_i["latitude"], _i["longitude"]) for _i in existing_events]
@@ -166,14 +175,13 @@ def add_new_events(comm, count, min_magnitude, max_magnitude, min_year=None,
 
         count -= 1
     else:
-	if not statistical_selection:
-	    for event in cat:
-	        if event not in existing_events:
-            	    chosen_events.append(event)
-	
+        if not statistical_selection:
+            for event in cat:
+                if event not in existing_events:
+                    chosen_events.append(event)
 
     while count and statistical_selection:
-	print("Starting selection process ...")
+        print("Starting selection process ...")
 
         if not coordinates:
             print("\tNo events left to select from. Stoping here.")
@@ -193,9 +201,9 @@ def add_new_events(comm, count, min_magnitude, max_magnitude, min_year=None,
         distance = EARTH_RADIUS * distances[idx]
 
         if distance < threshold_distance_in_km:
-            print("\tNo events left with distance to the next closest event "
-                  "of more then %.1f km. Stoping here." %
-                  threshold_distance_in_km)
+            print(("\tNo events left with distance to the next closest event "
+                   "of more then %.1f km. Stoping here." %
+                   threshold_distance_in_km))
             break
 
         # Make sure it did not happen within one day of an existing event.
@@ -209,19 +217,18 @@ def add_new_events(comm, count, min_magnitude, max_magnitude, min_year=None,
                   "Will not be chosen. Skipping to next event.")
             continue
 
-        print("\tSelected event with the next closest event being %.1f km "
-              "away." % distance)
+        print(("\tSelected event with the next closest event being %.1f km "
+               "away." % distance))
 
         chosen_events.append(event)
         existing_coordinates.append(coods)
         count -= 1
 
-
-    print("Selected %i events." % len(chosen_events))
+    print(("Selected %i events." % len(chosen_events)))
 
     folder = comm.project.paths["events"]
     for event in chosen_events:
         filename = os.path.join(folder, get_event_filename(event, "GCMT"))
         Catalog(events=[event]).write(filename, format="quakeml",
                                       validate=True)
-        print("Written %s" % (os.path.relpath(filename)))
+        print(("Written %s" % (os.path.relpath(filename))))

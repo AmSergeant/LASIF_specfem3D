@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import
+
 
 import copy
 import logging
@@ -19,31 +19,35 @@ class DownloadsComponent(Component):
     :param communicator: The communicator instance.
     :param component_name: The name of this component for the communicator.
     """
+
     def download_data(self, event=None, providers=None, networks=None):
         """
         Download waveforms and station info on a loop of events available in EVENTS
         """
-        
+
         if event is None:
             events = self.comm.events.list()
-            n=len(events)
+            n = len(events)
             for i, event in enumerate(events):
-                print("PROCESSING EVENT "+str(i+1)+"/"+str(n))
-                self.comm.downloads.download_data_for_one_event(event, providers=providers, networks=networks) 
+                print(("PROCESSING EVENT " + str(i + 1) + "/" + str(n)))
+                self.comm.downloads.download_data_for_one_event(
+                    event, providers=providers, networks=networks)
         else:
-            self.comm.downloads.download_data_for_one_event(event, providers=providers, networks=networks)
-            
-        
-    def download_data_for_one_event(self, event, providers=None, networks = None):
+            self.comm.downloads.download_data_for_one_event(
+                event, providers=providers, networks=networks)
+
+    def download_data_for_one_event(
+            self, event, providers=None, networks=None):
         event = self.comm.events.get(event)
 
         from obspy.clients.fdsn.mass_downloader import MassDownloader, \
             Restrictions, GlobalDomain
-            
+
         print(" ")
-        print("######## Looking for data for "+event["event_name"]+" #########")    
+        print(("######## Looking for data for " +
+               event["event_name"] + " #########"))
         print(" ")
-        
+
         proj = self.comm.project
 
         if isinstance(proj.domain, lasif.domain.GlobalDomain):
@@ -186,7 +190,7 @@ class DownloadsComponent(Component):
 
         # Rotate everything.
         for border in [north_border, south_border, east_border, west_border]:
-            for _i in xrange(number_of_points_per_side):
+            for _i in range(number_of_points_per_side):
                 border[_i, 1], border[_i, 0] = rotations.rotate_lat_lon(
                     border[_i, 1], border[_i, 0], rotation_axis,
                     rotation_angle_in_degree)

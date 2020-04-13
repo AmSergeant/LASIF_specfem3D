@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import
+
 
 import glob
 import os
@@ -17,6 +17,7 @@ class IterationsComponent(Component):
     :param communicator: The communicator instance.
     :param component_name: The name of this component for the communicator.
     """
+
     def __init__(self, iterations_folder, communicator, component_name):
         self.__cached_iterations = {}
         self._folder = iterations_folder
@@ -103,11 +104,17 @@ class IterationsComponent(Component):
 
         return iteration_name in self.get_iteration_dict()
 
-    def create_new_iteration(self, iteration_name, solver_name, events_dict,
-                             min_period, max_period, 
-			     seconds_prior_arrival = 5., window_length_in_sec = 50.,
-			     quiet=False,
-                             create_folders=True):
+    def create_new_iteration(
+            self,
+            iteration_name,
+            solver_name,
+            events_dict,
+            min_period,
+            max_period,
+            seconds_prior_arrival=5.,
+            window_length_in_sec=50.,
+            quiet=False,
+            create_folders=True):
         """
         Creates a new iteration XML file.
 
@@ -117,8 +124,8 @@ class IterationsComponent(Component):
         :param events_dict: A dictionary specifying the used events.
         :param min_period: The minimum period in seconds for the new iteration.
         :param max_period: The maximum period in seconds for the new iteration.
-	:param seconds_prior_arrival: nb of seconds prior the theoretical phase arrival time used to window seismograms for quality control, default 5.
-    	:param window_length_in_sec: nb of seconds of the time window used to window seismograms for quality control, default 50.
+        :param seconds_prior_arrival: nb of seconds prior the theoretical phase arrival time used to window seismograms for quality control, default 5.
+        :param window_length_in_sec: nb of seconds of the time window used to window seismograms for quality control, default 50.
         :param quiet: Do not print anything if set to `True`.
         :param create_folders: Create the folders for this iteration's
             synthetic waveforms
@@ -139,18 +146,22 @@ class IterationsComponent(Component):
             raise LASIFError(msg)
 
         from lasif.iteration_xml import create_iteration_xml_string
-        xml_string = create_iteration_xml_string(iteration_name,
-                                                 solver_name, events_dict,
-                                                 min_period, max_period,
-                                                 seconds_prior_arrival, window_length_in_sec,
-						 quiet=quiet)
+        xml_string = create_iteration_xml_string(
+            iteration_name,
+            solver_name,
+            events_dict,
+            min_period,
+            max_period,
+            seconds_prior_arrival,
+            window_length_in_sec,
+            quiet=quiet)
         with open(self.get_filename_for_iteration(iteration_name), "wt")\
                 as fh:
             fh.write(xml_string)
 
         if create_folders:
             self.create_synthetics_folder_for_iteration(iteration_name)
-	    self.create_stf_folder_for_iteration(iteration_name)
+            self.create_stf_folder_for_iteration(iteration_name)
 
     def create_synthetics_folder_for_iteration(self, iteration_name):
         """
@@ -160,7 +171,7 @@ class IterationsComponent(Component):
         """
         iteration = self.comm.iterations.get(iteration_name)
         path = self.comm.project.paths["synthetics"]
-        for event_name in iteration.events.keys():
+        for event_name in list(iteration.events.keys()):
             folder = os.path.join(path, event_name, iteration.long_name)
             if not os.path.exists(folder):
                 os.makedirs(folder)
@@ -177,16 +188,16 @@ class IterationsComponent(Component):
             folder = os.path.join(path, event_name, iteration.long_name)
             if not os.path.exists(folder):
                 os.makedirs(folder)
-                
+
     def update_iteration(self, existing_iteration_name,
-                                    new_iteration_name, events_dict,
-                                    create_folders=True):
+                         new_iteration_name, events_dict,
+                         create_folders=True):
         """
         Update an iteration based on an existing one.
 
         It will take all settings in one iteration and transfers them to
         another iteration. Any comments will be deleted.
-        The event dict will be upadated based on selected waveform components 
+        The event dict will be upadated based on selected waveform components
         in preprocessed event folder
 
         :param existing_iteration_name: Name of the iteration to be used as
@@ -232,7 +243,7 @@ class IterationsComponent(Component):
         ValueError: ...
         """
         from collections import OrderedDict
-        
+
         it_dict = self.get_iteration_dict()
         if existing_iteration_name not in it_dict:
             msg = "Iteration %s does not exists." % existing_iteration_name
@@ -246,13 +257,12 @@ class IterationsComponent(Component):
             it_dict[existing_iteration_name],
             stf_fct=self.comm.project.get_project_function(
                 "source_time_function"))
-        
-        # update the events: keep only the ones given in events_dict 
-        events= OrderedDict()
+
+        # update the events: keep only the ones given in events_dict
+        events = OrderedDict()
         for event_name in events_dict:
             events[event_name] = existing_iteration.events[event_name]
         existing_iteration.events = events
-        
 
         # Clone the old iteration, delete any comments and change the name.
         existing_iteration.comments = []
@@ -262,7 +272,6 @@ class IterationsComponent(Component):
         if create_folders:
             self.create_synthetics_folder_for_iteration(new_iteration_name)
             self.create_stf_folder_for_iteration(new_iteration_name)
-        
 
     def create_successive_iteration(self, existing_iteration_name,
                                     new_iteration_name, create_folders=True):
@@ -336,7 +345,6 @@ class IterationsComponent(Component):
         if create_folders:
             self.create_synthetics_folder_for_iteration(new_iteration_name)
             self.create_stf_folder_for_iteration(new_iteration_name)
-            
 
     def save_iteration(self, iteration):
         """
@@ -398,7 +406,7 @@ class IterationsComponent(Component):
             return self.__cached_iterations[iteration_name]
 
         it_dict = self.get_iteration_dict()
-	if iteration_name not in it_dict:
+        if iteration_name not in it_dict:
             msg = "Iteration '%s' not found." % iteration_name
             raise LASIFNotFoundError(msg)
 

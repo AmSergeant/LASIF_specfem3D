@@ -9,7 +9,7 @@ Event cache. LASIF just feels much faster using one when there are more events.
     GNU General Public License, Version 3
     (http://www.gnu.org/copyleft/gpl.html)
 """
-from __future__ import absolute_import
+
 
 import glob
 import os
@@ -35,6 +35,7 @@ class EventCache(FileInfoCache):
     RESP files: RESP.*
     StationXML: *.xml
     """
+
     def __init__(self, cache_db_file, event_folder, root_folder, read_only):
         self.index_values = [
             ("filename", "TEXT"),
@@ -76,7 +77,7 @@ class EventCache(FileInfoCache):
 
         try:
             cat = obspy.read_events(filename)
-        except:
+        except BaseException:
             msg = "Not a valid QuakeML file?"
             raise EventCacheError(msg)
 

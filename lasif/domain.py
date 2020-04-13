@@ -21,11 +21,10 @@ import numpy as np
 from lasif import rotations
 
 
-class Domain(object):
+class Domain(object, metaclass=ABCMeta):
     """
     Abstract base class for the domain definitions.
     """
-    __metaclass__ = ABCMeta
 
     @abstractmethod
     def point_in_domain(self, longitude, latitude):
@@ -79,6 +78,7 @@ class RectangularSphericalSection(Domain):
     """
     Class defining a potentially rotated spherical section.
     """
+
     def __init__(self, min_longitude, max_longitude, min_latitude,
                  max_latitude, min_depth_in_km=0.0, max_depth_in_km=6371.0,
                  rotation_axis=[0.0, 0.0, 1.0],
@@ -161,7 +161,7 @@ class RectangularSphericalSection(Domain):
 
     @property
     def extent(self):
-        lats, lngs = zip(*self.border)
+        lats, lngs = list(zip(*self.border))
         lats, lngs = np.array(lats), np.array(lngs)
 
         # One has to be careful with longitudes as they wrap around.
@@ -221,8 +221,14 @@ class RectangularSphericalSection(Domain):
 
         return True
 
-    def plot(self, plot_simulation_domain=False, ax=None, resolution=None,
-             skip_map_features=False, Teleseismic=False, azimuthal_projection=False):
+    def plot(
+            self,
+            plot_simulation_domain=False,
+            ax=None,
+            resolution=None,
+            skip_map_features=False,
+            Teleseismic=False,
+            azimuthal_projection=False):
         import matplotlib.pyplot as plt
         from mpl_toolkits.basemap import Basemap
 
@@ -234,13 +240,13 @@ class RectangularSphericalSection(Domain):
         if self.max_extent >= 180.0 or Teleseismic:
             if resolution is None:
                 resolution = "c"
-	    if azimuthal_projection is True:
-		m = Basemap(projection='aeqd', lon_0=self.center.longitude,
-			lat_0=self.center.latitude, resolution=resolution,
-                        ax=ax)
-	    else:
-            	m = Basemap(projection='moll', lon_0=0, resolution=resolution,
-                        ax=ax)
+            if azimuthal_projection is True:
+                m = Basemap(projection='aeqd', lon_0=self.center.longitude,
+                            lat_0=self.center.latitude, resolution=resolution,
+                            ax=ax)
+            else:
+                m = Basemap(projection='moll', lon_0=0, resolution=resolution,
+                            ax=ax)
             stepsize = 45.0
         # Orthographic projection for 75.0 <= extent < 180.0
         elif self.max_extent >= 75.0 or (plot_simulation_domain is True and
@@ -251,17 +257,18 @@ class RectangularSphericalSection(Domain):
                         lat_0=self.center.latitude, resolution=resolution,
                         ax=ax)
             stepsize = 10.0
+
         # Lambert azimuthal equal area projection. Equal area projections
         # are useful for interpreting features and this particular one also
         # does not distort features a lot on regional scales.
         else:
             if resolution is None:
-		try:
+                try:
                     resolution = "i"
-		except IOError:
-		    resolution = "l"
+                except IOError:
+                    resolution = "l"
             extent = self.extent
-	    
+
             # Calculate approximate width and height in meters.
             width = extent.longitudinal_extent
             height = extent.latitudinal_extent
@@ -281,8 +288,8 @@ class RectangularSphericalSection(Domain):
             m = Basemap(projection='laea', resolution=resolution, width=width,
                         height=height, lat_0=self.center.latitude,
                         lon_0=self.center.longitude, ax=ax)
-	
-	# This is fairly expensive and can thus be skipped.
+
+        # This is fairly expensive and can thus be skipped.
         if not skip_map_features:
             _plot_features(m, stepsize)
 
@@ -292,7 +299,7 @@ class RectangularSphericalSection(Domain):
             if self.boundary_width_in_degree:
                 _plot_lines(m, self.unrotated_inner_border, color="red", lw=2,
                             alpha=0.4)
-	
+
         _plot_lines(m, self.border, color="black", lw=2,
                     label="Physical Domain", effects=False)
         if self.boundary_width_in_degree:
@@ -323,15 +330,15 @@ class RectangularSphericalSection(Domain):
     def __str__(self):
         ret_str = (
             "{rotation} Spherical Section Domain\n"
-            u"\tLatitude: {min_lat:.2f}° - {max_lat:.2f}°\n"
-            u"\tLongitude: {min_lng:.2f}° - {max_lng:.2f}°\n"
+            "\tLatitude: {min_lat:.2f}° - {max_lat:.2f}°\n"
+            "\tLongitude: {min_lng:.2f}° - {max_lng:.2f}°\n"
             "\tDepth: {min_depth:.1f}km - {max_depth:.1f}km"
         )
         if self.rotation_angle_in_degree:
             rotation = "Rotated"
             ret_str += (
                 "\n\tRotation Axis: {x:.1f} / {y:.1f} / {z:.1f}\n"
-                u"\tRotation Angle: {angle:.2f}°"
+                "\tRotation Angle: {angle:.2f}°"
             )
         else:
             rotation = "Unrotated"

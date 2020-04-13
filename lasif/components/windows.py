@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import
+
 
 import copy
 import json
@@ -20,6 +20,7 @@ class WindowsComponent(Component):
     :param communicator: The communicator instance.
     :param component_name: The name of this component for the communicator.
     """
+
     def __init__(self, windows_folder, communicator, component_name):
         self._folder = windows_folder
         super(WindowsComponent, self).__init__(communicator,
@@ -120,7 +121,7 @@ class WindowsComponent(Component):
                     with open(cache_file) as fh:
                         data = json.load(fh)
                 except Exception as e:
-                    print("Loading cache failed due to: %s" % str(e))
+                    print(("Loading cache failed due to: %s" % str(e)))
                 print("Loading statistics from cache.")
                 return data
             else:
@@ -130,8 +131,8 @@ class WindowsComponent(Component):
         statistics = {}
 
         for _i, event in enumerate(list(sorted(it.events.keys()))):
-            print("Collecting statistics for event %i of %i ..." % (
-                _i + 1, len(it.events)))
+            print(("Collecting statistics for event %i of %i ..." % (
+                _i + 1, len(it.events))))
 
             wm = self.get(event=event, iteration=iteration)
 
@@ -146,7 +147,7 @@ class WindowsComponent(Component):
 
             stations = {}
 
-            for station in it.events[event]["stations"].keys():
+            for station in list(it.events[event]["stations"].keys()):
                 s = station_details[station]
                 stations[station] = s
 

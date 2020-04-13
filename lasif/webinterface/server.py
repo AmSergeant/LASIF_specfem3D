@@ -1,21 +1,20 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+import os
+import numpy as np
+import inspect
+import io
+from obspy.imaging.beachball import beach
+import json
+import geojson
+import copy
+import collections
 import flask
-from flask.ext.cache import Cache
+from flask_caching import Cache
 
 import matplotlib.pylab as plt
 from matplotlib.colors import hex2color
 plt.switch_backend("agg")
-
-import collections
-import copy
-import geojson
-import json
-from obspy.imaging.beachball import beach
-import io
-import inspect
-import numpy as np
-import os
 
 
 WEBSERVER_DIRECTORY = os.path.dirname(os.path.abspath(inspect.getfile(
@@ -28,7 +27,7 @@ cache = Cache()
 
 def make_cache_key(*args, **kwargs):
     path = flask.request.path
-    args = str(hash(frozenset(flask.request.args.items())))
+    args = str(hash(frozenset(list(flask.request.args.items()))))
     return (path + args).encode('utf-8')
 
 
@@ -122,7 +121,7 @@ def mt_plot():
     lw = float(args.get("lw", 1))
     format = args.get("format", "png")
 
-    if format not in formats.keys():
+    if format not in list(formats.keys()):
         flask.abort(500)
 
     dpi = 100
@@ -218,7 +217,7 @@ def get_iteration_detail(iteration_name):
         description=iteration.description,
         comments=iteration.comments,
         data_preprocessing=iteration.data_preprocessing,
-        events=iteration.events.keys(),
+        events=list(iteration.events.keys()),
         processing_params=iteration.get_process_params(),
         processing_tag=iteration.processing_tag,
         solver=iteration.solver_settings["solver"],
@@ -237,9 +236,9 @@ def list_events():
     Returns a list of events.
     """
     events = copy.deepcopy(app.comm.events.get_all_events())
-    for value in events.itervalues():
+    for value in events.values():
         value["origin_time"] = str(value["origin_time"])
-    return flask.jsonify(events=events.values())
+    return flask.jsonify(events=list(events.values()))
 
 
 @app.route("/rest/event/<event_name>")
@@ -247,9 +246,9 @@ def get_event_details(event_name):
     event = copy.deepcopy(app.comm.events.get(event_name))
     event["origin_time"] = str(event["origin_time"])
     stations = app.comm.query.get_all_stations_for_event(event_name)
-    for key, value in stations.iteritems():
+    for key, value in stations.items():
         value["station_name"] = key
-    event["stations"] = stations.values()
+    event["stations"] = list(stations.values())
     return flask.jsonify(**event)
 
 

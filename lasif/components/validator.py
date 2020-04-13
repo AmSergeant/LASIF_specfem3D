@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import
+
 
 import collections
 import colorama
@@ -20,6 +20,7 @@ class ValidatorComponent(Component):
     :param communicator: The communicator instance.
     :param component_name: The name of this component for the communicator.
     """
+
     def __init__(self, *args, **kwargs):
         super(ValidatorComponent, self).__init__(*args, **kwargs)
         self._reports = []
@@ -87,15 +88,15 @@ class ValidatorComponent(Component):
         if station_file_availability:
             self._validate_station_files_availability()
         else:
-            print("%sSkipping station files availability check.%s" % (
-                colorama.Fore.YELLOW, colorama.Fore.RESET))
+            print(("%sSkipping station files availability check.%s" % (
+                colorama.Fore.YELLOW, colorama.Fore.RESET)))
 
         # Assert that all waveform files have a corresponding station file.
         if waveforms:
             self._validate_waveform_files()
         else:
-            print("%sSkipping waveform file validation.%s" % (
-                colorama.Fore.YELLOW, colorama.Fore.RESET))
+            print(("%sSkipping waveform file validation.%s" % (
+                colorama.Fore.YELLOW, colorama.Fore.RESET)))
 
         # self._validate_coordinate_deduction(ok_string, fail_string,
         # flush_point, add_report)
@@ -103,21 +104,21 @@ class ValidatorComponent(Component):
         files_failing_raypath_test = []
         if raypaths:
             if isinstance(self.comm.project.domain, GlobalDomain):
-                print("%sSkipping raypath checks for global domain...%s" % (
-                    colorama.Fore.YELLOW, colorama.Fore.RESET))
+                print(("%sSkipping raypath checks for global domain...%s" % (
+                    colorama.Fore.YELLOW, colorama.Fore.RESET)))
             else:
                 files_failing_raypath_test = \
                     self.validate_raypaths_in_domain()
         else:
-            print("%sSkipping raypath checks.%s" % (
-                colorama.Fore.YELLOW, colorama.Fore.RESET))
+            print(("%sSkipping raypath checks.%s" % (
+                colorama.Fore.YELLOW, colorama.Fore.RESET)))
 
         # Depending on whether or not the tests passed, report it accordingly.
         if not self._reports:
-            print("\n%sALL CHECKS PASSED%s\n"
-                  "The data seems to be valid. If we missed something please "
-                  "contact the developers." % (colorama.Fore.GREEN,
-                                               colorama.Fore.RESET))
+            print(("\n%sALL CHECKS PASSED%s\n"
+                   "The data seems to be valid. If we missed something please "
+                   "contact the developers." % (colorama.Fore.GREEN,
+                                                colorama.Fore.RESET)))
         else:
             folder = \
                 self.comm.project.get_output_folder(
@@ -129,10 +130,10 @@ class ValidatorComponent(Component):
                 for report in self._reports:
                     fh.write(report.strip())
                     fh.write(seperator_string)
-            print("\n%sFAILED%s\nEncountered %i errors!\n"
-                  "A report has been created at '%s'.\n" %
-                  (colorama.Fore.RED, colorama.Fore.RESET,
-                   self._total_error_count, os.path.relpath(filename)))
+            print(("\n%sFAILED%s\nEncountered %i errors!\n"
+                   "A report has been created at '%s'.\n" %
+                   (colorama.Fore.RED, colorama.Fore.RESET,
+                    self._total_error_count, os.path.relpath(filename))))
             if files_failing_raypath_test:
                 # Put quotes around the filenames
                 files_failing_raypath_test = ['"%s"' % _i for _i in
@@ -143,10 +144,10 @@ class ValidatorComponent(Component):
                     fh.write("# CHECK THIS FILE BEFORE EXECUTING!!!\n")
                     fh.write("rm ")
                     fh.write("\nrm ".join(files_failing_raypath_test))
-                print("\nSome files failed the raypath in domain checks. A "
-                      "script which deletes the violating files has been "
-                      "created. Please check and execute it if necessary:\n"
-                      "'%s'" % filename)
+                print(("\nSome files failed the raypath in domain checks. A "
+                       "script which deletes the violating files has been "
+                       "created. Please check and execute it if necessary:\n"
+                       "'%s'" % filename))
 
     def validate_raypaths_in_domain(self):
         """
@@ -154,14 +155,14 @@ class ValidatorComponent(Component):
 
         Returns a list of waveform files violating that assumtion.
         """
-        print "Making sure raypaths are within boundaries ",
+        print("Making sure raypaths are within boundaries ", end=' ')
 
         all_good = True
 
         # Collect list of files to be deleted.
         files_to_be_deleted = []
 
-        for event_name, event in self.comm.events.get_all_events().iteritems():
+        for event_name, event in self.comm.events.get_all_events().items():
             try:
                 waveforms = self.comm.waveforms.get_metadata_raw(event_name)
             except LASIFNotFoundError:
@@ -169,7 +170,7 @@ class ValidatorComponent(Component):
             self._flush_point()
             for station_id, value in \
                     self.comm.query.get_all_stations_for_event(
-                        event_name).iteritems():
+                        event_name).items():
                 network_code, station_code = station_id.split(".")
                 # Check if the whole path of the event-station pair is within
                 # the domain boundaries.
@@ -204,8 +205,8 @@ class ValidatorComponent(Component):
         """
         Checks that all waveform files have an associated station file.
         """
-        print ("Confirming that station metainformation files exist for "
-               "all waveforms "),
+        print(("Confirming that station metainformation files exist for "
+               "all waveforms "), end=' ')
 
         all_good = True
 
@@ -246,7 +247,7 @@ class ValidatorComponent(Component):
 
         * each station only has data from one location for each event.
         """
-        print "Checking all waveform files ",
+        print("Checking all waveform files ", end=' ')
 
         all_good = True
 
@@ -276,7 +277,7 @@ class ValidatorComponent(Component):
                                 tag=self.comm.iterations.get(
                                     iteration).processing_tag)
                     except LASIFNotFoundError:
-                        print("NO %s!!!" % iteration)
+                        print(("NO %s!!!" % iteration))
                         continue
 
                 # Sort by network, station, and component.
@@ -334,12 +335,12 @@ class ValidatorComponent(Component):
         from obspy.io.quakeml.core import _validate as validate_quakeml
         from lxml import etree
 
-        print "Validating %i event files ..." % self.comm.events.count()
+        print("Validating %i event files ..." % self.comm.events.count())
 
         # Start with the schema validation.
-        print "\tValidating against QuakeML 1.2 schema ",
+        print("\tValidating against QuakeML 1.2 schema ", end=' ')
         all_valid = True
-        for event in self.comm.events.get_all_events().values():
+        for event in list(self.comm.events.get_all_events().values()):
             filename = event["filename"]
             self._flush_point()
             if validate_quakeml(filename) is not True:
@@ -368,20 +369,20 @@ class ValidatorComponent(Component):
             self._print_fail_message()
 
         # Now check for duplicate public IDs.
-        print "\tChecking for duplicate public IDs ",
+        print("\tChecking for duplicate public IDs ", end=' ')
         ids = collections.defaultdict(list)
-        for event in self.comm.events.get_all_events().values():
+        for event in list(self.comm.events.get_all_events().values()):
             filename = event["filename"]
             self._flush_point()
             # Now walk all files and collect all public ids. Each should be
             # unique!
             with open(filename, "rt") as fh:
                 for event, elem in etree.iterparse(fh, events=("start",)):
-                    if "publicID" not in elem.keys() or \
+                    if "publicID" not in list(elem.keys()) or \
                             elem.tag.endswith("eventParameters"):
                         continue
                     ids[elem.get("publicID")].append(filename)
-        ids = {key: list(set(value)) for (key, value) in ids.iteritems()
+        ids = {key: list(set(value)) for (key, value) in ids.items()
                if len(value) > 1}
         if not ids:
             self._print_ok_message()
@@ -392,7 +393,7 @@ class ValidatorComponent(Component):
                 "\n".join(["\t%s in files: %s" % (
                     id_string,
                     ", ".join([os.path.basename(i) for i in faulty_files]))
-                    for id_string, faulty_files in ids.iteritems()]),
+                    for id_string, faulty_files in ids.items()]),
                 error_count=len(ids))
 
         def print_warning(filename, message):
@@ -402,9 +403,9 @@ class ValidatorComponent(Component):
                                  msg=message))
 
         # Performing simple sanity checks.
-        print "\tPerforming some basic sanity checks ",
+        print("\tPerforming some basic sanity checks ", end=' ')
         all_good = True
-        for event in self.comm.events.get_all_events().values():
+        for event in list(self.comm.events.get_all_events().values()):
             filename = event["filename"]
             self._flush_point()
             cat = read_events(filename)
@@ -487,18 +488,18 @@ class ValidatorComponent(Component):
             self._print_fail_message()
 
         # Collect event times
-        event_infos = self.comm.events.get_all_events().values()
+        event_infos = list(self.comm.events.get_all_events().values())
 
         # Now check the time distribution of events.
-        print "\tChecking for duplicates and events too close in time %s" % \
-              (self.comm.events.count() * "."),
+        print("\tChecking for duplicates and events too close in time %s" %
+              (self.comm.events.count() * "."), end=' ')
         all_good = True
         # Sort the events by time.
         event_infos = sorted(event_infos, key=lambda x: x["origin_time"])
         # Loop over adjacent indices.
         a, b = itertools.tee(event_infos)
         next(b, None)
-        for event_1, event_2 in itertools.izip(a, b):
+        for event_1, event_2 in zip(a, b):
             time_diff = abs(event_2["origin_time"] - event_1["origin_time"])
             # If time difference is under one hour, it could be either a
             # duplicate event or interfering events.
@@ -519,8 +520,8 @@ class ValidatorComponent(Component):
             self._print_fail_message()
 
         # Check that all events fall within the chosen boundaries.
-        print "\tAssure all events are in chosen domain %s" % \
-              (self.comm.events.count() * "."),
+        print("\tAssure all events are in chosen domain %s" %
+              (self.comm.events.count() * "."), end=' ')
         all_good = True
         domain = self.comm.project.domain
         for event in event_infos:

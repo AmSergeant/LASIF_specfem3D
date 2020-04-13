@@ -13,9 +13,9 @@ needed.
 :license: GNU General Public License, Version 3
     (http://www.gnu.org/copyleft/gpl.html)
 """
-from __future__ import absolute_import
 
-import cPickle
+
+import pickle
 import glob
 import imp
 import inspect
@@ -49,6 +49,7 @@ class Project(Component):
 
     It represents the heart of LASIF.
     """
+
     def __init__(self, project_root_path, init_project=False,
                  read_only_caches=False):
         """
@@ -202,7 +203,7 @@ class Project(Component):
         if os.path.exists(cfile):
             try:
                 with open(cfile, "rb") as fh:
-                    cf_cache = cPickle.load(fh)
+                    cf_cache = pickle.load(fh)
                 last_m_time = int(os.path.getmtime(self.paths["config_file"]))
                 if last_m_time == cf_cache["last_m_time"]:
                     default_download_settings.update(cf_cache["config"][
@@ -222,7 +223,7 @@ class Project(Component):
                         os.remove(cfile)
                     else:
                         return
-            except:
+            except BaseException:
                 os.remove(cfile)
 
         from lxml import etree
@@ -302,7 +303,7 @@ class Project(Component):
         cf_cache["last_m_time"] = \
             int(os.path.getmtime(self.paths["config_file"]))
         with open(cfile, "wb") as fh:
-            cPickle.dump(cf_cache, fh, protocol=2)
+            pickle.dump(cf_cache, fh, protocol=2)
 
     def build_all_caches(self, quick=False):
         """
@@ -319,7 +320,7 @@ class Project(Component):
             self.comm.stations.file_count
 
         for event in self.comm.events.list():
-            print("Building/updating data cache for event '%s'..." % event)
+            print(("Building/updating data cache for event '%s'..." % event))
             # Get all caches which will build them.
             try:
                 self.comm.waveforms.get_waveform_cache(event, "raw",
@@ -464,7 +465,7 @@ class Project(Component):
         self.paths["wavefields"] = os.path.join(root_path, "WAVEFIELDS")
         self.paths["iterations"] = os.path.join(root_path, "ITERATIONS")
         self.paths["synthetics"] = os.path.join(root_path, "SYNTHETICS")
-	self.paths["stf"] = os.path.join(root_path,"STF")
+        self.paths["stf"] = os.path.join(root_path, "STF")
         self.paths["kernels"] = os.path.join(root_path, "KERNELS")
         self.paths["stations"] = os.path.join(root_path, "STATIONS")
         self.paths["output"] = os.path.join(root_path, "OUTPUT")
@@ -496,12 +497,15 @@ class Project(Component):
         """
         Updates the folder structure of the project.
         """
-        for name, path in self.paths.iteritems():
+        for name, path in self.paths.items():
             if "file" in name or os.path.exists(path):
                 continue
             os.makedirs(path)
         events = self.comm.events.list()
-        folders = [self.paths["data"], self.paths["synthetics"], self.paths["stf"]]
+        folders = [
+            self.paths["data"],
+            self.paths["synthetics"],
+            self.paths["stf"]]
         for folder in folders:
             for event in events:
                 event_folder = os.path.join(folder, event)
@@ -564,7 +568,7 @@ class Project(Component):
         string_doc = etree.tostring(doc, pretty_print=True,
                                     xml_declaration=True, encoding="UTF-8")
 
-        with open(self.paths["config_file"], "wt") as open_file:
+        with open(self.paths["config_file"], "wb") as open_file:
             open_file.write(string_doc)
 
     def get_project_function(self, fct_type):
@@ -581,11 +585,11 @@ class Project(Component):
         fct_type_map = {
             "window_picking_function": "window_picking_function.py",
             "preprocessing_function": "preprocessing_function.py",
-	    "data_svd_selection": "data_svd_selection.py",
+            "data_svd_selection": "data_svd_selection.py",
             "process_synthetics": "process_synthetics.py",
             "source_time_function": "source_time_function.py",
-	    "instaseis_synthetics_function": "instaseis_synthetics_function.py",
-	    "stf_deconvolution": "stf_deconvolution.py",
+            "instaseis_synthetics_function": "instaseis_synthetics_function.py",
+            "stf_deconvolution": "stf_deconvolution.py",
         }
 
         if fct_type not in fct_type:

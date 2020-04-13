@@ -42,8 +42,8 @@ import unicodedata
 
 py3k = sys.version_info[0] >= 3
 if py3k:
-    unicode = str
-    basestring = str
+    str = str
+    str = str
     itermap = map
     iterzip = zip
     uni_chr = chr
@@ -51,8 +51,8 @@ if py3k:
 else:
     itermap = itertools.imap
     iterzip = itertools.izip
-    uni_chr = unichr
-    from HTMLParser import HTMLParser
+    uni_chr = chr
+    from html.parser import HTMLParser
 
 if py3k and sys.version_info[1] >= 2:
     from html import escape
@@ -71,7 +71,7 @@ MSWORD_FRIENDLY = 11
 PLAIN_COLUMNS = 12
 RANDOM = 20
 
-_re = re.compile("\033\[[0-9;]*m")
+_re = re.compile(r"\033\[[0-9;]*m")
 
 
 def _get_size(text):
@@ -135,8 +135,9 @@ class PrettyTable(object):
         # Options
         self._options = ("start end fields header border sortby reversesort "
                          "sort_key attributes format hrules vrules").split()
-        self._options.extend(("int_format float_format padding_width "
-                             "left_padding_width right_padding_width").split())
+        self._options.extend(
+            ("int_format float_format padding_width "
+             "left_padding_width right_padding_width").split())
         self._options.extend(("vertical_char horizontal_char junction_char "
                               "header_style valign xhtml print_empty "
                               "oldsortslice").split())
@@ -192,10 +193,10 @@ class PrettyTable(object):
         self._attributes = kwargs["attributes"] or {}
 
     def _unicode(self, value):
-        if not isinstance(value, basestring):
+        if not isinstance(value, str):
             value = str(value)
-        if not isinstance(value, unicode):
-            value = unicode(value, self.encoding, "strict")
+        if not isinstance(value, str):
+            value = str(value, self.encoding, "strict")
         return value
 
     def _justify(self, text, width, align):
@@ -367,7 +368,7 @@ class PrettyTable(object):
         if val == "":
             return
         try:
-            assert type(val) in (str, unicode)
+            assert type(val) in (str, str)
             assert val.isdigit()
         except AssertionError:
             raise Exception(("Invalid value for %s!  Must be an integer "
@@ -377,7 +378,7 @@ class PrettyTable(object):
         if val == "":
             return
         try:
-            assert type(val) in (str, unicode)
+            assert type(val) in (str, str)
             assert "." in val
             bits = val.split(".")
             assert len(bits) <= 2
@@ -448,6 +449,7 @@ class PrettyTable(object):
 
         fields - list or tuple of field names
         """
+
     def _set_field_names(self, val):
         val = [self._unicode(x) for x in val]
         self._validate_option("field_names", val)
@@ -943,10 +945,12 @@ class PrettyTable(object):
         self._vrules = random.choice((ALL, FRAME, NONE))
         self.left_padding_width = random.randint(0, 5)
         self.right_padding_width = random.randint(0, 5)
-        self.vertical_char = random.choice("~!@#$%^&*()_+|-=\{}[];':\",./;<>?")
+        self.vertical_char = random.choice(
+            r"~!@#$%^&*()_+|-=\{}[];':\",./;<>?")
         self.horizontal_char = random.choice(
             "~!@#$%^&*()_+|-=\{}[];':\",./;<>?")
-        self.junction_char = random.choice("~!@#$%^&*()_+|-=\{}[];':\",./;<>?")
+        self.junction_char = random.choice(
+            r"~!@#$%^&*()_+|-=\{}[];':\",./;<>?")
 
     ##############################
     # DATA INPUT METHODS         #
@@ -1056,8 +1060,9 @@ class PrettyTable(object):
             for index, value in enumerate(row):
                 fieldname = self.field_names[index]
                 if fieldname in self.max_width:
-                    widths[index] = max(widths[index], min(_get_size(value)[0],
-                                        self.max_width[fieldname]))
+                    widths[index] = max(
+                        widths[index], min(
+                            _get_size(value)[0], self.max_width[fieldname]))
                 else:
                     widths[index] = max(widths[index], _get_size(value)[0])
         self._widths = widths
@@ -1194,8 +1199,8 @@ class PrettyTable(object):
             bits = [options["horizontal_char"]]
         # For tables with no data or fieldnames
         if not self._field_names:
-                bits.append(options["junction_char"])
-                return "".join(bits)
+            bits.append(options["junction_char"])
+            return "".join(bits)
         for field, width in zip(self._field_names, self._widths):
             if options["fields"] and field not in options["fields"]:
                 continue
@@ -1258,7 +1263,7 @@ class PrettyTable(object):
 
     def _stringify_row(self, row, options):
         for index, field, value, width in zip(
-                range(0, len(row)), self._field_names, row, self._widths):
+                list(range(0, len(row))), self._field_names, row, self._widths):
             # Enforce max widths
             lines = value.split("\n")
             new_lines = []
@@ -1545,7 +1550,7 @@ def from_csv(fp, field_names=None, **kwargs):
         if py3k:
             table.field_names = [x.strip() for x in next(reader)]
         else:
-            table.field_names = [x.strip() for x in reader.next()]
+            table.field_names = [x.strip() for x in next(reader)]
 
     for row in reader:
         table.add_row([x.strip() for x in row])

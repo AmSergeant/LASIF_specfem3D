@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import
+
 
 import copy
 import obspy
@@ -22,6 +22,7 @@ class EventsComponent(Component):
     :param component_name: The name of this component for the
         communicator.
     """
+
     def __init__(self, folder, communicator, component_name):
         super(EventsComponent, self).__init__(communicator, component_name)
         self.__event_info_cache = {}
@@ -45,7 +46,7 @@ class EventsComponent(Component):
         # Cache the event information so everything is only read once at max.
         self.__event_info_cache = {
             _i["event_name"]: _i for _i in values}
-        for value in self.__event_info_cache.values():
+        for value in list(self.__event_info_cache.values()):
             value["origin_time"] = obspy.UTCDateTime(value["origin_time"])
 
     def list(self):
