@@ -69,7 +69,8 @@ setup_config = dict(
         "flask",
         "flask-cache",
         "geojson",
-        "instaseis"
+        "instaseis",
+        "HinetPy"
     ],
     package_data={
         "lasif": get_package_data()},
