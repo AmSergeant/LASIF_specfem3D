@@ -408,6 +408,7 @@ class Project(Component):
         StationsComponent(stationxml_folder=self.paths["station_xml"],
                           seed_folder=self.paths["dataless_seed"],
                           resp_folder=self.paths["resp"],
+                          sacpz_folder=self.paths["sacpz"],
                           cache_folder=self.paths["cache"],
                           communicator=self.comm, component_name="stations")
         WaveformsComponent(data_folder=self.paths["data"],
@@ -484,6 +485,9 @@ class Project(Component):
                                                  "StationXML")
         self.paths["resp"] = os.path.join(self.paths["stations"],
                                           "RESP")
+        self.paths["sacpz"] = os.path.join(self.paths["stations"],
+                                          "SACPZ")
+
 
         # Paths for various files.
         self.paths["config_file"] = os.path.join(root_path,

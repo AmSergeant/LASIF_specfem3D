@@ -5,7 +5,8 @@
 # used at
 # lasif.components.downloads DownloadsComponent.donwload_data_for_one_evnt
 
-import os, datetime, getpass, glob
+import os, datetime, getpass, glob, shutil
+import obspy
 from obspy.clients.fdsn.mass_downloader import GlobalDomain
 from obspy import UTCDateTime
 
@@ -55,8 +56,9 @@ class NiedDownloader():
                                                 maxlongitude=self.domain.max_longitude)
 
 
-    def download(self, outdir=None):
-        self.outdir=outdir
+    def download(self, outdir=None, stationdir=None):
+        self.outdir    =outdir
+        self.stationdir=stationdir
 
         # download waveform
         for network in self.network:
@@ -68,6 +70,21 @@ class NiedDownloader():
         # convert waveform file format
         self.convert_format()
 
+        # make symlinks of SACPZ files in Station/SACPZ
+        sacs = glob.glob(self.outdir+"/*.SAC")
+        pzs  = glob.glob(self.outdir+"/*.SAC_PZ")
+
+        for sac in sacs:
+            try: # make symlink if not exits
+                os.symlink(sac, os.path.join(stationdir,os.path.basename(sac)))
+            except:
+                pass
+        # pz files are replaced into the station files
+        for pz in pzs:
+            try:
+                shutil.move(pz, os.path.join(stationdir,os.path.basename(pz)))
+            except:
+                pass
 
     def convert_format(self):
         network_dirs = [ f.path for f in os.scandir(self.outdir) if f.is_dir() ]
@@ -84,3 +101,15 @@ class NiedDownloader():
                 win32.extract_sac(data,ctable,outdir=self.outdir)
                 # extract instrumental responses
                 win32.extract_pz(ctable,outdir=self.outdir)
+
+            # convert SACPZ to mseed for LASIF's requirement
+            #sacs = glob.glob(self.outdir+"/*.SAC")
+            #for sac in sacs:
+            #    try:
+            #        st = obspy.read(sac)
+            #        st.write(sac.rstrip(".SAC")+".mseed",format="MSEED")
+            #    except:
+            #        print("{} skipped. some problem on this file.".format(sac))
+
+            # erase the win32 format datafile
+            shutil.rmtree(network_dir)

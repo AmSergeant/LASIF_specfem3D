@@ -115,7 +115,8 @@ class DownloadsComponent(Component):
                                  network=networks,
                                  domain=domain,
                                  )
-            dlh.download(outdir=mseed_storage)
+            sacpaz_path=self.comm.project.paths["sacpz"]
+            dlh.download(outdir=mseed_storage,stationdir=sacpaz_path)
 
     def _get_stationxml_storage_fct(self, starttime, endtime):
         # Get the stationxml storage function required by the download helpers.
