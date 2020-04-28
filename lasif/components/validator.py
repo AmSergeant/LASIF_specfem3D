@@ -376,7 +376,7 @@ class ValidatorComponent(Component):
             self._flush_point()
             # Now walk all files and collect all public ids. Each should be
             # unique!
-            with open(filename, "rt") as fh:
+            with open(filename, "rb") as fh:
                 for event, elem in etree.iterparse(fh, events=("start",)):
                     if "publicID" not in list(elem.keys()) or \
                             elem.tag.endswith("eventParameters"):
