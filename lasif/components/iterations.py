@@ -155,7 +155,7 @@ class IterationsComponent(Component):
             seconds_prior_arrival,
             window_length_in_sec,
             quiet=quiet)
-        with open(self.get_filename_for_iteration(iteration_name), "wt")\
+        with open(self.get_filename_for_iteration(iteration_name), "wb")\
                 as fh:
             fh.write(xml_string)
 
