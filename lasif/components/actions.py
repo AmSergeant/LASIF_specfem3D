@@ -214,7 +214,7 @@ class ActionsComponent(Component):
                 "data_svd_selection")
 
             # Loop over the chosen events.
-            for event_name, event in iteration.events.iteritems():
+            for event_name, event in iteration.events.items():
                 if not ((event_names is None) or (event_name in event_names)):
                     continue
 
@@ -260,7 +260,7 @@ class ActionsComponent(Component):
             """
 
             # Loop over the chosen events.
-            for event_name, event in iteration.events.iteritems():
+            for event_name, event in iteration.events.items():
                 # None means to process all events, otherwise it will be a list
                 # of events.
 
@@ -420,7 +420,7 @@ class ActionsComponent(Component):
             "stf_deconvolution")
 
         # Loop over the chosen events.
-        for event_name, event in iteration.events.iteritems():
+        for event_name, event in iteration.events.items():
             if not ((event_names is None) or (event_name in event_names)):
                 continue
 
