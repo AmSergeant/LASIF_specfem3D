@@ -61,14 +61,14 @@ class NiedDownloader():
         self.stationdir=stationdir
 
         # download waveform
-        for network in self.network:
-            network_code = network.lstrip("NIED.")
-            output_dir   = os.path.join(self.outdir,network_code)
-            span         = int((self.endtime_JST-self.starttime_JST)/60.0) # in minutes
-            data, ctable = self.client.get_continuous_waveform(network_code,self.starttime_JST.datetime,span,outdir=output_dir)
+        #for network in self.network:
+        #    network_code = network.lstrip("NIED.")
+        #    output_dir   = os.path.join(self.outdir,network_code)
+        #    span         = int((self.endtime_JST-self.starttime_JST)/60.0) # in minutes
+        #    data, ctable = self.client.get_continuous_waveform(network_code,self.starttime_JST.datetime,span,outdir=output_dir)
 
-        # convert waveform file format
-        self.convert_format()
+        ## convert waveform file format
+        #self.convert_format()
 
         # make symlinks of SACPZ files in Station/SACPZ
         sacs = glob.glob(self.outdir+"/*.SAC")
@@ -76,7 +76,11 @@ class NiedDownloader():
 
         for sac in sacs:
             try: # make symlink if not exits
-                os.symlink(sac, os.path.join(stationdir,os.path.basename(sac)))
+                # here event name is added at the head of filename
+                # to be found by station_cache registration process.
+                link_name=self.outdir.split("/")[-2]+"_"+os.path.basename(sac)
+                print(link_name)
+                os.symlink(sac, os.path.join(stationdir,link_name))
             except:
                 pass
         # pz files are replaced into the station files
