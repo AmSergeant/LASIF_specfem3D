@@ -4,7 +4,26 @@
 [![GPLv3](http://www.gnu.org/graphics/gplv3-88x31.png)](https://github.com/krischer/LASIF/blob/master/LICENSE)
 
 
-Documentation can be found here: [LASIF](http://krischer.github.io/LASIF)
+## Specfem3d_fwi flavored LASIF
+
+This fork of LASIF is being developed for the use with specfem3d_fwi  
+Also, original Lasif codes have been modified for supporting python3 and Qt5.  
+
+Prerequesites:
+You must have installed Python3, and libraries `geos`, `openmpi`, `mpi4py`
+
+I recommend to create a virtual environment (first install virtualenv with `pip install virtualenv`
+`virtualenv Lasif-Py3`
+Activate the Lasif environment
+`source Lasif-Py3/bin/activate`
+
+to install,  
+`pip3 install -r requirements.txt`  
+then  
+`pip3 install .`  
+
+
+Documentation about can be found here: [LASIF](http://krischer.github.io/LASIF)
 
 
 ### Paper

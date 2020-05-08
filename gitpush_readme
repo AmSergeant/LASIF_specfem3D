@@ -1,5 +1,8 @@
 In the local project folder:
 
+git config --global user.name "AmSergeant"
+git config --global user.email "amandine.sboy@gmail.com"
+
 # First delete the git origin (from git clone Krisher)
 rm -rf .git
 
