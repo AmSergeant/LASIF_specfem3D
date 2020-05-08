@@ -83,7 +83,6 @@ class MainWindow(QtWidgets.QMainWindow):
         
         
     def init_figure(self, comm):
-        
         # Create the maptlotlib FigureCanvas object, 
         # which defines a single set of axes as self.axes.
         self.canvas = PlotCanvas(self, width=5, height=4)
@@ -103,7 +102,6 @@ class MainWindow(QtWidgets.QMainWindow):
         
         
     def init_buttons(self):
-        
         # select all events and quit button
         self.quit_btn = QtWidgets.QPushButton('Select all remaining events\n and Quit', self)
         self.quit_btn.setStyleSheet('QPushButton {color: red;}')
@@ -111,26 +109,23 @@ class MainWindow(QtWidgets.QMainWindow):
         self.quit_btn.move(580, 500)
         
         # go to next event button
-        self.next_btn = QtWidgets.QPushButton('Go to next event', self)
+        self.next_btn = QtWidgets.QPushButton('Go to next event\n or press \'right arrow\'', self)
         self.next_btn.resize(self.next_btn.sizeHint())
         self.next_btn.move(580, 550)
         
-        
         # select/disregard the event buttons
         self.select_btn = QtWidgets.QCheckBox(self)
-        self.select_btn.setText('select the event')
+        self.select_btn.setText('select the event\n or press \'s\'')
         self.select_btn.resize(self.select_btn.sizeHint())
         self.select_btn.move(430, 550)
         self.unselect_btn = QtWidgets.QCheckBox(self)
-        self.unselect_btn.setText('disregard the event')
+        self.unselect_btn.setText('disregard the event\n or press \'q\'')
         self.unselect_btn.resize(self.unselect_btn.sizeHint())
         self.unselect_btn.move(280, 550)
         self.unselect_btn.setChecked(False)
         self.select_btn.setChecked(True)
         
     def init_shortcuts(self):
-        
-        
         # shortcut "right arrow" for "go to next event" button
         self.next_shortcut = QtWidgets.QShortcut(QtGui.QKeySequence("right"), self.next_btn)
         self.next_shortcut.setEnabled(True)
@@ -146,7 +141,6 @@ class MainWindow(QtWidgets.QMainWindow):
                   
 
     def ui(self, comm, chosen_events, events):
-        
         # Get infos from Lasif project
         self.comm = comm
         self._gather_infos_from_lasif_comm()
