@@ -8,3 +8,6 @@ lasif/misfit_gui/qt_window.py
 lasif/RELEASE-VERSION
 Tutorial
 *.swo
+*.swp
+.python-version
+
