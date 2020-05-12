@@ -64,7 +64,7 @@ class DownloadsComponent(Component):
                                      "raw")
 
         # download from FDSN server
-        if (not networks.startswith("NIED")):
+        if (networks is None or not networks.startswith("NIED")):
             from obspy.clients.fdsn.mass_downloader import MassDownloader
 
             print("download from FDSN server")
