@@ -265,7 +265,7 @@ class StationCache(FileInfoCache):
         SELECT files.filename FROM indices
         INNER JOIN files
         ON indices.filepath_id=files.id
-        WHERE (indices.channel_id = '%s') AND (indices.start_date < %i) AND
+        WHERE (indices.channel_id = '%s') AND (indices.start_date <= %i) AND
             ((indices.end_date IS NULL) OR (indices.end_date > %i))
         LIMIT 1;
         """ % (channel_id, time, time)

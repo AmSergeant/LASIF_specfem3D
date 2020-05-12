@@ -90,7 +90,11 @@ class ActionsComponent(Component):
 
                 # Group by station name.
                 def func(x):
-                    return ".".join(x["channel_id"].split(".")[:2])
+                    if x["channel_id"].split(".")[0] != "":
+                        st_name = ".".join(x["channel_id"].split(".")[:2])
+                    else:
+                        st_name = ".".join(x["channel_id"].split(".")[:3])
+                    return st_name
 
                 waveforms.sort(key=func)
                 for station_name, channels in  \
@@ -145,12 +149,12 @@ class ActionsComponent(Component):
                         tts = earth_model.get_travel_times(
                             source_depth_in_km=event["depth_in_km"],
                             distance_in_degree=dist_in_deg,
-                            phase_list=['P'])
+                            phase_list=['P','p'])
 
                         if len(tts) == 0:
                             print(
-                                "No P wave for epicentral distance %f" %
-                                dist_in_deg)
+                                "No P wave for epicentral distance {} for event {} at {}".format(
+                                dist_in_deg,event_name,channel["starttime"]))
                             continue
                         else:
                             # check the purist name

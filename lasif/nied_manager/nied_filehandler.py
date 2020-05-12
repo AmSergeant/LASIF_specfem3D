@@ -18,8 +18,9 @@ def simple_sacpz_parser(filename):
     stat = st[0].stats
     sac = st[0].stats.sac
     channel["channel_id"]       = "{}.{}.{}.{}".format(stat["network"],stat["station"],stat["location"],stat["channel"])
-    channel["start_date"]       = stat["starttime"]+datetime.timedelta(hours=-9)
-    channel["end_date"]         = stat["endtime"]  +datetime.timedelta(hours=-9)
+    #channel["channel_id"]       = "{}.{}.{}".format(stat["station"],stat["location"],stat["channel"])
+    channel["start_date"]       = stat["starttime"]
+    channel["end_date"]         = stat["endtime"]
     channel["latitude"]         = sac.stla
     channel["longitude"]        = sac.stlo
     channel["elevation_in_m"]   = sac.stel

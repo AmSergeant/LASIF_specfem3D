@@ -61,18 +61,48 @@ class NiedDownloader():
         self.stationdir=stationdir
 
         # download waveform
-        #for network in self.network:
-        #    network_code = network.lstrip("NIED.")
-        #    output_dir   = os.path.join(self.outdir,network_code)
-        #    span         = int((self.endtime_JST-self.starttime_JST)/60.0) # in minutes
-        #    data, ctable = self.client.get_continuous_waveform(network_code,self.starttime_JST.datetime,span,outdir=output_dir)
+        for network in self.network:
+            network_code = network.lstrip("NIED.")
+            output_dir   = os.path.join(self.outdir,network_code)
+            span         = int((self.endtime_JST-self.starttime_JST)/60.0) # in minutes
+            data, ctable = self.client.get_continuous_waveform(network_code,self.starttime_JST.datetime,span,outdir=output_dir)
 
-        ## convert waveform file format
-        #self.convert_format()
+        # convert waveform file format
+        self.convert_format()
 
         # make symlinks of SACPZ files in Station/SACPZ
         sacs = glob.glob(self.outdir+"/*.SAC")
         pzs  = glob.glob(self.outdir+"/*.SAC_PZ")
+
+        # filtering the stations outside the target boundary
+        # as S-net downloader downloads wave data from all stations
+        for sac in sacs:
+            try:
+                st=obspy.read(sac)
+                stat=st[0].stats
+                st_lon = stat.sac.stlo
+                st_lat = stat.sac.stla
+
+                if st_lon < self.domain.min_longitude or \
+                   st_lon > self.domain.max_longitude or \
+                   st_lat < self.domain.min_latitude or \
+                   st_lat > self.domain.max_latitude:
+                   os.remove(sac)
+            except:
+                pass
+
+        # get new sac file list
+        sacs = glob.glob(self.outdir+"/*.SAC")
+        pzs  = glob.glob(self.outdir+"/*.SAC_PZ")
+
+        # modify the timezone in sac files and overwrite
+        for sac in sacs:
+            try: # skip broken files
+                st=obspy.read(sac)
+                st[0].stats.starttime+=datetime.timedelta(hours=-9)
+                st.write(sac)
+            except:
+                pass
 
         for sac in sacs:
             try: # make symlink if not exits
@@ -83,6 +113,7 @@ class NiedDownloader():
                 os.symlink(sac, os.path.join(stationdir,link_name))
             except:
                 pass
+
         # pz files are replaced into the station files
         for pz in pzs:
             try:

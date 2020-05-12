@@ -323,6 +323,12 @@ def preprocessing_function(processing_info, iteration):  # NOQA
                    "StationXML file '%s'. Due to: '%s'  Will be skipped.") \
                 % (processing_info["station_filename"], e.__repr__()),
             raise LASIFError(msg)
+    # processing with SAC_PZ files =========================================
+    elif "/SACPZ/" in station_file:
+        # there is no need to do preprocess with response files
+        # for NIED SAC files converted from win32 format files
+        # as those signals have already in m/s or m/s/s.
+        pass
     else:
         raise NotImplementedError
 
