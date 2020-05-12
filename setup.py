@@ -67,7 +67,8 @@ setup_config = dict(
         "pytest",
         "mock",
         "flask",
-        "flask-cache",
+        "flask_cache",
+        "PyQt5",
         "geojson",
         "instaseis",
         "HinetPy"
