@@ -123,11 +123,8 @@ class RawSES3DModelHandler(object):
                     warnings.warn(msg)
                     continue
                 # Sort the files by ascending number.
-                files.sort(
-                    key=lambda x: int(
-                        re.findall(
-                            r"\d+$",
-                            (os.path.basename(x)))[0]))
+                files.sort(key=lambda x: int(re.findall(r"\d+$",
+                                                        (os.path.basename(x)))[0]))
                 self.components[component] = {"filenames": files}
         elif model_type == "wavefield":
             components = ["vz", "vx", "vy", "vz"]
@@ -189,8 +186,7 @@ class RawSES3DModelHandler(object):
 
         # Now calculate the lagrange polynomial degree. All necessary
         # information is present.
-        size = os.path.getsize(
-            list(self.components.values())[0]["filenames"][0])
+        size = os.path.getsize(list(self.components.values())[0]["filenames"][0])
         sd = self.setup["subdomains"][0]
         x, y, z = sd["index_x_count"], sd["index_y_count"], sd["index_z_count"]
         self.lagrange_polynomial_degree = \
@@ -633,19 +629,13 @@ class RawSES3DModelHandler(object):
                     subdom = {}
                     # Convert both indices to 0-based indices
                     subdom["single_index"] = int(data.pop(0)) - 1
-                    subdom["multi_index"] = [
-                        int(x) - 1 for x in data.pop(0).split()]
-                    subdom["boundaries_x"] = list(
-                        map(int, data.pop(0).split()))
-                    subdom["boundaries_y"] = list(
-                        map(int, data.pop(0).split()))
-                    subdom["boundaries_z"] = list(
-                        map(int, data.pop(0).split()))
+                    subdom["multi_index"] = [int(x) - 1 for x in data.pop(0).split()]
+                    subdom["boundaries_x"] = list(map(int, data.pop(0).split()))
+                    subdom["boundaries_y"] = list(map(int, data.pop(0).split()))
+                    subdom["boundaries_z"] = list(map(int, data.pop(0).split()))
                     # Convert radians to degree.
-                    subdom["physical_boundaries_x"] = [
-                        math.degrees(float(x)) for x in data.pop(0).split()]
-                    subdom["physical_boundaries_y"] = [
-                        math.degrees(float(x)) for x in data.pop(0).split()]
+                    subdom["physical_boundaries_x"] = [math.degrees(float(x)) for x in data.pop(0).split()]
+                    subdom["physical_boundaries_y"] = [math.degrees(float(x)) for x in data.pop(0).split()]
                     # z is in meter.
                     subdom["physical_boundaries_z"] = \
                         list(map(float, data.pop(0).split()))

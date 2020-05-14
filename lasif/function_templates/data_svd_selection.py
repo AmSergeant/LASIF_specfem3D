@@ -87,7 +87,7 @@ def data_svd_selection(to_be_processed, components=['E', 'N', 'Z'], cc_threshold
     objects can do.
 
     """
-    def align_trace(timeserie, tau):
+    def align_trace(timeserie,tau):
         """
         Parameters
         ----------
@@ -101,18 +101,18 @@ def data_svd_selection(to_be_processed, components=['E', 'N', 'Z'], cc_threshold
         Returns
         -------
         align : np.array, dtype = float
-            shifted trace.
+            shifted trace. 
             output trace has same number of samples as input signal which has been filled with zero padding
 
         """
-        tau = int(tau)
-        align = np.zeros(timeserie.shape[0])
-        if tau >= 0:
-            # roll the signal forward
-            align[tau:-1] = timeserie[0:-1 - tau]
-        elif tau < 0:
-            # roll the signal backward
-            align[0:-1 - np.abs(tau)] = timeserie[np.abs(tau):-1]
+        tau=int(tau)
+        align=np.zeros(timeserie.shape[0])
+        if tau>=0:
+            #roll the signal forward
+            align[tau:-1]=timeserie[0:-1-tau]
+        elif tau<0:
+            #roll the signal backward
+            align[0:-1-np.abs(tau)]=timeserie[np.abs(tau):-1]
         return align
 
     def construct_reference_wavefrom_from_dtt_inversion(stream):
@@ -173,11 +173,8 @@ def data_svd_selection(to_be_processed, components=['E', 'N', 'Z'], cc_threshold
             for i, combin in enumerate(all_combin):
                 i1 = combin[0]
                 i2 = combin[1]
-                cc = np.correlate(
-                    stream[i1].data,
-                    stream[i2].data,
-                    mode="full")
-                time_shift = int(cc.argmax() - stream[0].stats.npts + 1)
+                cc = np.correlate(stream[i1].data,stream[i2].data, mode="full")
+                time_shift = int(cc.argmax() - stream[0].stats.npts  + 1)
                 time_shift_doublet[i] = time_shift
                 G[i][i1] = -1
                 G[i][i2] = 1
@@ -194,9 +191,9 @@ def data_svd_selection(to_be_processed, components=['E', 'N', 'Z'], cc_threshold
         i = 0
         stream_aligned = stream.copy()
         for i, tr in enumerate(stream_aligned):
-            tr.data = align_trace(tr.data, time_shifts[i])
-            data_matrix[i] = tr.data
-            i += 1
+            tr.data = align_trace(tr.data, time_shifts[i] )
+            data_matrix[i] = tr.data  
+            i += 1 
 
         #rank = np.linalg.matrix_rank(data_matrix)
         #print("!!!! Rank %d should be lower than number of traces %d !!!"%(rank, len(stream)))
@@ -205,9 +202,10 @@ def data_svd_selection(to_be_processed, components=['E', 'N', 'Z'], cc_threshold
         U, s, V = np.linalg.svd(data_matrix)
 
         # the reference waveform is the first eigenimage
-        reference_wav = - np.sign(s[0]) * V[0]  # check with the sign !
+        reference_wav = - np.sign(s[0])*V[0] # check with the sign !
 
         return reference_wav, stream_aligned
+
 
     def construct_reference_wavefrom_from_dtt_stack(stream, stack):
         """
@@ -239,23 +237,29 @@ def data_svd_selection(to_be_processed, components=['E', 'N', 'Z'], cc_threshold
             cc = np.correlate(stack, tr.data, mode="full")
             time_shift = int(cc.argmax() - stream[0].stats.npts + 1)
 
-            tr.data = align_trace(tr.data, time_shift)
-            data_matrix[i] = tr.data
+            tr.data = align_trace(tr.data, time_shift )
+            data_matrix[i] = tr.data  
             i += 1
         # svd decomposition of data_matrix
         U, s, V = np.linalg.svd(data_matrix)
         # the reference waveform is the first eigenimage
-        reference_wav = - np.sign(s[0]) * V[0]  # check with the sign !
+        reference_wav = - np.sign(s[0])*V[0] # check with the sign !
 
         return reference_wav, stream_aligned
+
+        return reference_wav, stream_aligned
+
+
 
     # =========================================================================
     # Entering the function
     # =========================================================================
-    process_params = to_be_processed[0]["processing_info"]["process_params"]
+    process_params = to_be_processed[0]["process_params"]
 
     seconds_prior_arrival = process_params["seconds_prior_arrival"]
     window_length_in_sec = process_params["window_length_in_sec"]
+
+
 
     for comp in components:
 
@@ -264,12 +268,12 @@ def data_svd_selection(to_be_processed, components=['E', 'N', 'Z'], cc_threshold
         # =========================================================================
         # !!!!!! replace first_P_arrival by phase of interest to be calculated in preprocess_data and given in process_info
 
-        file_list = [wav["processing_info"]["output_filename"]
-                     for wav in to_be_processed
-                     if comp in wav["processing_info"]["channel"]]
-        arrival_times = [wav["processing_info"]["first_P_arrival"]
-                         for wav in to_be_processed
-                         if comp in wav["processing_info"]["channel"]]
+        file_list = [wav["output_filename"] 
+                     for wav in to_be_processed 
+                     if comp in wav["channel"]]
+        arrival_times = [wav["first_P_arrival"] 
+                         for wav in to_be_processed 
+                         if comp in wav["channel"]]
         #print("%d files for %s"%(len(file_list),comp))
 
         # =========================================================================
@@ -299,12 +303,9 @@ def data_svd_selection(to_be_processed, components=['E', 'N', 'Z'], cc_threshold
         del files_to_read
         #print("%d files to process"%len(file_list))
 
-        # if no waveform selected at the previous step (snr criteria), quit the
-        # process
+        # if no waveform selected at the previous step (snr criteria), quit the process
         if not st_win:
-            print(
-                "No %s data selected for this event, will skip the svd selection" %
-                comp)
+            print(("No %s data selected for this event, will skip the svd selection"%comp))
             continue
 
         stack /= len(st_win)
@@ -317,13 +318,11 @@ def data_svd_selection(to_be_processed, components=['E', 'N', 'Z'], cc_threshold
         # it appears that both method yiel similar results
         # So I suggest to use either one of the two options
         try:
-            reference_wav, st_aligned = construct_reference_wavefrom_from_dtt_inversion(
-                st_win)
-        except BaseException:
-            reference_wav, st_aligned = construct_reference_wavefrom_from_dtt_stack(
-                st_win, stack)
+            reference_wav, st_aligned = construct_reference_wavefrom_from_dtt_inversion(st_win)
+        except:
+            reference_wav, st_aligned = construct_reference_wavefrom_from_dtt_stack(st_win, stack)
 
-        # =========================================================================
+        # =========================================================================         
         # waveform selection based on correlation coeff with reference waveform
         # =========================================================================
         st_win_select = obspy.Stream()
@@ -353,17 +352,19 @@ def data_svd_selection(to_be_processed, components=['E', 'N', 'Z'], cc_threshold
         plt.show()
         '''
 
+
+
         # =========================================================================
         # Remove non-selected files
         # =========================================================================
         if st_win_select:
             files_to_keep = []
             for tr in st_win_select:
-                loc_id = "%s.%s" % (tr.stats.network, tr.stats.station)
-                files_to_keep.append([wav["processing_info"]["output_filename"]
-                                      for wav in to_be_processed
-                                      if (loc_id in wav["processing_info"]["station_filename"])
-                                      and (comp in wav["processing_info"]["channel"])][0])
+                loc_id = "%s.%s"%(tr.stats.network,tr.stats.station)
+                files_to_keep.append([wav["output_filename"] 
+                                      for wav in to_be_processed 
+                                      if (loc_id in wav["station_filename"]) 
+                                      and (comp in wav["channel"])][0])
             files_to_rmv = list(set(file_list) - set(files_to_keep))
             #print("%d/%d %s files to rmv"%(len(files_to_rmv),len(file_list),comp))
 
@@ -371,11 +372,13 @@ def data_svd_selection(to_be_processed, components=['E', 'N', 'Z'], cc_threshold
             #print("no selected %s files, will remove all"%comp)
             files_to_rmv = file_list
 
+
         # remove non-selected files
         for the_file in files_to_rmv:
-            os.system("rm %s" % the_file)
+            os.system("rm %s"%the_file)
 
-    '''
+
+    '''    
     """ I do not use this anymore, I check for every files
     # =========================================================================
     # find other horizontal files to be processed based on selection on Z
@@ -525,5 +528,5 @@ def data_svd_selection(to_be_processed, components=['E', 'N', 'Z'], cc_threshold
         # remove non-selected Efiles
         for Nfile in N_files_to_rmv:
             os.system("rm %s"%Nfile)
-
+                
     '''

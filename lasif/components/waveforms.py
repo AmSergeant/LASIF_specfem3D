@@ -171,6 +171,15 @@ class WaveformsComponent(Component):
                        "found." % (event_name, tag_or_iteration))
                 raise LASIFNotFoundError(msg)
             label = "Synthetic %s" % event_name
+        elif data_type == "stf":
+            if not tag_or_iteration:
+                msg = "Long iteration name must be given for synthetic data."
+                raise ValueError(msg)
+            if not os.path.exists(data_path):
+                msg = ("No stf synthetic data for event '%s' and iteration '%s' "
+                       "found." % (event_name, tag_or_iteration))
+                raise LASIFNotFoundError(msg)
+            label = "Synthetic %s" % event_name
         else:
             raise ValueError("Invalid data type '%s'." % data_type)
 
@@ -257,9 +266,7 @@ class WaveformsComponent(Component):
 
         import glob
         if (component != 'Z') and (component != 'E') and (component != 'N'):
-            msg = (
-                "Invalid data component '%s'. Component should be E, N, or Z." %
-                component)
+            msg = ("Invalid data component '%s'. Component should be E, N, or Z." %component)
             raise ValueError(msg)
 
         data_type = "stf"
@@ -267,7 +274,7 @@ class WaveformsComponent(Component):
             self.comm.iterations.get(tag_or_iteration).long_name
 
         data_path = self.get_waveform_folder(event_name, data_type,
-                                             tag_or_iteration)
+                                             tag_or_iteration) 
         if not tag_or_iteration:
             msg = "Long iteration name must be given for stf data."
             raise ValueError(msg)
@@ -275,6 +282,20 @@ class WaveformsComponent(Component):
                 msg = ("No stf data for event '%s' and iteration '%s' "
                        "found." % (event_name, tag_or_iteration))
                 raise LASIFNotFoundError(msg)
+
+        list_file = glob.glob(os.path.join(data_path,"stf_%s*"%component))
+        if len(list_file)>1:
+            msg = ("More than one stf data file for event '%s' and iteration '%s' and component %s "
+                   "found." % (event_name, tag_or_iteration, component))
+            raise LASIFNotFoundError(msg)
+        else: 
+            try:
+                stf = obspy.read(list_file[0])
+                return stf
+            except:
+                msg = ("Cannot read stf file %s"%list_file[0])
+                raise LASIFNotFoundError(msg)
+
 
         list_file = glob.glob(os.path.join(data_path, "stf_%s*" % component))
         if len(list_file) > 1:
@@ -371,6 +392,42 @@ class WaveformsComponent(Component):
         return fct(st, iteration=iteration,
                    event=self.comm.events.get(event_name))
 
+
+    def get_synthetic_from_stf(self, event_name, station_id,
+                               tag_or_iteration):
+        """
+        Gets the synthetic waveforms computed from the stf, 
+        for the given event and station as a
+        :class:`~obspy.core.stream.Stream` object.
+
+        :param event_name: The name of the event.
+        :param station_id: The id of the station in the form ``NET.STA``.
+        :param tag_or_iteration: iteration namee.
+        """
+        import obspy
+        data_type = "stf"
+        tag_or_iteration = \
+            self.comm.iterations.get(tag_or_iteration).long_name
+
+        data_path = self.get_waveform_folder(event_name, data_type,
+                                             tag_or_iteration) 
+        if not tag_or_iteration:
+            msg = "Long iteration name must be given for stf data."
+            raise ValueError(msg)
+            if not os.path.exists(data_path):
+                msg = ("No stf data for event '%s' and iteration '%s' "
+                       "found." % (event_name, tag_or_iteration))
+                raise LASIFNotFoundError(msg)
+
+        stream = obspy.read(os.path.join(data_path,"%s*"%station_id))
+        if not stream:
+            msg = ("No stf synthetic data for event '%s' and iteration '%s', and station %s"
+                   "found." % (event_name, tag_or_iteration, station_id))
+            raise LASIFNotFoundError(msg)
+        return stream
+
+
+
     def _get_waveforms(self, event_name, station_id, data_type,
                        tag_or_iteration=None):
         waveform_cache = self.get_waveform_cache(event_name,
@@ -461,6 +518,7 @@ class WaveformsComponent(Component):
             msg = "No data for event '%s' found." % event_name
             raise LASIFNotFoundError(msg)
         return self._convert_timestamps(waveform_cache.get_values())
+
 
     def get_metadata_raw_for_station(self, event_name, station_id):
         """
@@ -569,6 +627,10 @@ class WaveformsComponent(Component):
                                                station_id)
             raise LASIFNotFoundError(msg)
         return self._convert_timestamps(values)
+
+
+
+
 
     def get_available_processing_tags(self, event_name):
         """

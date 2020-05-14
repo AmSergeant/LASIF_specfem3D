@@ -22,17 +22,7 @@ class ActionsComponent(Component):
     :param communicator: The communicator instance.
     :param component_name: The name of this component for the communicator.
     """
-
-    def preprocess_data(
-            self,
-            iteration_name,
-            components=[
-                'E',
-                'N',
-                'Z'],
-            svd_selection=False,
-            noise_threshold=None,
-            event_names=None):
+    def preprocess_data(self, iteration_name, components = ['E','N','Z'], svd_selection = False, noise_threshold=None, event_names=None, recompute_files = False):
         """
         Preprocesses all data for a given iteration.
 
@@ -48,6 +38,37 @@ class ActionsComponent(Component):
 
         process_params = iteration.get_process_params()
         processing_tag = iteration.processing_tag
+
+        # check the components
+        ncomp = len(components)
+        if ncomp>3:
+            msg = ("There are more than 3 components given")
+            raise LASIFError(msg)
+        for comp in components:
+            if comp not in ['E', 'N', 'Z', 'R', 'T']:
+                msg = ("Component %s in not within the list: 'E', 'N', 'Z', 'R', 'T'"%comp)
+                raise LASIFError(msg)
+
+        # if we compute one of the two horizontal components, need to compute the other one
+        if 'R' in components and not 'T' in components:
+            components.append('T')
+        if 'T' in components and not 'R' in components:
+            components.append('R')
+        if 'E' in components and not 'N' in components:
+            components.append('N')
+        if 'N' in components and not 'E' in components:
+            components.append('E')
+
+        comp_to_process = []
+        if 'R' in components or 'T' in components:
+            comp_to_process.append('E')
+            comp_to_process.append('N')
+        if 'E' in components:
+            comp_to_process.append('E')
+        if 'N' in components:
+            comp_to_process.append('N')
+        if 'Z' in components:
+            comp_to_process.append('Z')
 
         earth_model = TauPyModel("ak135")
 
@@ -65,6 +86,8 @@ class ActionsComponent(Component):
                 if not ((event_names is None) or (event_name in event_names)):
                     #print("!!!!%s not defined in the iteration file !!!!"%event_name)
                     continue
+
+
 
                 output_folder = self.comm.waveforms.get_waveform_folder(
                     event_name=event_name, data_type="processed",
@@ -124,77 +147,141 @@ class ActionsComponent(Component):
                                (event_name, station_name))
                         warnings.warn(msg, LASIFWarning)
                     location = locations[0][1]
+                    #print(station_name)
+                    #print(locations)
+
+
+                    # compute the P-wave arrival time to be used for SNR calculation
+                    channel = location[0].copy()
+                    channel.update(stations[station_name])
+                    dist_in_deg = locations2degrees(channel["latitude"], channel["longitude"], 
+                                                    event["latitude"], event["longitude"])
+                    tts = earth_model.get_travel_times(source_depth_in_km=event["depth_in_km"],
+                                                       distance_in_degree=dist_in_deg,
+                                                       phase_list=['P'])
+                    if len(tts)==0:
+                        print(("No P wave for station %s"%station_name))
+                        continue
+                    else:
+                        # check the purist name
+                        if len(tts)>1:
+                            first_tt_arrival = tts[[i for i,j in enumerate(tts) if j.purist_name=='P'][0]].time
+                        else:
+                            first_tt_arrival  = tts[0].time
+
+                    if channel["longitude"] is None or channel["longitude"] is None:
+                        sta_coordinates = self.comm.inventory_db.get_coordinates(channel["channel_id"])
+                        channel["longitude"] = sta_coordinates["longitude"]
+                        channel["latitude"] = sta_coordinates["latitude"]
+                        channel["elevation_in_m"] = sta_coordinates["elevation_in_m"]
+                        channel["local_depth_in_m"] = sta_coordinates["local_depth_in_m"]
+
+                    # station dictionary, will include all 3 components metadata info
+                    station_dict = {"process_params": process_params,
+                                    "event_information": event,
+                                    "event_name": event_name,
+                                    "station": channel["station"],
+                                    "station_coordinates": {
+                                        "latitude": channel["latitude"],
+                                        "longitude": channel["longitude"],
+                                        "elevation_in_m": channel["elevation_in_m"],
+                                        "local_depth_in_m": channel[
+                                            "local_depth_in_m"],},
+                                    "first_P_arrival": first_tt_arrival,
+                                    "waveforms" : {}
+                                    }
 
                     # Loop over each found channel.
+                    wav_dict = {}
                     for channel in location:
                         channel.update(stations[station_name])
-                        channel["component"] = channel["channel_id"].split(
-                            '.')[-1][-1]
+                        channel["component"] = channel["channel_id"].split('.')[-1][-1]
+                        if channel["component"] not in comp_to_process:
+                            continue
 
                         input_filename = channel["filename"]
                         output_filename = os.path.join(
                             output_folder,
                             os.path.basename(input_filename))
+
+
                         # Skip already processed files.
-                        if os.path.exists(output_filename):
-                            continue
+                        if recompute_files == "False":
+                            if os.path.exists(output_filename):
+                                if 'Z' not in channel["component"]:
+                                    if 'R' in components and 'T' in components:
+                                        output_filename_base = os.path.basename(output_filename).split('__')
+                                        R_output_filename = os.path.join(output_folder,
+                                                                           output_filename_base[0][:-1]
+                                                                           +'R__'+output_filename_base[1]
+                                                                           +'__'+output_filename_base[2])
+                                        T_output_filename = os.path.join(output_folder,
+                                                                           output_filename_base[0][:-1]
+                                                                           +'T__'+output_filename_base[1]
+                                                                           +'__'+output_filename_base[2])
+                                        if os.path.exists(R_output_filename) and os.path.exists(T_output_filename):
+                                            continue
+                                    elif 'R' in components and 'T' not in components:
+                                        output_filename_base = os.path.basename(output_filename).split('__')
+                                        R_output_filename = os.path.join(output_folder,
+                                                                           output_filename_base[0][:-1]
+                                                                           +'R__'+output_filename_base[1]
+                                                                           +'__'+output_filename_base[2])
+                                        if os.path.exists(R_output_filename):
+                                            continue
+                                    elif 'R' not in components and 'T' in components:
+                                        output_filename_base = os.path.basename(output_filename).split('__')
+                                        T_output_filename = os.path.join(output_folder,
+                                                                           output_filename_base[0][:-1]
+                                                                           +'T__'+output_filename_base[1]
+                                                                           +'__'+output_filename_base[2])
+                                        if os.path.exists(T_output_filename):
+                                            continue
+                                    elif 'R' not in components and 'T' not in components:
+                                        continue
+                                else:
+                                    continue
+                        
 
-                        # compute the P-wave arrival time to be used for SNR
-                        # calculation
-                        dist_in_deg = locations2degrees(
-                            channel["latitude"],
-                            channel["longitude"],
-                            event["latitude"],
-                            event["longitude"])
-                        tts = earth_model.get_travel_times(
-                            source_depth_in_km=event["depth_in_km"],
-                            distance_in_degree=dist_in_deg,
-                            phase_list=['P','p'])
-
-                        if len(tts) == 0:
-                            print(
-                                "No P wave for epicentral distance {} for event {} at {}".format(
-                                dist_in_deg,event_name,channel["starttime"]))
-                            continue
-                        else:
-                            # check the purist name
-                            if len(tts) > 1:
-                                first_tt_arrival = tts[[i for i, j in enumerate(
-                                    tts) if j.purist_name == 'P'][0]].time
-                            else:
-                                first_tt_arrival = tts[0].time
+                        # Xml Station file
+                        station_filename = self.comm.stations.get_channel_filename(channel["channel_id"],
+                                                                                   channel["starttime"])
+                        '''
+                        # for RESP files
+                        station_filename = \
+                            self.comm.stations.get_station_filename(channel["network"], 
+                                                                    channel["station"], channel["location"],
+                                                                    channel["channel"], 'RESP')
+                        if station_filename.endswith('.1'):
+                            station_filename = station_filename.strip('.1')
+                        '''
 
                         ret_dict = {
-                            "process_params": process_params,
                             "input_filename": input_filename,
                             "output_filename": output_filename,
-                            "channel": channel["channel"],
-                            "station": channel["station"],
-                            "component": channel["component"],
-                            "station_coordinates": {
-                                "latitude": channel["latitude"],
-                                "longitude": channel["longitude"],
-                                "elevation_in_m": channel["elevation_in_m"],
-                                "local_depth_in_m": channel[
-                                    "local_depth_in_m"],
-                            },
-                            "station_filename": self.comm.stations.
-                            get_channel_filename(channel["channel_id"],
-                                                 channel["starttime"]),
-                            "event_information": event,
-                            "event_name": event_name,
-                            "noise_threshold": noise_threshold,
-                            "first_P_arrival": first_tt_arrival
+                            "station_filename": station_filename,
+                            "channel": channel["channel"]
                         }
+                        wav_dict[channel["channel_id"]] = ret_dict
 
-                        yield ret_dict
+                    station_dict.update({"waveforms": wav_dict})
+                    yield station_dict
+
+
+
 
         # Only rank 0 needs to know what has to be processsed.
         if MPI.COMM_WORLD.rank == 0:
-            to_be_processed = [{"processing_info": _i, "iteration": iteration}
-                               for _i in processing_data_generator()]
+            if noise_threshold == None:
+                to_be_processed = [{"components": components, "processing_info": _i, "iteration": iteration}
+                                   for _i in processing_data_generator() if _i["waveforms"]]
+            else:
+                to_be_processed = [{"components": components, "noise_threshold": noise_threshold, "processing_info": _i, "iteration": iteration}
+                                   for _i in processing_data_generator() if _i["waveforms"]]
         else:
             to_be_processed = None
+        if not to_be_processed:
+            print("No data files to be processed")
 
         # Load project specific data preprocessing function.
         preprocessing_function = self.comm.project.get_project_function(
@@ -206,35 +293,68 @@ class ActionsComponent(Component):
 
         distribute_across_ranks(
             function=preprocessing_function, items=to_be_processed,
-            get_name=lambda x: x["processing_info"]["input_filename"],
+            get_name=lambda x: x["processing_info"]["station"],
             logfile=logfile)
+
+
 
         ###################################################
         # svd to be computed only for teleseismic events :
         ##################################################
-        if svd_selection==True:
+        if svd_selection== "True":
             # Load project specific data selection function.
             data_svd_selection = self.comm.project.get_project_function(
-                "data_svd_selection")
+                "data_svd_selection") 
 
             # Loop over the chosen events.
             for event_name, event in iteration.events.items():
                 if not ((event_names is None) or (event_name in event_names)):
                     continue
 
-                one_event_to_be_processed = [
-                    proc for proc in to_be_processed if event_name in proc["processing_info"]["event_name"]]
-                print("Processing SVD selection for %s" % event_name)
-                data_svd_selection(one_event_to_be_processed, components)
+                one_event_to_be_processed = [proc["processing_info"] for proc in to_be_processed
+                                             if event_name in proc["processing_info"]["event_name"]]                
 
-    def stf_estimate(
-            self,
-            iteration_name,
-            components=[
-                'E',
-                'N',
-                'Z'],
-            event_names=None):
+                # This is for reformatting the metadat info dictionnary to fit with the data_svd_selection function
+                # This is repeatitive tasks - not clean, could be improved
+                to_be_processed_for_svd = []
+                for i,item in enumerate(one_event_to_be_processed):
+                    for channel_id in item["waveforms"]:
+                        output_filename = item["waveforms"][channel_id]["output_filename"]
+                        channel = item["waveforms"][channel_id]["channel"]
+                        if 'R' in components and 'E' in channel:
+                            channel = channel.replace('E','R')
+                            output_filename_base = os.path.basename(output_filename).split('__')
+                            output_filename = os.path.join(os.path.dirname(output_filename),
+                                                           output_filename_base[0][:-1]
+                                                           +'R__'+output_filename_base[1]
+                                                           +'__'+output_filename_base[2])
+                        elif 'T' in components and 'N' in channel:
+                            channel = channel.replace('N','T')
+                            output_filename_base = os.path.basename(output_filename).split('__')
+                            output_filename = os.path.join(os.path.dirname(output_filename),
+                                                           output_filename_base[0][:-1]
+                                                           +'T__'+output_filename_base[1]
+                                                           +'__'+output_filename_base[2])
+
+                        to_be_processed_for_svd.append({"process_params": item["process_params"],
+                                                        "event_information": item["event_information"],
+                                                        "event_name": item["event_name"],
+                                                        "station": item["station"],
+                                                        "station_coordinates": item["station_coordinates"],
+                                                        "first_P_arrival": item["first_P_arrival"],
+                                                        "station_filename": item["waveforms"][channel_id]["station_filename"],
+                                                        "channel": channel,
+                                                        "output_filename": output_filename})
+
+
+                print(("Processing SVD selection for %s"%event_name))
+                data_svd_selection(to_be_processed_for_svd, components)
+
+
+
+
+
+    def stf_estimate(self, iteration_name, components = ['E','N','Z'], event_names=None):
         """
         Estimate the source wavelet by deconvolving the synthetics from data
         following Pratt, R. G. (1999),
@@ -254,8 +374,33 @@ class ActionsComponent(Component):
         process_params = iteration.get_process_params()
         processing_tag = iteration.processing_tag
 
+        # check the components
+        ncomp = len(components)
+        if ncomp>3:
+            msg = ("There are more than 3 components given")
+            raise LASIFError(msg)
+        for comp in components:
+            if comp not in ['E', 'N', 'Z', 'R', 'T']:
+                msg = ("Component %s in not within the list: 'E', 'N', 'Z', 'R', 'T'"%comp)
+                raise LASIFError(msg)
+
+        # if we compute one of the two horizontal components, need to compute the other one
+        if 'R' in components and not 'T' in components:
+            components.append('T')
+        if 'T' in components and not 'R' in components:
+            components.append('R')
+        if 'E' in components and not 'N' in components:
+            components.append('N')
+        if 'N' in components and not 'E' in components:
+            components.append('E')
+
+        comp_to_process = components
+
         earth_model = TauPyModel("ak135")
-        db = instaseis.open_db("syngine://ak135f_2s")
+        try:
+            db = instaseis.open_db("syngine://ak135f_2s")
+        except:
+            raise LASIFError("Having troubles loading the Earth model database from syngine, check your Internet connection")
 
         def processing_instaseis_synthetics_generator():
             """
@@ -334,8 +479,13 @@ class ActionsComponent(Component):
                     # Loop over each found channel.
                     for channel in location:
                         channel.update(stations[station_name])
-                        channel["component"] = channel["channel_id"].split(
-                            '.')[-1][-1]
+                        channel["component"]= channel["channel_id"].split('.')[-1][-1]
+                        if channel["longitude"] is None or channel["longitude"] is None:
+                            sta_coordinates = self.comm.inventory_db.get_coordinates(channel["channel_id"])
+                            channel["longitude"] = sta_coordinates["longitude"]
+                            channel["latitude"] = sta_coordinates["latitude"]
+                            channel["elevation_in_m"] = sta_coordinates["elevation_in_m"]
+                            channel["local_depth_in_m"] = sta_coordinates["local_depth_in_m"]
 
                         input_filename = channel["filename"]
                         output_filename = os.path.join(
@@ -344,27 +494,39 @@ class ActionsComponent(Component):
                         # Skip already processed files.
                         # if os.path.exists(output_filename):
                         #    continue
-                        station_filename = self.comm.stations.get_channel_filename(
-                            channel["channel_id"], channel["starttime"])
-                        receiver = instaseis.Receiver.parse(
-                            station_filename)[0]
+                        
+                        # get station_file to parse to instaseis
+                        station_filename = \
+                            self.comm.stations.get_channel_filename(channel["channel_id"][:-1]+'Z',
+                                                                    channel["starttime"])
+                        receiver = instaseis.Receiver.parse(station_filename)[0]
+                        # if RESP file, fill the station coordinates
+                        if '/RESP/' in station_filename:
+                            receiver.latitude = channel["latitude"]
+                            receiver.longitude = channel["longitude"]
+                        
 
-                        # compute the P-wave arrival time to be used for SNR
-                        # calculation
-                        dist_in_deg = locations2degrees(
-                            channel["latitude"],
-                            channel["longitude"],
-                            event["latitude"],
-                            event["longitude"])
-                        tts = earth_model.get_travel_times(
-                            source_depth_in_km=event["depth_in_km"],
-                            distance_in_degree=dist_in_deg,
-                            phase_list=['P'])
+                        '''
+                        # force to StationXML file
+                        station_filename = \
+                            self.comm.stations.get_station_filename(channel["network"], 
+                                                                    channel["station"], channel["location"],
+                                                                    channel["channel"], 'StationXML')
+                        receiver = instaseis.Receiver.parse(station_filename)[0]
+                        print(station_filename)
+                        print(receiver)
+                        '''
 
-                        if len(tts) == 0:
-                            print(
-                                "No P wave for epicentral distance %f" %
-                                dist_in_deg)
+
+                        # compute the P-wave arrival time to be used for SNR calculation
+                        dist_in_deg = locations2degrees(channel["latitude"], channel["longitude"], 
+                                                        event["latitude"], event["longitude"])
+                        tts = earth_model.get_travel_times(source_depth_in_km=event["depth_in_km"],
+                                                           distance_in_degree=dist_in_deg,
+                                                           phase_list=['P'])
+
+                        if len(tts)==0:
+                            print(("No P wave for epicentral distance %f"%dist_in_deg))
                             continue
                         else:
                             # check the purist name
@@ -372,13 +534,15 @@ class ActionsComponent(Component):
                                 first_tt_arrival = tts[[i for i, j in enumerate(
                                     tts) if j.purist_name == 'P'][0]].time
                             else:
-                                first_tt_arrival = tts[0].time
+                                first_tt_arrival  = tts[0].time
+
 
                         ret_dict = {
                             "process_params": process_params,
                             "input_filename": input_filename,
                             "output_filename": output_filename,
                             "channel": channel["channel"],
+                            "channel_id": channel["channel_id"],
                             "station": channel["station"],
                             "component": channel["component"],
                             "station_coordinates": {
@@ -400,48 +564,65 @@ class ActionsComponent(Component):
         # Only rank 0 needs to know what has to be processsed.
         if MPI.COMM_WORLD.rank == 0:
             to_be_processed = [{"db": db, "processing_info": _i, "iteration": iteration}
-                               for _i in processing_instaseis_synthetics_generator()]
+                               for _i in processing_instaseis_synthetics_generator()
+                               if _i["component"] in comp_to_process]
+            # for the synthetics: compute only non-processed synthetic files
+            synthetics_to_process = [{"db": db, "processing_info": _i["processing_info"], "iteration": iteration}
+                                     for _i in to_be_processed
+                                     if not os.path.exists(_i["processing_info"]["output_filename"])]
         else:
             to_be_processed = None
+            synthetics_to_process = None
+        if not synthetics_to_process:
+            print("No synthetic files to be processed")
+        else:    
+        
 
-        # Load project specific synthetics computing function.
-        instaseis_synthetics_function = self.comm.project.get_project_function(
-            "instaseis_synthetics_function")
+            # Load project specific synthetics computing function.
+            instaseis_synthetics_function = self.comm.project.get_project_function(
+                "instaseis_synthetics_function")
+    
+    
+            logfile = self.comm.project.get_log_file(
+                "SYNTHETICS", "instaseis_synthetics_iteration_%s" % (str(
+                    iteration.name)))
+    
+    
+            
+            distribute_across_ranks(
+                function=instaseis_synthetics_function, items=synthetics_to_process,
+                get_name=lambda x: x["processing_info"]["input_filename"],
+                logfile=logfile)
 
-        logfile = self.comm.project.get_log_file(
-            "SYNTHETICS", "instaseis_synthetics_iteration_%s" % (str(
-                iteration.name)))
 
-        '''
-        distribute_across_ranks(
-            function=instaseis_synthetics_function, items=to_be_processed,
-            get_name=lambda x: x["processing_info"]["input_filename"],
-            logfile=logfile)
-        '''
 
+        
         # Load project specific stf_deconvolution function.
         stf_deconvolution = self.comm.project.get_project_function(
-            "stf_deconvolution")
+            "stf_deconvolution") 
 
         # Loop over the chosen events.
         for event_name, event in iteration.events.items():
             if not ((event_names is None) or (event_name in event_names)):
                 continue
 
-            one_event_to_be_processed = [
-                proc for proc in to_be_processed if event_name in proc["processing_info"]["event_name"]]
+            one_event_to_be_processed = [proc for proc in to_be_processed
+                                         if event_name in proc["processing_info"]["event_name"]]
+            if one_event_to_be_processed:
+                output_folder = self.comm.waveforms.get_waveform_folder(
+                    event_name=event_name, data_type="stf",
+                    tag_or_iteration='ITERATION_%s'%iteration_name)
+                if not os.path.exists(output_folder):
+                    os.makedirs(output_folder)
+    
+                print(("Estimating the stf for %s"%event_name))
+                stf_deconvolution(one_event_to_be_processed, output_folder, components)
+            else:
+                print("No data for this event, will skip the stf estimation")
+                continue
 
-            output_folder = self.comm.waveforms.get_waveform_folder(
-                event_name=event_name, data_type="stf",
-                tag_or_iteration='ITERATION_%s' % iteration_name)
-            if not os.path.exists(output_folder):
-                os.makedirs(output_folder)
 
-            print("Estimating the stf for %s" % event_name)
-            stf_deconvolution(
-                one_event_to_be_processed,
-                output_folder,
-                components)
+
 
     def select_windows(self, event, iteration):
         """
@@ -522,9 +703,9 @@ class ActionsComponent(Component):
                                         station, str(e)), LASIFWarning)
             if MPI.COMM_WORLD.rank == 0:
                 print(("Window picking process: Picked windows for approx. %i "
-                       "of %i stations." % (
-                           min(_i * MPI.COMM_WORLD.size, total_size),
-                           total_size)))
+                      "of %i stations." % (
+                          min(_i * MPI.COMM_WORLD.size, total_size),
+                          total_size)))
 
         # Barrier at the end useful for running this in a loop.
         MPI.COMM_WORLD.barrier()
@@ -617,8 +798,7 @@ class ActionsComponent(Component):
             raise ValueError(msg)
 
         event = self.comm.events.get(event_name)
-        stations_for_event = list(
-            iteration.events[event_name]["stations"].keys())
+        stations_for_event = list(iteration.events[event_name]["stations"].keys())
 
         # Get all stations and create a dictionary for the input file
         # generator.
@@ -884,14 +1064,14 @@ class ActionsComponent(Component):
                         window.adjoint_source
             except LASIFError as e:
                 print(("Could not calculate adjoint source for iteration %s "
-                       "and station %s. Repick windows? Reason: %s" % (
-                           iteration.name, station, str(e))))
+                      "and station %s. Repick windows? Reason: %s" % (
+                          iteration.name, station, str(e))))
 
     def finalize_adjoint_sources(self, iteration_name, event_name):
         """
         Finalizes the adjoint sources.
         """
-
+        
         import numpy as np
         from lasif import rotations
 
@@ -949,8 +1129,8 @@ class ActionsComponent(Component):
                     channels[w.channel_id[-1]] = adjoint_source
             except LASIFError as e:
                 print(("Could not calculate adjoint source for iteration %s "
-                       "and station %s. Repick windows? Reason: %s" % (
-                           iteration.name, station, str(e))))
+                      "and station %s. Repick windows? Reason: %s" % (
+                          iteration.name, station, str(e))))
                 continue
             if not channels:
                 continue
@@ -1003,7 +1183,7 @@ class ActionsComponent(Component):
 
                 # Actually write the adjoint source file in SES3D specific
                 # format.
-                with open(adjoint_src_filename, "wt") as open_file:
+                with open(adjoint_src_filename, "wb") as open_file:
                     open_file.write("-- adjoint source ------------------\n")
                     open_file.write(
                         "-- source coordinates (colat,lon,depth)\n")
@@ -1012,8 +1192,8 @@ class ActionsComponent(Component):
                     open_file.write("-- source time function (x, y, z) --\n")
                     # Revert the X component as it has to point south in SES3D.
                     for x, y, z in zip(-1.0 * channels[CHANNEL_MAPPING["X"]],
-                                       channels[CHANNEL_MAPPING["Y"]],
-                                       channels[CHANNEL_MAPPING["Z"]]):
+                                        channels[CHANNEL_MAPPING["Y"]],
+                                        channels[CHANNEL_MAPPING["Z"]]):
                         open_file.write("%e %e %e\n" % (x, y, z))
                     open_file.write("\n")
             elif "specfem" in solver:
@@ -1054,7 +1234,7 @@ class ActionsComponent(Component):
             return
 
         if "ses3d" in solver:
-            with open(os.path.join(output_folder, "ad_srcfile"), "wt") as fh:
+            with open(os.path.join(output_folder, "ad_srcfile"), "wb") as fh:
                 fh.write("%i\n" % len(adjoint_source_stations))
                 for line in ses3d_all_coordinates:
                     fh.write("%.6f %.6f %.6f\n" % (line[0], line[1], line[2]))
@@ -1062,7 +1242,7 @@ class ActionsComponent(Component):
         elif "specfem" in solver:
             adjoint_source_stations = sorted(list(adjoint_source_stations))
             with open(os.path.join(output_folder, "STATIONS_ADJOINT"),
-                      "wt") as fh:
+                      "wb") as fh:
                 for station in adjoint_source_stations:
                     coords = self.comm.query.get_coordinates_for_station(
                         event_name, station)

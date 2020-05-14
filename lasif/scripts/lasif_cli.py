@@ -214,6 +214,50 @@ def lasif_shell(parser, args):
 
 
 @command_group("Plotting")
+def lasif_plot_raw_waveforms(parser, args):
+    """
+    Plot seismic waveform gather resulting from data preprocessing steps
+    """
+    parser.add_argument("event_name", help="name of the event to plot waveform gather")
+    parser.add_argument("--components", default="ENZ", help="list of components to plot, examples: ENZ, or Z or RTZ")
+    parser.add_argument("--filter", default="False", choices=["False", "True"],
+                        help="For bandpass filtering the waveforms, False by default")
+    parser.add_argument("--freqmin", default=0.01,
+                        help="Float for minimum frequency corner, 0.01 by default")
+    parser.add_argument("--freqmax", default=0.1,
+                        help="Float for maximum frequency corner, 0.01 by default")
+    parser.add_argument("--scaling", default=0.5,
+                        help="Float for scaling the waveforms, 0.5 by default")
+    parser.add_argument("--plot_arrival", default="True", choices=["False", "True"],
+                        help="For additionally plotting the seismic arrivals for a specific phase, False by default")
+    parser.add_argument("--phase", default="P",
+                        help="Name of the seismic phase you want to mark for the plot_arrival option"
+                        "default: P")
+
+    args = parser.parse_args(args)
+    event_name = args.event_name
+    comps = args.components
+    Filter = args.filter
+    freqmin = float(args.freqmin)
+    freqmax = float(args.freqmax)
+    scale = float(args.scaling)
+    components=[]
+    for comp in comps:
+        components.append(comp)
+    plot_arrival = args.plot_arrival
+    phase = args.phase
+
+    comm = _find_project_comm(".", args.read_only_caches)
+    comm.visualizations.plot_raw_waveforms(event_name, 
+                                           components, scaling=scale, 
+                                           Filter=Filter, freqmin=freqmin, freqmax=freqmax, 
+                                           plot_arrival=plot_arrival, Phase=phase)
+
+    import matplotlib.pyplot as plt
+    plt.show()
+
+
+@command_group("Plotting")
 def lasif_plot_preprocessed_waveforms(parser, args):
     """
     Plot seismic waveform gather resulting from data preprocessing steps
@@ -235,6 +279,11 @@ def lasif_plot_preprocessed_waveforms(parser, args):
         help="For additionally plotting non-selected raw waveforms on top, False by default")
     parser.add_argument("--scaling", default=0.5,
                         help="Float for scaling the waveforms, 0.5 by default")
+    parser.add_argument("--plot_window", default="True", choices=["False", "True"],
+                        help="For additionally plotting the phase window defined in the iteration, False by default")
+    parser.add_argument("--phase", default="P",
+                        help="Name of the seismic phase you want to window for the plot_window option"
+                        "default: P")
 
     args = parser.parse_args(args)
     iteration_name = args.iteration_name
@@ -245,10 +294,13 @@ def lasif_plot_preprocessed_waveforms(parser, args):
     components = []
     for comp in comps:
         components.append(comp)
+    plot_window = args.plot_window
+    phase = args.phase
 
     comm = _find_project_comm(".", args.read_only_caches)
-    comm.visualizations.plot_preprocessed_waveforms(
-        event_name, iteration_name, components, scaling=scale, plot_raw=raw)
+    comm.visualizations.plot_preprocessed_waveforms(event_name, iteration_name, 
+                                                    components, scaling=scale, plot_raw=raw, 
+                                                    plot_window=plot_window, Phase=phase)
 
     import matplotlib.pyplot as plt
     plt.show()
@@ -269,6 +321,11 @@ def lasif_plot_synthetic_waveforms(parser, args):
         help="list of components to plot, examples: ENZ, or Z or RTZ")
     parser.add_argument("--scaling", default=0.5,
                         help="Float for scaling the waveforms, 0.5 by default")
+    parser.add_argument("--plot_window", default="True", choices=["False", "True"],
+                        help="For additionally plotting the phase window defined in the iteration, False by default")
+    parser.add_argument("--phase", default="P",
+                        help="Name of the seismic phase you want to window for the plot_window option"
+                        "default: P")
 
     args = parser.parse_args(args)
     iteration_name = args.iteration_name
@@ -278,10 +335,13 @@ def lasif_plot_synthetic_waveforms(parser, args):
     components = []
     for comp in comps:
         components.append(comp)
+    plot_window = args.plot_window
+    phase = args.phase
 
     comm = _find_project_comm(".", args.read_only_caches)
-    comm.visualizations.plot_synthetic_waveforms(event_name, iteration_name,
-                                                 components, scaling=scale)
+    comm.visualizations.plot_synthetic_waveforms(event_name, iteration_name, 
+                                                 components, scaling = scale, 
+                                                 plot_window=plot_window, Phase=phase)
 
     import matplotlib.pyplot as plt
     plt.show()
@@ -293,31 +353,36 @@ def lasif_plot_event(parser, args):
     Plot a single event including stations on a map.
     """
     parser.add_argument("event_name", help="name of the event to plot")
-    parser.add_argument(
-        "--config",
-        default="local",
-        choices=[
-            "local",
-            "teleseismic"],
-        help="the type of map plot. "
-        "``local``: for map bounded to the domain, "
-        "``teleseismic``: for global map for teleseismic configuration, ")
-    parser.add_argument(
-        "--azimuthal_proj",
-        default="False",
-        choices=[
-            "True",
-            "False"],
-        help="the type of map projection. "
-        "``False``: for classic map projection, by default"
-        "``True``: for Azimuthal Equidistant Projection centered on the domain, ")
+    parser.add_argument("--config", default="local", choices=["local", "teleseismic"],
+                        help="the type of map plot. "
+                        "``local``: for map bounded to the domain, "
+                        "``teleseismic``: for global map for teleseismic configuration, ")
+    parser.add_argument("--azimuthal_proj", default="False", choices=["True", "False"],
+                        help="the type of map projection. "
+                        "``False``: for classic map projection, by default"
+                        "``True``: for Azimuthal Equidistant Projection centered on the domain, ")
+    parser.add_argument("--iteration", default="raw", 
+                        help="iteration_name. "
+                        "None: will plot stations for available waveforms in the data raw folder, "
+                        "FLOAT: will plot stations for available waveforms in the data preprocessed folder that corresponds to the iteration processing tag, ")
+    parser.add_argument("--phase", default="P", 
+                        help="Names of seismic phases you want to plot on the beachball, option enabled only for local configuration. "
+                        "default: P "
+                        "example: P,S,pP")
     args = parser.parse_args(args)
     event_name = args.event_name
-    config = args.config
-    azimuthal_proj = args.azimuthal_proj
+    config=args.config
+    azimuthal_proj=args.azimuthal_proj
+    iteration_name = args.iteration
+    phases = args.phase.split(',')
+    Phases=[]
+    for phase in phases:
+        Phases.append(phase)
+
 
     comm = _find_project_comm(".", args.read_only_caches)
-    comm.visualizations.plot_event(event_name, config, azimuthal_proj)
+
+    comm.visualizations.plot_event(event_name, config, azimuthal_proj, iteration_name, Phases)
 
     import matplotlib.pyplot as plt
     plt.show()
@@ -334,36 +399,27 @@ def lasif_plot_events(parser, args):
         * ``time`` - a time distribution histogram
     """
     parser.add_argument("--type", default="map", choices=["map", "depth",
-                                                          "time"],
+                                                          "time", "azimuth"],
                         help="the type of plot. "
                         "``map``: beachballs on a map, "
                         "``depth``: depth distribution histogram, "
-                        "``time``: time distribution histogram")
-    parser.add_argument(
-        "--config",
-        default="local",
-        choices=[
-            "local",
-            "teleseismic"],
-        help="the type of map plot. "
-        "``local``: for map bounded to the domain, "
-        "``teleseismic``: for global map for teleseismic configuration, ")
-    parser.add_argument(
-        "--azimuthal_proj",
-        default="False",
-        choices=[
-            "True",
-            "False"],
-        help="the type of map projection. "
-        "``False``: for classic map projection, by default"
-        "``True``: for Azimuthal Equidistant Projection centered on the domain, ")
+                        "``time``: time distribution histogram,"
+                        "``azimuth``: azimuth distribution histogram")
+    parser.add_argument("--azimuthal_proj", default="False", choices=["True", "False"],
+                        help="the type of map projection. "
+                        "``False``: for classic map projection, by default"
+                        "``True``: for Azimuthal Equidistant Projection centered on the domain, ")
+    parser.add_argument("--iteration", default="raw", 
+                        help="iteration_name. "
+                        "None: will all found events, "
+                        "FLOAT: will plot only events for available waveforms in the data preprocessed folder that corresponds to the iteration processing tag, ")
     args = parser.parse_args(args)
     plot_type = args.type
-    config = args.config
-    azimuthal_proj = args.azimuthal_proj
+    azimuthal_proj=args.azimuthal_proj
+    iteration_name = args.iteration
 
     comm = _find_project_comm(".", args.read_only_caches)
-    comm.visualizations.plot_events(plot_type, config, azimuthal_proj)
+    comm.visualizations.plot_events(plot_type, azimuthal_proj, iteration_name)
 
     import matplotlib.pyplot as plt
     plt.show()
@@ -391,7 +447,7 @@ def lasif_plot_stations(parser, args):
     comm.visualizations.plot_stations(plot_type)
 
     import matplotlib.pyplot as plt
-    plt.show()
+    plt.show()    
 
 
 @command_group("Plotting")
@@ -429,55 +485,26 @@ def lasif_add_gcmt_events(parser, args):
     """
     parser.add_argument("count", type=int,
                         help="maximum amount of events to add")
-    parser.add_argument("min_magnitude", type=float,
-                        help="minimum magnitude of events to add")
-    parser.add_argument("max_magnitude", type=float,
-                        help="maximum magnitude of events to add")
-    parser.add_argument("min_distance", type=float,
-                        help="The minimum acceptable distance to the next "
-                             "closest event in km.")
-    parser.add_argument("--min_year", default=None, type=int,
+    parser.add_argument("min_year", default=None, type=int,
                         help="minimum year from which to add events")
-    parser.add_argument("--max_year", default=None, type=int,
+    parser.add_argument("max_year", default=None, type=int,
                         help="maximum year from which to add events")
-    parser.add_argument(
-        "--domain",
-        default=1,
-        type=int,
-        help="Flag for download events in the defined domain, 1: In 0: Out")
-    parser.add_argument(
-        "--min_dist",
-        default=30.0,
-        type=float,
-        help="minimum epicentral distance from the domain center in degree")
-    parser.add_argument(
-        "--max_dist",
-        default=100.0,
-        type=float,
-        help="maximum epicentral distance from the domain center in degree")
-    parser.add_argument(
-        "--select",
-        default=1,
-        type=int,
-        help="Flag for statistical selection of the events based on their spatial and time distibution")
+    parser.add_argument("--select", default=1, type=int,
+                        help="Flag for statistical selection of the events based on their spatial and time distibution")
+    parser.add_argument("--min_magnitude", default=None, type=int,
+                        help="minimum magnitude from which to add events")
+    parser.add_argument("--max_magnitude", default=None, type=int,
+                        help="maximum magnitude from which to add events")
 
     args = parser.parse_args(args)
-
     from lasif.tools.query_gcmt_catalog import add_new_events
     comm = _find_project_comm(".", args.read_only_caches)
 
-    add_new_events(
-        comm=comm,
-        count=args.count,
-        min_magnitude=args.min_magnitude,
-        max_magnitude=args.max_magnitude,
-        min_year=args.min_year,
-        max_year=args.max_year,
-        domain=args.domain,
-        min_dist=args.min_dist,
-        max_dist=args.max_dist,
-        threshold_distance_in_km=args.min_distance,
-        statistical_selection=args.select)
+    add_new_events(comm=comm, count=args.count,
+                   min_year=args.min_year, max_year=args.max_year,
+                   statistical_selection=args.select,
+                   min_magnitude=args.min_magnitude, max_magnitude=args.max_magnitude)
+
 
 
 @command_group("Project Management")
@@ -491,35 +518,56 @@ def lasif_info(parser, args):
     print((comm.project))
 
 
+@mpi_enabled
 @command_group("Data Acquisition")
 def lasif_download_data(parser, args):
     """
     Download waveform and station data for one event.
     """
     parser.add_argument(
-        "--e",
-        default=None,
-        help="name of the event, if not specified will download all events")
+        "events", help="One or more events. If none given, all will be done.",
+        nargs="*")
     parser.add_argument("--providers", default=None,
-                        type=str, nargs="+",
+                        type=str,
                         help="FDSN providers to query. Will use all known "
                              "ones if not set.")
-    parser.add_argument(
-        "--networks",
-        default=None,
-        type=str,
-        help="seismic networks (comma separated) to download in the domain, eg. ``IU,G`` ")
+    parser.add_argument("--networks", default=None,
+                        type=str, 
+                        help="seismic networks (comma separated) to download in the domain, eg. ``IU,G`` ")
 
     args = parser.parse_args(args)
-    event_name = args.e
+    events = args.events if args.events else None
     providers = args.providers
-    networks = args.networks
-
+    if providers is not None:
+        providers = providers.split(',')
+        Providers=[]
+        for prov in providers:
+            Providers.append(prov)
+    else:
+        Providers = None
+    Networks = args.networks
+    
     comm = _find_project_comm(".", args.read_only_caches)
-    comm.downloads.download_data(
-        event_name,
-        providers=providers,
-        networks=networks)
+    
+    # No need to perform these checks on all ranks.
+    exceptions = []
+    if MPI.COMM_WORLD.rank == 0:
+
+        # Check if the event ids are valid.
+        if  events:
+            for event_name in events:
+
+                if not comm.events.has_event(event_name):
+                    msg = "Event '%s' not found." % event_name
+                    exceptions.append(msg)
+                    break
+
+    # Raise any exceptions on all ranks if necessary.
+    exceptions = MPI.COMM_WORLD.bcast(exceptions, root=0)
+    if exceptions:
+        raise LASIFCommandLineException(exceptions[0])
+    
+    comm.downloads.download_data(events, providers=Providers, networks=Networks)
 
 
 @command_group("Event Management")
@@ -543,8 +591,8 @@ def lasif_list_events(parser, args):
                                         "be specified.")
 
     if args.list is False:
-        print(("%i event%s in project:" %
-               (comm.events.count(), "s" if comm.events.count() != 1 else "")))
+        print(("%i event%s in project:" % (comm.events.count(),
+                                          "s" if comm.events.count() != 1 else "")))
 
     if args.details is True:
         tab = PrettyTable(["Event Name", "Lat/Lng/Depth(km)/Mag",
@@ -604,7 +652,7 @@ def lasif_list_models(parser, args):
     comm = _find_project_comm(".", args.read_only_caches)
     models = comm.models.list()
     print(("%i model%s in project:" % (len(models), "s" if len(models) != 1
-                                       else "")))
+                                      else "")))
     for model in models:
         print(("\t%s" % model))
 
@@ -622,7 +670,7 @@ def lasif_list_kernels(parser, args):
         len(kernels), "s" if len(kernels) != 1 else "")))
     for kernel in kernels:
         print(("\tIteration %3s and Event %s" % (kernel["iteration"],
-                                                 kernel["event"])))
+                                                kernel["event"])))
 
 
 @command_group("Plotting")
@@ -658,7 +706,7 @@ def lasif_plot_wavefield(parser, args):
         print("")
 
         inp = input("Enter 'COMPONENT DEPTH' "
-                    "('quit/exit' to exit): ").strip()
+                        "('quit/exit' to exit): ").strip()
         if inp.lower() in ["quit", "q", "exit", "leave"]:
             break
         try:
@@ -710,7 +758,7 @@ def lasif_event_info(parser, args):
     if verbose:
         from lasif.utils import table_printer
         print(("\nStation and waveform information available at %i "
-               "stations:\n" % len(stations)))
+              "stations:\n" % len(stations)))
         header = ["id", "latitude", "longitude", "elevation_in_m",
                   "local depth"]
         keys = sorted(stations.keys())
@@ -721,7 +769,7 @@ def lasif_event_info(parser, args):
         table_printer(header, data)
     else:
         print(("\nStation and waveform information available at %i stations. "
-               "Use '-v' to print them." % len(stations)))
+              "Use '-v' to print them." % len(stations)))
 
 
 @command_group("Plotting")
@@ -776,7 +824,7 @@ def lasif_generate_all_input_files(parser, args):
     events = sorted(it.events.keys())
     for _i, event in enumerate(events):
         print(("Generating input files for event %i of %i..." % (_i + 1,
-                                                                 len(events))))
+                                                                len(events))))
         comm.actions.generate_input_files(iteration_name, event,
                                           simulation_type)
 
@@ -908,15 +956,15 @@ def lasif_select_all_windows(parser, args):
     for _i, event in enumerate(events):
         if MPI.COMM_WORLD.rank == 0:
             print(("\n{green}"
-                   "==========================================================="
-                   "{reset}".format(green=colorama.Fore.GREEN,
-                                    reset=colorama.Style.RESET_ALL)))
+                  "==========================================================="
+                  "{reset}".format(green=colorama.Fore.GREEN,
+                                   reset=colorama.Style.RESET_ALL)))
             print(("Starting window selection for event %i of %i..." % (
                   _i + 1, len(events))))
             print(("{green}"
-                   "==========================================================="
-                   "{reset}\n".format(green=colorama.Fore.GREEN,
-                                      reset=colorama.Style.RESET_ALL)))
+                  "==========================================================="
+                  "{reset}\n".format(green=colorama.Fore.GREEN,
+                                     reset=colorama.Style.RESET_ALL)))
         MPI.COMM_WORLD.barrier()
         comm.actions.select_windows(event, iteration)
 
@@ -1053,16 +1101,10 @@ def lasif_create_new_iteration(parser, args):
                         choices=("SES3D_4_1", "SES3D_2_0",
                                  "SPECFEM3D_CARTESIAN",
                                  "SPECFEM3D_GLOBE_CEM"))
-    parser.add_argument(
-        "--seconds_prior",
-        type=float,
-        default=5.,
-        help="nb of seconds prior the theoretical phase arrival time used to window seismograms for quality control, default 5")
-    parser.add_argument(
-        "--window_length",
-        type=float,
-        default=50.,
-        help="Time window length in seconds used to window the phase of interest in the seismograms, used for suqlity control, default 50")
+    parser.add_argument("--seconds_prior", type=float, default=5.,
+                        help="nb of seconds prior the theoretical phase arrival time used to window seismograms for quality control, default 5")
+    parser.add_argument("--window_length", type=float, default=50.,
+                        help="Time window length in seconds used to window the phase of interest in the seismograms, used for suqlity control, default 50")
 
     args = parser.parse_args(args)
     iteration_name = args.iteration_name
@@ -1093,7 +1135,7 @@ def lasif_create_new_iteration(parser, args):
 @command_group("Iteration Management")
 def lasif_update_iteration(parser, args):
     """
-    Create a new iteration.
+    Update the iteration.
     """
     parser.add_argument(
         "iteration_name",
@@ -1108,27 +1150,10 @@ def lasif_update_iteration(parser, args):
         msg = "The new iteration name should be different than the current iteration names."
         raise LASIFCommandLineException(msg)
 
-    comm = _find_project_comm(".", args.read_only_caches)
-    iteration = comm.iterations.get(iteration_name)
-    solver_name = iteration.solver_settings["solver"].replace(" ", "_")
-    process_params = iteration.get_process_params()
-    min_period = 1. / process_params["lowpass"]
-    max_period = 1. / process_params["highpass"]
-    seconds_prior_arrival = process_params["seconds_prior_arrival"]
-    window_length_in_sec = process_params["window_length_in_sec"]
 
-    events_dict = comm.query.get_stations_for_all_processed_events(
-        iteration_name)
-    # print(events_dict)
-    '''comm.iterations.create_new_iteration(
-        iteration_name=new_iteration_name,
-        solver_name=solver_name,
-        events_dict=events_dict,
-        min_period=min_period,
-        max_period=max_period,
-        seconds_prior_arrival=seconds_prior_arrival,
-        window_length_in_sec=window_length_in_sec)
-    '''
+    comm = _find_project_comm(".", args.read_only_caches)
+    events_dict = comm.query.get_stations_for_all_processed_events(iteration_name)
+
     comm.iterations.update_iteration(iteration_name,
                                      new_iteration_name, events_dict)
 
@@ -1188,10 +1213,10 @@ def lasif_compare_misfits(parser, args):
         # Split into a number of events per MPI process.
         events = split(events, MPI.COMM_WORLD.size)
 
-        print(" => Calculating misfit change from iteration '%s' to "
-              "iteration '%s' ..." % (from_it.name, to_it.name))
-        print(" => Launching calculations on %i core(s)\n" %
-              MPI.COMM_WORLD.size)
+        print(" => Calculating misfit change from iteration '%s' to " \
+            "iteration '%s' ..." % (from_it.name, to_it.name))
+        print(" => Launching calculations on %i core(s)\n" % \
+            MPI.COMM_WORLD.size)
 
     else:
         events = None
@@ -1391,7 +1416,7 @@ def lasif_list_iterations(parser, args):
     it_len = comm.iterations.count()
 
     print(("%i iteration%s in project:" % (it_len,
-                                           "s" if it_len != 1 else "")))
+                                          "s" if it_len != 1 else "")))
     for iteration in comm.iterations.list():
         print(("\t%s" % iteration))
 
@@ -1443,31 +1468,27 @@ def lasif_preprocess_data(parser, args):
     parser.add_argument(
         "events", help="One or more events. If none given, all will be done.",
         nargs="*")
-    parser.add_argument(
-        "--snr",
-        help="Relative noise level threshold above which data trace will be disregarded, 0.1 by default")
-    parser.add_argument(
-        "--components",
-        default="ENZ",
-        help="list of components to process, examples: ENZ, or Z or RTZ")
-    parser.add_argument(
-        "--svd_selection",
-        default="False",
-        choices=[
-            "True",
-            "False"],
-        help="``True``: for teleseismic configuration and waveform selection based on their similarity, "
-        "``False``: preferred for regional waveforms, no selection applied ")
+    parser.add_argument("--snr", 
+                        help="Relative noise level threshold above which data trace will be disregarded, 0.5 by default")
+    parser.add_argument("--components", default="ENZ", help="list of components to process, examples: ENZ, or Z or RTZ")
+    parser.add_argument("--svd_selection",default="False", choices=["True", "False"],
+                        help="``True``: for teleseismic configuration and waveform selection based on their similarity, "
+                        "``False``: preferred for regional waveforms, no selection applied ")
+    parser.add_argument("--recompute_files",default="False", choices=["True", "False"],
+                        help="``False``: will not process already existed preprocessed files, "
+                        "``True``: will recompute already existing preprocessed files, "
+                        "          it might be useful if you want to change the snr threshold ")
 
     args = parser.parse_args(args)
     iteration_name = args.iteration_name
     events = args.events if args.events else None
     svd_selection = args.svd_selection
+    recompute_files = args.recompute_files
     noise_threshold = float(args.snr) if args.snr else None
     comps = args.components
     components = []
     for comp in comps:
-        components.append(comp)
+        components.append(comp)    
 
     comm = _find_project_comm_mpi(".", args.read_only_caches)
 
@@ -1493,12 +1514,8 @@ def lasif_preprocess_data(parser, args):
     if exceptions:
         raise LASIFCommandLineException(exceptions[0])
 
-    comm.actions.preprocess_data(
-        iteration_name,
-        components,
-        svd_selection,
-        noise_threshold,
-        events)
+
+    comm.actions.preprocess_data(iteration_name, components, svd_selection, noise_threshold, events, recompute_files)
 
 
 @mpi_enabled
@@ -1515,10 +1532,7 @@ def lasif_deconvolve_stf(parser, args):
     parser.add_argument(
         "events", help="One or more events. If none given, all will be done.",
         nargs="*")
-    parser.add_argument(
-        "--components",
-        default="ENZ",
-        help="list of components to process, examples: ENZ, or Z or RTZ")
+    parser.add_argument("--components", default="ENZ", help="list of components to process, examples: ENZ, or Z or RTZ")
 
     args = parser.parse_args(args)
     iteration_name = args.iteration_name
@@ -1552,7 +1566,408 @@ def lasif_deconvolve_stf(parser, args):
     if exceptions:
         raise LASIFCommandLineException(exceptions[0])
 
+
     comm.actions.stf_estimate(iteration_name, components, events)
+
+    """
+    import obspy
+    import numpy as np
+    stf = comm.waveforms.get_waveform_stf(event_name, iteration_name, component="Z")
+    starttime = stf[0].stats.starttime
+    endtime = stf[0].stats.endtime
+
+    st = obspy.Stream()
+    offset = np.zeros(len(stations_info),dtype=float)
+    tt_arrival = np.zeros(len(stations_info),dtype=float)
+    phase_angle= np.zeros(len(stations_info),dtype=float)
+    lngs = np.zeros(len(stations_info),dtype=float)
+    lats = np.zeros(len(stations_info),dtype=float)
+    values = np.zeros(len(stations_info),dtype=float)
+    amp_values = values.copy()
+    cc = values.copy()
+    cc_shift = values.copy()
+    labels = []
+    for i, station in enumerate(stations_info):
+        lngs[i] = stations_info[station]["longitude"]
+        lats[i] = stations_info[station]["latitude"]
+        values[i] = stations_info[station]["time shift"]
+        offset[i] = stations_info[station]["epicentral_distance"]
+        tt_arrival[i] = stations_info[station]["tt_arrival"]
+        phase_angle[i] = stations_info[station]["phase_angle"]
+        amp_values[i] = stations_info[station]["amp anomaly"]
+        cc[i] = stations_info[station]["cc"]
+        cc_shift[i] = stations_info[station]["cc_shift"]
+        labels.append(station)
+
+        st += obspy.read(stations_info[station]["input_file"]).trim(starttime,endtime)
+
+
+    import numpy as np
+    labels=np.array(labels)
+    #values -= np.mean(values) #we already get rid of the mean time as we compute it on the averaged synthetics with stf
+    # check stations where time shift > a threshold
+    # then ritere avec la mediane des times-shitfs definis ds une certaine region autour (rayon de 30km) to check if it is really an outlier dans une region precise
+
+    time_residual_threshold = 1.
+    mask = np.ones(len(values), bool)
+    indices = [i for i, x in enumerate(np.abs(values)) if x >= time_residual_threshold]
+    if indices:
+        mask[indices] = False
+    vmax = np.max(np.abs(values[mask]))
+    print(vmax)
+    #vmax = 2*np.median(np.abs(values))
+
+    import matplotlib.pyplot as plt
+
+    fig = plt.figure(figsize=(16,7.5))
+    ax1 = fig.add_subplot(231)
+    map_object = comm.visualizations.plot_stations_for_event(events[0], iteration_name, 0, color = [], ax=ax1)
+    x, y = map_object(lngs, lats)
+    if indices:
+        station_rmv_plot = map_object.scatter(x[indices], y[indices], c=values[indices], s=35, 
+                                              marker="o", zorder=5, cmap='coolwarm_r',
+                                              vmin = -vmax, vmax=vmax)
+        station_rmv_plot._edgecolors = np.array([[0.0, 0.0, 0.0, 1.0]])
+        station_rmv_plot._edgecolors_original = "black"
+    '''
+    sc1 = map_object.scatter(x[mask], y[mask], c=values[mask], s=35, 
+                    marker="v", zorder=5, cmap='RdBu',
+                    vmin = -vmax, vmax=vmax)
+    '''
+    sc1 = map_object.scatter(x, y, c=values, s=35, 
+                             marker="v", zorder=5, cmap='RdBu',
+                             vmin = -vmax, vmax=vmax)
+    # Setting the picker overwrites the edgecolor attribute on certain
+    # matplotlib and basemap versions. Fix it here.    
+    sc1._edgecolors = np.array([[0.0, 0.0, 0.0, 1.0]])
+    sc1._edgecolors_original = "black"
+    cbar = plt.colorbar(sc1, ax=[ax1], extend = "both", location="top")
+    cbar.ax.set_xlabel('Time residuals (s)')
+    ax1.set_title('')
+    ax1.axes.get_xaxis().set_visible(False)
+    ax1.axes.get_yaxis().set_visible(False)
+    annot1 = ax1.annotate("", xy=(0,0), xytext=(-10,10),textcoords="offset points",
+                          bbox=dict(boxstyle="round", fc="w"),
+                          arrowprops=dict(arrowstyle="->"))
+    annot1.set_visible(False)    
+
+
+
+
+    ax4 = fig.add_subplot(234)
+    plt.hist(values, bins = len(values)/2)
+    plt.axvline(x=np.median(np.abs(values)), ymin=0, ymax=10, color='k')
+    ax4.set_xlabel('Time residuals (s)')
+    ax4.set_ylabel('Count')
+
+
+    ax2 = fig.add_subplot(232, sharex=ax1, sharey=ax1)
+    #amp_values = np.log10(amp_values/np.mean(amp_values))
+    #amp_values -= np.mean(amp_values)
+    vmax = np.max(np.abs(amp_values))
+    map_object = comm.visualizations.plot_stations_for_event(events[0], iteration_name, 0, color = [], ax=ax2)
+    x, y = map_object(lngs, lats)
+    sc2 = map_object.scatter(x, y, c=amp_values, s=35, 
+                             marker="v", zorder=5) #,vmin = -vmax, vmax=vmax)
+    # Setting the picker overwrites the edgecolor attribute on certain
+    # matplotlib and basemap versions. Fix it here.    
+    sc2._edgecolors = np.array([[0.0, 0.0, 0.0, 1.0]])
+    sc2._edgecolors_original = "black"
+    cbar = plt.colorbar(sc2, ax=[ax2], extend = "both", location="bottom")
+    cbar.ax.set_xlabel('Amplitude residuals')
+    ax2.set_title('')
+    ax2.axes.get_xaxis().set_visible(False)
+    ax2.axes.get_yaxis().set_visible(False)
+    annot2 = ax2.annotate("", xy=(0,0), xytext=(-10,10),textcoords="offset points",
+                          bbox=dict(boxstyle="round", fc="w"),
+                          arrowprops=dict(arrowstyle="->"))
+    annot2.set_visible(False) 
+
+    ax5 = fig.add_subplot(235)
+    plt.hist(amp_values, bins = len(values)/2)
+    plt.axvline(x=np.median(np.abs(amp_values)), ymin=0, ymax=10, color='k')
+    ax5.set_xlabel('Amplitude residuals')
+    ax5.set_ylabel('Count')
+
+
+
+    ax3 = fig.add_subplot(233, sharex=ax1, sharey=ax1)
+    #amp_values = np.log10(amp_values/np.mean(amp_values))
+    #amp_values -= np.mean(amp_values)
+    vmax = np.max(np.abs(cc))
+    map_object = comm.visualizations.plot_stations_for_event(events[0], iteration_name, 0, color = [], ax=ax3)
+    x, y = map_object(lngs, lats)
+    sc3 = map_object.scatter(x, y, c=cc, s=35, 
+                             marker="v", zorder=5) #,vmin = -vmax, vmax=vmax)
+    # Setting the picker overwrites the edgecolor attribute on certain
+    # matplotlib and basemap versions. Fix it here.    
+    sc3._edgecolors = np.array([[0.0, 0.0, 0.0, 1.0]])
+    sc3._edgecolors_original = "black"
+    cbar = plt.colorbar(sc3, ax=ax3, extend = "both")
+    cbar.ax.set_ylabel('Correlation coefficient')
+    ax3.set_title('')
+    ax3.set_xticks([])
+    ax3.set_yticks([])
+    annot3 = ax3.annotate("", xy=(0,0), xytext=(-10,10),textcoords="offset points",
+                          bbox=dict(boxstyle="round", fc="w"),
+                          arrowprops=dict(arrowstyle="->"))
+    annot3.set_visible(False) 
+
+    ax6 = fig.add_subplot(236)
+    plt.hist(cc, bins = len(values)/2)
+    plt.axvline(x=np.median(np.abs(cc)), ymin=0, ymax=10, color='k')
+    ax6.set_xlabel('Correlation coefficient')
+    ax6.set_ylabel('Count')
+
+    # see https://matplotlib.org/3.1.1/users/event_handling.html
+    # https://stackoverflow.com/questions/7908636/possible-to-make-labels-appear-when-hovering-over-a-point-in-matplotlib
+
+
+
+
+    def hover_stations(event):
+        def update_anotation(event, ax, sc, annot, labels, cvalues):
+            vis = annot.get_visible()
+            cont, ind = sc.contains(event)
+            if cont:
+                pos = sc.get_offsets()[ind["ind"][0]]
+                annot.xy = pos
+                text = "%d,%s,%.2f"%(ind["ind"],
+                                     [labels[n] for n in ind["ind"]][0],
+                                     [cvalues[n] for n in ind["ind"]][0])
+                annot.set_text(text)
+                annot.set_visible(True)
+                fig.canvas.draw_idle()
+            else:
+                if vis:
+                    annot.set_visible(False)
+                    fig.canvas.draw_idle()
+
+        if event.inaxes in [ax1, ax2, ax3]:
+            if event.inaxes == ax1:
+                update_anotation(event, ax1, sc1, annot1, labels, values)
+            elif event.inaxes == ax2:
+                update_anotation(event, ax2, sc2, annot2, labels, amp_values)
+            elif event.inaxes == ax3:
+                update_anotation(event, ax3, sc3, annot3, labels, cc)
+
+
+
+    fig.canvas.mpl_connect("button_press_event", hover_stations) #motion_notify_event
+
+
+
+    seconds_prior_arrival = 5
+    window_length_in_sec = 50
+    scaling = 0.5
+    fig2 = plt.figure()
+    ax = fig2.add_subplot(111)
+    from lasif.visualization import plot_waveform_section
+    plot_waveform_section(ax, st, offset, scale=scaling,colors='k')
+    for arrival, dist, time_shift in zip(tt_arrival, offset, values):
+        plt.plot(arrival-seconds_prior_arrival+time_shift, dist,'b.')
+        plt.plot(arrival-seconds_prior_arrival+window_length_in_sec+time_shift, dist,'b.')
+        plt.plot([arrival, arrival], 
+                 [dist-0.25*scaling, dist+0.25*scaling],'k', linewidth = 1)
+        #plt.plot([arrival-seconds_prior_arrival, arrival-seconds_prior_arrival], 
+        #         [dist-0.5*scaling, dist+0.5*scaling],'k', linewidth = 1)
+        #plt.plot([arrival-seconds_prior_arrival+window_length_in_sec, arrival-seconds_prior_arrival+window_length_in_sec], 
+        #         [dist-0.5*scaling, dist+0.5*scaling],'k', linewidth = 1)
+
+    '''
+    st_select = obspy.Stream()
+    offset_select = []
+    for tr, dist, time_shift in zip(st, offset, values):
+        if np.abs(time_shift)< time_residual_threshold:
+            st_select += tr
+            offset_select.append(dist)
+    
+    plot_waveform_section(ax, st_select, offset_select, scale=scaling,colors='r')
+    '''
+
+    # synthetics from stf
+    stf_folder = comm.waveforms.get_waveform_folder(
+        event_name=event_name, data_type="stf",
+        tag_or_iteration='ITERATION_%s'%iteration_name)
+
+    st_syn = obspy.Stream()
+    for station in stations_info:
+        synfile = os.path.join(stf_folder, 
+                               stations_info[station]["input_file"].split('/')[-1])
+        tr = obspy.read(synfile)
+        st_syn += tr
+    plot_waveform_section(ax, st_syn, offset, scale=scaling,colors='b')
+
+    annot = ax.annotate("", xy=(0,0), xytext=(20,20),textcoords="offset points",
+                        bbox=dict(boxstyle="round", fc="w"),
+                        arrowprops=dict(arrowstyle="->"))
+    annot.set_visible(False) 
+
+
+
+    st_not_select = obspy.Stream()
+    for mk, tr in zip(mask,st):
+        if not mk:
+            st_not_select += tr
+    res = [i for i, val in enumerate(mask) if not val] 
+    plot_waveform_section(ax, st_not_select, offset[res], scale=scaling,colors='r')
+    def on_plot_hover(event):
+        # Iterating over each data member plotted
+        if event.inaxes == ax:
+            xpos = ax.get_xlim()[0]
+            for curve in ax.get_lines():
+                # Searching which data member corresponds to current mouse position
+                if curve.contains(event)[0]:
+                    annot.xy = (xpos,curve.get_data()[1][0])
+                    annot.set_text(curve.get_label())
+                    annot.set_visible(True)
+                    fig2.canvas.draw_idle()
+
+
+    fig2.canvas.mpl_connect('button_press_event', on_plot_hover)
+
+
+    plt.figure()
+    vmax = np.max(np.abs(phase_angle))
+    map_object = comm.visualizations.plot_stations_for_event(events[0], iteration_name, 0, color = [])
+    x, y = map_object(lngs, lats)
+    stations_plot = map_object.scatter(x, y, c=phase_angle, s=35, 
+                                       marker="v", zorder=5, cmap='RdBu',
+                                       vmin = -vmax, vmax=vmax)
+    # Setting the picker overwrites the edgecolor attribute on certain
+    # matplotlib and basemap versions. Fix it here.    
+    stations_plot._edgecolors = np.array([[0.0, 0.0, 0.0, 1.0]])
+    stations_plot._edgecolors_original = "black"
+    import matplotlib.pyplot as plt
+    cbar = plt.colorbar(stations_plot, extend = "both")
+    cbar.ax.set_ylabel('Phase angle (rad) at 10 s')
+
+    '''
+    plt.figure()
+    plt.plot(st_syn[0].times(),st_syn[0].data)
+    plt.plot(st[0].times(),st[0].data)
+    print(values[0],amp_values[0])
+    '''
+
+
+    # focal mechanism
+    fig=plt.figure()
+    from obspy.imaging.beachball import beach
+    from obspy.geodetics.base import locations2degrees, gps2dist_azimuth
+    from obspy.taup import TauPyModel
+    earth_model = TauPyModel("ak135")
+    event_info = comm.events.get(event_name)
+    print(event_info)
+    takeoff_angles = []
+    azimuths = []
+    for stla,stlo in zip(lats,lngs):
+        #epicentral_distance = locations2degrees(event_info["latitude"], event_info["latitude"], stla,stlo)
+        epicentral_distance, azimuth, baz = gps2dist_azimuth(event_info["latitude"], event_info["longitude"], 
+                                                             stla,stlo)
+        tt = earth_model.get_travel_times(distance_in_degree=epicentral_distance, 
+                                          source_depth_in_km=event_info["depth_in_km"],
+                                          phase_list=["P"])
+        if tt:
+            takeoff_angles.append(tt[0].takeoff_angle)
+            azimuths.append(azimuth)
+
+    map_object = comm.visualizations.plot_stations_for_event(events[0], iteration_name, 0, color = [])
+    x, y = map_object(lngs[0], lats[0])
+    focmec = [event_info["m_rr"], event_info["m_tt"], event_info["m_pp"], event_info["m_rt"],
+              event_info["m_rp"], event_info["m_tp"]]
+    # Attempt to calculate the best beachball size.
+    beachball_size=0.1
+    width = max((map_object.xmax - map_object.xmin,
+                 map_object.ymax - map_object.ymin)) * beachball_size
+    b = beach(focmec, xy=(x, y), width=width, linewidth=1., facecolor="red")
+
+    print(b)
+    b.set_zorder(200000000)
+
+
+
+    from lasif.tools.pyrocko import beachball
+    from lasif.tools.pyrocko import orthodrome
+    from lasif.tools.pyrocko import cake
+    #axes2=map_object
+    axes2 = fig.add_axes(map_object.ax.get_position())#, projection='lambert', label='pol', frameon=False)
+    ##axes2.set_aspect('equal')
+    ##axes2.set_theta_direction(-1)
+    ##axes2.set_theta_zero_location("N")
+
+    axes2.set_axis_off()
+    axes2.set_xlim(-1.1, 1.1)
+    axes2.set_ylim(-1.1, 1.1)
+    axes2.set_aspect('equal')
+    map_object.ax.add_collection(b)
+
+
+    projection='lambert'
+    mt = [event_info["m_tt"], event_info["m_pp"], event_info["m_rr"], -event_info["m_tp"],
+          event_info["m_rt"], -event_info["m_rp"]]
+    beachball.plot_beachball_mpl(
+        mt, axes2,
+        position=(0, 0),
+        size=2.0,
+        color_t='red',
+        linewidth=1.,
+        projection=projection,
+        size_units='data')
+
+    for takeoff_angle, azimuth in zip(takeoff_angles,azimuths):
+        length_on_equatorial_plane = np.tan(np.deg2rad(takeoff_angle/2));
+        x_piecring = length_on_equatorial_plane*np.cos(np.deg2rad(azimuth) - np.pi/2)
+        y_piecring = length_on_equatorial_plane*np.sin(np.deg2rad(azimuth) + np.pi/2)
+        axes2.plot(x_piecring,y_piecring,'+',color='k',linewidth=1)
+
+        # to spherical coordinates, r, theta, phi in radians
+        rtp = np.array([[1., np.deg2rad(takeoff_angle), np.deg2rad(90.-azimuth)]])
+        # to 3D coordinates (x, y, z)
+        points = beachball.numpy_rtp2xyz(rtp)
+        # project to 2D with same projection as used in beachball
+        x_arr, y_arr = beachball.project(points, projection='lambert').T
+
+        axes2.plot(x_arr, y_arr,'+', color='r',linewidth=1)
+
+
+    # earth model and phase for takeoff angle computations
+    mod = cake.load_model('ak135-f-average.vf')#'ak135-f-continental.m')
+    phases = cake.PhaseDef.classic('P')
+    slat = event_info["latitude"]
+    slon = event_info["longitude"]
+    rdepth = 0.
+    sdepth = event_info["depth_in_km"]*1e3
+    for rlat, rlon in zip(lats,lngs):
+        distance = orthodrome.distance_accurate50m(slat, slon, rlat, rlon)
+        rays = mod.arrivals(
+            phases=cake.PhaseDef('P'),
+            zstart=sdepth, zstop=rdepth, distances=[distance*cake.m2d])
+
+        if not rays:
+            continue
+
+        takeoff = rays[0].takeoff_angle()
+        azi = orthodrome.azimuth(slat, slon, rlat, rlon)
+
+        # to spherical coordinates, r, theta, phi in radians
+        rtp = np.array([[1., np.deg2rad(takeoff), np.deg2rad(90.-azi)]])
+
+        # to 3D coordinates (x, y, z)
+        points = beachball.numpy_rtp2xyz(rtp)
+
+        # project to 2D with same projection as used in beachball
+        x, y = beachball.project(points, projection=projection).T
+
+        axes2.plot(x, y, '+', color='b', ms=10., mew=2.0, mec='black', mfc='none')
+
+    #axes2.set_rmax(np.pi / 2.)
+    #axes2.set_yticks([0, np.pi/6., 2.*np.pi/6., np.pi/2.])
+
+
+
+
+    plt.show()
+    """
 
 
 @command_group("Plotting")
@@ -1570,13 +1985,13 @@ def lasif_plot_synthetic_from_stf(parser, args):
         help="list of components to plot, examples: ENZ, or Z or RTZ")
     parser.add_argument("--scaling", default=0.5,
                         help="Float for scaling the waveforms, 0.5 by default")
-    parser.add_argument(
-        "--raw",
-        default="True",
-        choices=[
-            "False",
-            "True"],
-        help="For additionally plotting initial synthetics on top, True by default")
+    parser.add_argument("--raw", default="True", choices=["False", "True"],
+                        help="For additionally plotting initial synthetics on top, True by default")
+    parser.add_argument("--plot_window", default="True", choices=["False", "True"],
+                        help="For additionally plotting the phase window defined in the iteration, False by default")
+    parser.add_argument("--phase", default="P",
+                        help="Name of the seismic phase you want to window for the plot_window option"
+                        "default: P")
 
     args = parser.parse_args(args)
     iteration_name = args.iteration_name
@@ -1587,14 +2002,13 @@ def lasif_plot_synthetic_from_stf(parser, args):
     components = []
     for comp in comps:
         components.append(comp)
+    plot_window = args.plot_window
+    phase = args.phase
 
     comm = _find_project_comm(".", args.read_only_caches)
-    comm.visualizations.plot_synthetic_from_stf(
-        event_name,
-        iteration_name,
-        components,
-        scaling=float(scale),
-        plot_raw=raw)
+    comm.visualizations.plot_synthetic_from_stf(event_name, iteration_name, 
+                                                components, scaling = float(scale), plot_raw=raw, 
+                                                plot_window=plot_window, Phase=phase)
 
     import matplotlib.pyplot as plt
     plt.show()
@@ -1667,12 +2081,8 @@ def lasif_plot_windows(parser, args):
 
         window_manager = comm.windows.get(event_name, iteration_name)
         for window_group in window_manager:
-            window_group.plot(
-                show=False,
-                filename=os.path.join(
-                    output_folder,
-                    "%s.png" %
-                    window_group.channel_id))
+            window_group.plot(show=False, filename=os.path.join(output_folder,
+                                                                "%s.png" % window_group.channel_id))
             sys.stdout.write(".")
             sys.stdout.flush()
         print("\nDone")
@@ -1750,22 +2160,22 @@ def lasif_iteration_status(parser, args):
     iteration = comm.iterations.get(iteration_name)
 
     print(("Iteration %s is defined for %i events:" % (iteration_name,
-                                                       len(iteration.events))))
+                                                      len(iteration.events))))
     for event in sorted(status.keys()):
         st = status[event]
         print(("\t%s" % event))
 
         print(("\t\t%.2f %% of the events stations have picked windows" %
-               (st["fraction_of_stations_that_have_windows"] * 100)))
+              (st["fraction_of_stations_that_have_windows"] * 100)))
         if st["missing_raw"]:
             print(("\t\tLacks raw data for %i stations" %
-                   len(st["missing_raw"])))
+                  len(st["missing_raw"])))
         if st["missing_processed"]:
             print(("\t\tLacks processed data for %i stations" %
-                   len(st["missing_processed"])))
+                  len(st["missing_processed"])))
         if st["missing_synthetic"]:
             print(("\t\tLacks synthetic data for %i stations" %
-                   len(st["missing_synthetic"])))
+                  len(st["missing_synthetic"])))
 
 
 def lasif_tutorial(parser, args):
@@ -1915,9 +2325,9 @@ def _print_generic_help(fcts):
         current_fcts = fct_groups[group_name]
         for name in sorted(current_fcts.keys()):
             print(("%s  %32s: %s%s%s" % (colorama.Fore.YELLOW, name,
-                                         colorama.Fore.BLUE,
-                                         _get_cmd_description(fcts[name]),
-                                         colorama.Style.RESET_ALL)))
+                                        colorama.Fore.BLUE,
+                                        _get_cmd_description(fcts[name]),
+                                        colorama.Style.RESET_ALL)))
     print("\nTo get help for a specific function type")
     print("\tlasif help FUNCTION  or\n\tlasif FUNCTION --help")
 
@@ -2001,10 +2411,8 @@ def main():
         sys.stderr.write("lasif: '{fct_name}' is not a LASIF command. See "
                          "'lasif --help'.\n".format(fct_name=fct_name))
         # Attempt to fuzzy match commands.
-        close_matches = sorted(
-            difflib.get_close_matches(
-                fct_name, list(
-                    fcts.keys()), n=4))
+        close_matches = sorted(difflib.get_close_matches(fct_name, list(fcts.keys()),
+                                                         n=4))
         if len(close_matches) == 1:
             sys.stderr.write("\nDid you mean this?\n\t{match}\n".format(
                 match=close_matches[0]))
@@ -2035,7 +2443,7 @@ def main():
         func(parser, further_args)
     except LASIFCommandLineException as e:
         print((colorama.Fore.YELLOW + ("Error: %s\n" % str(e)) +
-               colorama.Style.RESET_ALL))
+              colorama.Style.RESET_ALL))
         sys.exit(1)
     except Exception as e:
         args = parser.parse_args(further_args)

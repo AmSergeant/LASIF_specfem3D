@@ -33,12 +33,15 @@ def plot_waveform_section(
     """
     if reftime is None:
         reftime = stream[0].stats.starttime
-    if colors is None:
-        colors = 'k'
-    if len(offsets) == 0:
-        offsets = np.arange(len(stream))
+    if colors==None:
+        colors='k'
+    if len(offsets)==0:
+        offsets=np.arange(len(stream))
+    
+    for tr in stream:
+        tr.trim(reftime, tr.stats.endtime)
 
-    def sect_init_time(stream, reftime):
+    def sect_init_time(stream,reftime):
         """
         Define the time vector for each trace
         """
@@ -49,32 +52,22 @@ def plot_waveform_section(
                  (tr.stats.starttime - reftime)) * tr.stats.delta)
         time_min = np.concatenate(tr_times).min()
         time_max = np.concatenate(tr_times).max()
-        return time_min, time_max, len(
-            np.concatenate(tr_times)) / len(tr_times)
+        return time_min, time_max
 
-    time_lim = sect_init_time(stream, reftime)
-    for tr, offset in zip(stream, offsets):
-        axis.plot(tr.times(), tr.data / tr.data.max() * scale + offset,
-                  color=colors, alpha=0.5, linewidth=lw)
+    time_min, time_max = sect_init_time(stream,reftime)
+    for tr, offset in zip(stream,offsets):
+        label = '%s.%s'%(tr.stats.network,tr.stats.station)
+
+        axis.plot(tr.times(), tr.data/tr.data.max()*scale + offset,
+                  color=colors,alpha=0.5, linewidth=lw, label = label)
         if type == "wiggle":
-            axis.fill_between(
-                tr.times(),
-                offset,
-                tr.data /
-                tr.data.max() *
-                scale +
-                offset,
-                where=(
-                    tr.data /
-                    tr.data.max() *
-                    scale +
-                    offset > offset),
-                color=colors,
-                alpha=0.5)
-    axis.set_xlim(time_lim[0], time_lim[1])
+            axis.fill_between(tr.times(),offset,tr.data/tr.data.max()*scale + offset,
+                              where=(tr.data/tr.data.max()*scale + offset>offset),
+                              color=colors,alpha=0.5)
+    axis.set_xlim(time_min,time_max)
 
 
-def plot_events(events, map_object, beachball_size=0.02):
+def plot_events(events, map_object, beachball_size=0.02, color="red"):
     """
     """
     beachballs = []
@@ -87,7 +80,7 @@ def plot_events(events, map_object, beachball_size=0.02):
         # Attempt to calculate the best beachball size.
         width = max((map_object.xmax - map_object.xmin,
                      map_object.ymax - map_object.ymin)) * beachball_size
-        b = beach(focmec, xy=(x, y), width=width, linewidth=1, facecolor="red")
+        b = beach(focmec, xy=(x, y), width=width, linewidth=1, facecolor=color)
         b.set_zorder(200000000)
         map_object.ax.add_collection(b)
         beachballs.append(b)
@@ -156,8 +149,8 @@ def plot_raydensity(map_object, station_events, domain):
         data.dtype = dtype
         return data.reshape(shape)
 
-    print("\nLaunching %i greatcircle calculations on %i CPUs..." %
-          (circle_count, cpu_count))
+    print("\nLaunching %i greatcircle calculations on %i CPUs..." % \
+        (circle_count, cpu_count))
 
     widgets = ["Progress: ", progressbar.Percentage(),
                progressbar.Bar(), "", progressbar.ETA()]
@@ -265,7 +258,7 @@ def plot_raydensity(map_object, station_events, domain):
 
 
 def plot_stations_for_event(map_object, station_dict, event_info,
-                            color="green", alpha=1.0, raypaths=True):
+                            color="red", alpha=1.0, raypaths=True):
     """
     Plots all stations for one event.
 
@@ -412,9 +405,10 @@ def plot_tf(data, delta, freqmin=None, freqmax=None):
     plt.show()
 
 
-def plot_event_histogram(events, plot_type):
+def plot_event_histogram(events, plot_type, lat_0 = None, lon_0 = None):
     from matplotlib.dates import date2num, num2date
     from matplotlib import ticker
+    from obspy.geodetics.base import gps2dist_azimuth
 
     plt.figure(figsize=(12, 4))
 
@@ -424,6 +418,9 @@ def plot_event_histogram(events, plot_type):
             values.append(event["depth_in_km"])
         elif plot_type == "time":
             values.append(date2num(event["origin_time"].datetime))
+        elif plot_type == "azimuth":
+            epicentral_distance, azimuth, baz = gps2dist_azimuth(lat_0, lon_0, event["latitude"], event["longitude"])
+            values.append(azimuth)
 
     plt.hist(values, bins=250)
 
@@ -436,5 +433,8 @@ def plot_event_histogram(events, plot_type):
     elif plot_type == "depth":
         plt.xlabel("Event depth in km")
         plt.title("Hypocenter depth distribution (%i events)" % len(events))
+    elif plot_type == "azimuth":
+        plt.xlabel("Event azimuth relative to the domain center")
+        plt.title("Event azimuth distribution (%i events)" % len(events))
 
     plt.tight_layout()

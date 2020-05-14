@@ -231,16 +231,14 @@ class RectangularSphericalSection(Domain):
             azimuthal_projection=False):
         import matplotlib.pyplot as plt
         from mpl_toolkits.basemap import Basemap
-
         if ax is None:
             ax = plt.gca()
         plt.subplots_adjust(left=0.05, right=0.95)
-
         # Use a global plot for very large domains.
         if self.max_extent >= 180.0 or Teleseismic:
             if resolution is None:
                 resolution = "c"
-            if azimuthal_projection is True:
+            if azimuthal_projection:
                 m = Basemap(projection='aeqd', lon_0=self.center.longitude,
                             lat_0=self.center.latitude, resolution=resolution,
                             ax=ax)

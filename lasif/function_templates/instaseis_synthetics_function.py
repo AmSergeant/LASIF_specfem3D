@@ -93,16 +93,18 @@ def instaseis_synthetics_function(processing_info, iteration, db):  # NOQA
 
     """
 
+
+
     # =========================================================================
     # Step 1: Compute synthetic seismogram
     # =========================================================================
-    st = db.get_seismograms(
-        source=processing_info["event_information"]["source"],
-        receiver=processing_info["receiver"],
-        kind='velocity',
-        components=processing_info["component"],
-        remove_source_shift=True,
-        dt=processing_info["process_params"]["dt"])
+    st = \
+        db.get_seismograms(source=processing_info["event_information"]["source"],
+                           receiver=processing_info["receiver"], 
+                           kind='velocity',
+                           components=processing_info["component"],
+                           remove_source_shift=True, 
+                           dt = processing_info["process_params"]["dt"])
 
     # =========================================================================
     # Step 2: Preprocess the synthetic seismogram
@@ -126,14 +128,27 @@ def instaseis_synthetics_function(processing_info, iteration, db):  # NOQA
     starttime = processing_info["event_information"]["origin_time"]
     endtime = starttime + processing_info["process_params"]["dt"] * \
         (processing_info["process_params"]["npts"] - 1)
-    st = st.trim(starttime, endtime)
+    st=st.trim(starttime, endtime)
 
     tr = st[0]
-    tr.stats.coordinates = AttribDict({
+    tr.stats.coordinates =  AttribDict({
         'latitude': processing_info["station_coordinates"]["latitude"],
         'elevation': processing_info["station_coordinates"]["elevation_in_m"],
         'longitude': processing_info["station_coordinates"]["longitude"]})
     tr.stats.station = processing_info["station"]
+    tr.stats.channel = processing_info["channel"]
+
+    '''
+    st_wav = obspy.read(processing_info["input_filename"])
+    print(st_syn[0])
+    print(st[0])
+    print(st_wav[0])
+    print(processing_info["receiver"])
+    print(processing_info["event_information"]["source"])
+    print(processing_info["station_filename"])
+    ST=st+st_wav+st_syn
+    ST.plot()
+    '''
 
     # =========================================================================
     # Save processed synthetic and clean up.

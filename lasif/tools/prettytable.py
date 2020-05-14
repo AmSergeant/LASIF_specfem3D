@@ -135,9 +135,8 @@ class PrettyTable(object):
         # Options
         self._options = ("start end fields header border sortby reversesort "
                          "sort_key attributes format hrules vrules").split()
-        self._options.extend(
-            ("int_format float_format padding_width "
-             "left_padding_width right_padding_width").split())
+        self._options.extend(("int_format float_format padding_width "
+                              "left_padding_width right_padding_width").split())
         self._options.extend(("vertical_char horizontal_char junction_char "
                               "header_style valign xhtml print_empty "
                               "oldsortslice").split())
@@ -1060,9 +1059,8 @@ class PrettyTable(object):
             for index, value in enumerate(row):
                 fieldname = self.field_names[index]
                 if fieldname in self.max_width:
-                    widths[index] = max(
-                        widths[index], min(
-                            _get_size(value)[0], self.max_width[fieldname]))
+                    widths[index] = max(widths[index], min(_get_size(value)[0],
+                                                           self.max_width[fieldname]))
                 else:
                     widths[index] = max(widths[index], _get_size(value)[0])
         self._widths = widths

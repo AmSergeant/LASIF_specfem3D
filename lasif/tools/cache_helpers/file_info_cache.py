@@ -235,9 +235,9 @@ class FileInfoCache(object):
                 if valid is not True:
                     self.db_conn.close()
                     print(("Cache '%s' is not valid anymore. This is most "
-                           "likely due to some recent LASIF update. Don't "
-                           "worry, LASIF will built it anew. Hang on..." %
-                           self.cache_db_file))
+                          "likely due to some recent LASIF update. Don't "
+                          "worry, LASIF will built it anew. Hang on..." %
+                          self.cache_db_file))
                     try:
                         os.remove(self.cache_db_file)
                     except BaseException:
@@ -386,7 +386,6 @@ class FileInfoCache(object):
             # to get relative pathnames.
             org_directory = os.getcwd()
             os.chdir(self.root_folder)
-
             # Now update all filetypes separately.
             for filetype in self.filetypes:
                 for filename in self.files[filetype]:
@@ -438,8 +437,8 @@ class FileInfoCache(object):
         if db_files:
             if len(db_files) > 100:
                 print(("Removing %i no longer existing files from the "
-                       "cache database. This might take a while ..." %
-                       len(db_files)))
+                      "cache database. This might take a while ..." %
+                      len(db_files)))
             query = "DELETE FROM files WHERE filename IN (%s);" % \
                 ",".join(["'%s'" % _i for _i in db_files])
             self.db_cursor.execute(query)

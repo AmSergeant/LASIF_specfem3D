@@ -62,22 +62,72 @@ class QueryComponent(Component):
         """
 
         events = list(self.comm.events.get_all_events().values())
-        stations_all = {}
+        stations_all={}
         # Here I use a loop on event waveforms, this might take a while if many events
-        # To be improved using a loop on xml files in STATIONS/StationXML
+        # To be improved using a loop on xml files in STATIONS/StationXML 
         # stations = self.comm.stations.get_details_for_filename(xmlfile)
         for event in events:
             try:
-                stations = self.comm.query.get_all_stations_for_event(
-                    event["event_name"])
+                stations = self.comm.query.get_all_stations_for_event(event["event_name"])
             except LASIFNotFoundError:
                 continue
             for station in stations:
                 if station in stations_all:
                     continue
                 else:
-                    stations_all[station] = stations[station]
+                    stations_all[station]=stations[station]
         return stations_all
+
+
+
+    def get_all_events_for_processed_data(self, iteration_name):
+        """
+        Returns a list of all events for which preprocessed stations are available.
+
+        A station is considered to be available for an event if at least one
+        channel has raw data and an associated station file. Furthermore it
+        must be possible to derive coordinates for the station.
+
+        :type event_name: str
+        :param event_name: Name of the event.
+
+        >>> import pprint
+        >>> comm = getfixture('query_comm')
+        >>> pprint.pprint(comm.query.get_all_stations_for_event(
+        ...     "GCMT_event_TURKEY_Mag_5.1_2010-3-24-14-11")) \
+        # doctest: +NORMALIZE_WHITESPACE
+        {u'HL.ARG': {'elevation_in_m': 170.0, 'latitude': 36.216,
+                     'local_depth_in_m': 0.0, 'longitude': 28.126},
+         u'HT.SIGR': {'elevation_in_m': 93.0, 'latitude': 39.2114,
+                      'local_depth_in_m': 0.0, 'longitude': 25.8553},
+         u'KO.KULA': {'elevation_in_m': 915.0, 'latitude': 38.5145,
+                      'local_depth_in_m': 0.0, 'longitude': 28.6607},
+         u'KO.RSDY': {'elevation_in_m': 0.0, 'latitude': 40.3972,
+                      'local_depth_in_m': 0.0, 'longitude': 37.3273}}
+
+
+        Raises a :class:`~lasif.LASIFNotFoundError` if the event does not
+        exist.
+
+        >>> comm.query.get_all_stations_for_event("RandomEvent")
+        Traceback (most recent call last):
+            ...
+        LASIFNotFoundError: ...
+        """
+
+        events = list(self.comm.events.get_all_events().values())
+        events_all = events[:]
+        # Here I use a loop on event waveforms, this might take a while if many events
+        # To be improved using a loop on xml files in STATIONS/StationXML 
+        # stations = self.comm.stations.get_details_for_filename(xmlfile)
+        for event in events:
+            try:
+                stations = self.comm.query.get_all_stations_for_event_for_iteration(event["event_name"], iteration_name)
+            except LASIFNotFoundError:
+                continue
+            if not stations:
+                events_all.remove(event)
+        return events_all
 
     def get_all_stations_for_event(self, event_name):
         """
@@ -120,7 +170,7 @@ class QueryComponent(Component):
         station_coordinates = self.comm.stations.get_all_channels_at_time(
             event["origin_time"])
         inventory_coordinates = self.comm.inventory_db.get_all_coordinates()
-
+        
         stations = {}
         for waveform in waveform_metadata:
             station_id = "%s.%s" % (waveform["network"], waveform["station"])
@@ -156,8 +206,7 @@ class QueryComponent(Component):
                 stations[station_id] = coords
         return stations
 
-    def get_all_stations_for_event_for_iteration(
-            self, event_name, iteration_name):
+    def get_all_stations_for_event_for_iteration(self, event_name, iteration_name):
         """
         Returns a list of all stations for one event for one iteration.
 
@@ -297,8 +346,8 @@ class QueryComponent(Component):
         events = {}
         for event in self.comm.events.list():
             try:
-                data = self.get_all_stations_for_event_for_iteration(
-                    event, iteration_name).keys()
+                data = list(self.get_all_stations_for_event_for_iteration(event, 
+                                                                     iteration_name).keys())
             except LASIFNotFoundError:
                 continue
             events[event] = data
@@ -593,15 +642,37 @@ class QueryComponent(Component):
         """
         Get the center of the domain.
         """
-        domain = self.comm.project.domain
+        domain=self.comm.project.domain
         c = domain.unrotated_center
         Point = collections.namedtuple("CenterPoint", ["longitude",
                                                        "latitude"])
         from lasif import rotations
         r_lat, r_lng = rotations.rotate_lat_lon(
             c.latitude, c.longitude, domain.rotation_axis,
-            domain.rotation_angle_in_degree)
+            domain.rotation_angle_in_degree)	
         return Point(longitude=r_lng, latitude=r_lat)
+    
+    
+    def domain_corners(self):
+        """
+        Get the corners of the domain.
+        """
+        domain_corners = {}
+        
+        domain = self.comm.project.domain.extent
+        domain_corners["bottom_left"] = \
+            {"latitude": domain.min_latitude,
+             "longitude": domain.min_longitude}
+        domain_corners["bottom_right"] = \
+            {"latitude": domain.min_latitude,
+             "longitude": domain.max_longitude}
+        domain_corners["upper_left"] =\
+            {"latitude": domain.max_latitude,
+             "longitude": domain.min_longitude}
+        domain_corners["upper_right"] = \
+            {"latitude": domain.max_latitude,
+             "longitude": domain.max_longitude}
+        return domain_corners
 
     def what_is(self, path):
         """
@@ -628,9 +699,8 @@ class QueryComponent(Component):
             return self.__what_is_this_file(path)
 
     def __what_is_this_folder(self, folder_path):
-        key = [
-            _i[0] for _i in list(
-                self.comm.project.paths.items()) if _i[1] == folder_path]
+        key = [_i[0] for _i in list(self.comm.project.paths.items()) if _i[1] ==
+               folder_path]
         if key:
             key = key[0]
             info = {
@@ -665,9 +735,8 @@ class QueryComponent(Component):
             return None
 
     def __what_is_this_file(self, file_path):
-        key = [
-            _i[0] for _i in list(
-                self.comm.project.paths.items()) if _i[1] == file_path]
+        key = [_i[0] for _i in list(self.comm.project.paths.items()) if _i[1] ==
+               file_path]
         # Deal with files defined by the project itsself.
         if key:
             key = key[0]
@@ -685,8 +754,8 @@ class QueryComponent(Component):
         # Deal with other files.
         else:
             # Check if it is a subfolder of any of the other defined paths.
-            common_prefix = [_i for _i in list(self.comm.project.paths.items(
-            )) if os.path.commonprefix([_i[1], file_path]) == _i[1]]
+            common_prefix = [_i for _i in list(self.comm.project.paths.items()) if
+                             os.path.commonprefix([_i[1], file_path]) == _i[1]]
             # Not a project file if nothing is found.
             if not common_prefix:
                 return None

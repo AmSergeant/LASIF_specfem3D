@@ -2,10 +2,8 @@
 # -*- coding: utf-8 -*-
 """
 LASIF (LArge-scale Seismic Inversion Framework)
-
 A collection of scripts that are useful for running a full waveform inversion
 workflow with SES3D 4.0.
-
 :copyright:
     Lion Krischer (krischer@geophysik.uni-muenchen.de) and
     Andreas Fichtner (A.Fichtner@uu.nl) 2012-2016
@@ -29,7 +27,9 @@ def get_package_data():
         inspect.getfile(inspect.currentframe()))), "lasif")
     # Recursively include all files in these folders:
     folders = [os.path.join(root_dir, "tests", "baseline_images"),
-               os.path.join(root_dir, "tests", "data")]
+               os.path.join(root_dir, "tests", "data"), 
+               os.path.join(root_dir, "data", "GCMT_Catalog"), 
+               os.path.join(root_dir, "tools", "pyrocko", "earthmodels")]
     for folder in folders:
         for directory, _, files in os.walk(folder):
             for filename in files:
@@ -53,7 +53,7 @@ setup_config = dict(
     license="GNU General Public License, version 3 (GPLv3)",
     platforms="OS Independent",
     install_requires=[
-        "obspy>=1.1.0",
+        "obspy>=1.2.0",
         "progressbar",
         "geographiclib",
         "numpy",

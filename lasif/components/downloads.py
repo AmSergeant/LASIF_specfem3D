@@ -19,33 +19,49 @@ class DownloadsComponent(Component):
     :param communicator: The communicator instance.
     :param component_name: The name of this component for the communicator.
     """
-
-    def download_data(self, event=None, providers=None, networks=None):
+    def download_data(self, event_names=None, providers=None, networks=None):
         """
         Download waveforms and station info on a loop of events available in EVENTS
+        MPI enabled
         """
 
-        if event is None:
+        if event_names is None:
+            from mpi4py import MPI
+            from lasif.tools.parallel_helpers import distribute_across_ranks
             events = self.comm.events.list()
-            n = len(events)
-            for i, event in enumerate(events):
-                print(("PROCESSING EVENT " + str(i + 1) + "/" + str(n)))
-                self.comm.downloads.download_data_for_one_event(
-                    event, providers=providers, networks=networks)
-        else:
-            self.comm.downloads.download_data_for_one_event(
-                event, providers=providers, networks=networks)
+            to_be_processed = []
+            for event in events:
+                event_dict = {"event": event,
+                              "providers": providers,
+                              "networks": networks}
+                to_be_processed.append(event_dict)
 
-    def download_data_for_one_event(
-            self, event, providers=None, networks=None):
+            logfile = self.comm.project.get_log_file("DOWNLOADS", "all_events")
+
+            # Only rank 0 needs to know what has to be processsed.
+            if MPI.COMM_WORLD.rank == 0:
+                event_to_download = to_be_processed
+            else:
+                event_to_download = None
+
+            distribute_across_ranks(
+                self.comm.downloads.download_data_for_one_event, items=event_to_download,
+                get_name=lambda x: x["event"],
+                logfile=logfile)            
+
+        else:
+            for event in event_names:
+                self.comm.downloads.download_data_for_one_event(event, providers=providers, networks=networks)
+
+
+    def download_data_for_one_event(self, event, providers=None, networks = None):
         event = self.comm.events.get(event)
 
         from obspy.clients.fdsn.mass_downloader import \
             Restrictions, GlobalDomain
 
         print(" ")
-        print(("######## Looking for data for " +
-               event["event_name"] + " #########"))
+        print(("######## Looking for data for "+event["event_name"]+" #########"))    
         print(" ")
 
         proj = self.comm.project
@@ -117,6 +133,8 @@ class DownloadsComponent(Component):
                                  )
             sacpaz_path=self.comm.project.paths["sacpz"]
             dlh.download(outdir=mseed_storage,stationdir=sacpaz_path)
+
+        print("")
 
     def _get_stationxml_storage_fct(self, starttime, endtime):
         # Get the stationxml storage function required by the download helpers.

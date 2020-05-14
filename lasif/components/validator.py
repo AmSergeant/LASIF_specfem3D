@@ -78,11 +78,17 @@ class ValidatorComponent(Component):
               and the moment tensor values as well. This is rather fragile and
               mainly intended to detect values specified in wrong units.
         """
+        # get configuration as defined in conf domain 
+        # in case of teleseismic configuration, will skip some tests
+        proj = self.comm.project
+        ds = proj.config["download_settings"]
+        config = ds["configuration"]
+
         # Reset error and report counts.
         self._reports = []
         self._total_error_count = 0
 
-        self._validate_event_files()
+        self._validate_event_files(config)
 
         # Assert that all waveform files have a corresponding station file.
         if station_file_availability:
@@ -106,6 +112,9 @@ class ValidatorComponent(Component):
             if isinstance(self.comm.project.domain, GlobalDomain):
                 print(("%sSkipping raypath checks for global domain...%s" % (
                     colorama.Fore.YELLOW, colorama.Fore.RESET)))
+            elif config == "teleseismic":
+                print(("%sSkipping raypath checks for teleseismic configuration...%s" % (
+                    colorama.Fore.YELLOW, colorama.Fore.RESET)))
             else:
                 files_failing_raypath_test = \
                     self.validate_raypaths_in_domain()
@@ -116,9 +125,9 @@ class ValidatorComponent(Component):
         # Depending on whether or not the tests passed, report it accordingly.
         if not self._reports:
             print(("\n%sALL CHECKS PASSED%s\n"
-                   "The data seems to be valid. If we missed something please "
-                   "contact the developers." % (colorama.Fore.GREEN,
-                                                colorama.Fore.RESET)))
+                  "The data seems to be valid. If we missed something please "
+                  "contact the developers." % (colorama.Fore.GREEN,
+                                               colorama.Fore.RESET)))
         else:
             folder = \
                 self.comm.project.get_output_folder(
@@ -126,28 +135,28 @@ class ValidatorComponent(Component):
                     tag="data_integrity_report")
             filename = os.path.join(folder, "report.txt")
             seperator_string = "\n" + 80 * "=" + "\n" + 80 * "=" + "\n"
-            with open(filename, "wt") as fh:
+            with open(filename, "wb") as fh:
                 for report in self._reports:
                     fh.write(report.strip())
                     fh.write(seperator_string)
             print(("\n%sFAILED%s\nEncountered %i errors!\n"
-                   "A report has been created at '%s'.\n" %
-                   (colorama.Fore.RED, colorama.Fore.RESET,
-                    self._total_error_count, os.path.relpath(filename))))
+                  "A report has been created at '%s'.\n" %
+                  (colorama.Fore.RED, colorama.Fore.RESET,
+                   self._total_error_count, os.path.relpath(filename))))
             if files_failing_raypath_test:
                 # Put quotes around the filenames
                 files_failing_raypath_test = ['"%s"' % _i for _i in
                                               files_failing_raypath_test]
                 filename = os.path.join(folder,
                                         "delete_raypath_violating_files.sh")
-                with open(filename, "wt") as fh:
+                with open(filename, "wb") as fh:
                     fh.write("# CHECK THIS FILE BEFORE EXECUTING!!!\n")
                     fh.write("rm ")
                     fh.write("\nrm ".join(files_failing_raypath_test))
                 print(("\nSome files failed the raypath in domain checks. A "
-                       "script which deletes the violating files has been "
-                       "created. Please check and execute it if necessary:\n"
-                       "'%s'" % filename))
+                      "script which deletes the violating files has been "
+                      "created. Please check and execute it if necessary:\n"
+                      "'%s'" % filename))
 
     def validate_raypaths_in_domain(self):
         """
@@ -260,6 +269,8 @@ class ValidatorComponent(Component):
         # Loop over all events.
         for event_name in self.comm.events.list():
             self._flush_point()
+            print(event_name)
+            print('Parsing the iterations ...')
 
             for iteration in iterations:
                 if iteration == "__RAW__":
@@ -267,52 +278,126 @@ class ValidatorComponent(Component):
                         waveform_info = self.comm.waveforms.get_metadata_raw(
                             event_name)
                     except LASIFNotFoundError:
-                        print("NO RAW!!!")
+                        data_path = \
+                            self.comm.waveforms.get_waveform_folder(event_name, "raw")
+                        print("NO RAW !!!")
+                        if os.path.exists(data_path):
+                            try:
+                                print(('Deleting directory %s'%data_path))
+                                os.rmdir(data_path)
+                            except OSError as e:
+                                print(("Error: %s : %s" % (data_path, e.strerror)))      
                         continue
                 else:
+                    processing_tag = self.comm.iterations.get(iteration).processing_tag
+                    iteration_tag = self.comm.iterations.get(iteration).long_name
                     try:
                         waveform_info = \
                             self.comm.waveforms.get_metadata_processed(
-                                event_name=event_name,
-                                tag=self.comm.iterations.get(
-                                    iteration).processing_tag)
+                                event_name=event_name,tag=processing_tag)
+                        # Sort by network, station, and component.
+                        info = collections.defaultdict(list)
+                        for i in waveform_info:
+                            info[(i["network"], i["station"],
+                                  i["channel"][-1].upper())].append(i["filename"])
+
+                        s_keys = sorted(info.keys())
+
+                        for key in s_keys:
+                            value = info[key]
+                            if len(value) == 1:
+                                continue
+                            all_good = False
+                            msg = (
+                                "Data waveform files for {it_or_raw} for event '{event}' "
+                                "and station '{station}' have {count} waveform files "
+                                "for component {component}. Please make sure there is "
+                                "only 1 file per component! Offending files:"
+                                "\n\t{files}").format(
+                                it_or_raw="iteration '%s'" % iteration
+                                if iteration != "__RAW__" else "the raw waveforms",
+                                station=".".join(key[:2]),
+                                event=event_name,
+                                count=len(value),
+                                component=key[-1],
+                                files="\n\t".join(["'%s'" % _i for _i in value]))
+                            self._add_report(msg)
+
                     except LASIFNotFoundError:
-                        print(("NO %s!!!" % iteration))
+                        data_path = \
+                            self.comm.waveforms.get_waveform_folder(
+                                event_name, "processed", processing_tag)
+                        print(("NO PROCESSED %s!!!" % iteration))
+                        if os.path.exists(data_path):
+                            try:
+                                print(('Deleting directory %s'%data_path))
+                                os.rmdir(data_path)
+                                os.remove("%_cache.sqlite"%data_path)
+                            except OSError as e:
+                                print(("Error: %s : %s" % (data_path, e.strerror)))
+                    try: 
+                        synthetic_info = \
+                            self.comm.waveforms.get_metadata_synthetic(event_name, 
+                                                                       iteration_tag)
+                        # Sort by network, station, and component.
+                        info = collections.defaultdict(list)
+                        for i in synthetic_info:
+                            info[(i["network"], i["station"],
+                                  i["channel"][-1].upper())].append(i["filename"])
+
+                        s_keys = sorted(info.keys())
+
+                        for key in s_keys:
+                            value = info[key]
+                            if len(value) == 1:
+                                continue
+                            all_good = False
+                            msg = (
+                                "Synthetic waveform files for {it_or_raw} for event '{event}' "
+                                "and station '{station}' have {count} waveform files "
+                                "for component {component}. Please make sure there is "
+                                "only 1 file per component! Offending files:"
+                                "\n\t{files}").format(
+                                it_or_raw="iteration '%s'" % iteration
+                                if iteration != "__RAW__" else "the raw waveforms",
+                                station=".".join(key[:2]),
+                                event=event_name,
+                                count=len(value),
+                                component=key[-1],
+                                files="\n\t".join(["'%s'" % _i for _i in value]))
+                            self._add_report(msg)
+
+                    except LASIFNotFoundError:
+                        data_path = \
+                            self.comm.waveforms.get_waveform_folder(
+                                event_name, "synthetic", 
+                                iteration_tag)
+                        print(("NO SYNTHETIC %s!!!" % iteration))
+                        if os.path.exists(data_path):
+                            try:
+                                print(('Deleting directory %s'%data_path))
+                                os.rmdir(data_path)
+                                os.remove("%_cache.sqlite"%data_path)
+                            except OSError as e:
+                                print(("Error: %s : %s" % (data_path, e.strerror)))
+                        stf_path = data_path.replace('SYNTHETICS','STF')
+                        if os.path.exists(stf_path):
+                            try:
+                                print(('Deleting directory %s'%stf_path))
+                                os.rmdir(stf_path)
+                            except OSError as e:
+                                print(("Error: %s : %s" % (data_path, e.strerror)))
+
                         continue
 
-                # Sort by network, station, and component.
-                info = collections.defaultdict(list)
-                for i in waveform_info:
-                    info[(i["network"], i["station"],
-                          i["channel"][-1].upper())].append(i["filename"])
 
-                s_keys = sorted(info.keys())
 
-                for key in s_keys:
-                    value = info[key]
-                    if len(value) == 1:
-                        continue
-                    all_good = False
-                    msg = (
-                        "Waveform files for {it_or_raw} for event '{event}' "
-                        "and station '{station}' have {count} waveform files "
-                        "for component {component}. Please make sure there is "
-                        "only 1 file per component! Offending files:"
-                        "\n\t{files}").format(
-                        it_or_raw="iteration '%s'" % iteration
-                        if iteration != "__RAW__" else "the raw waveforms",
-                        station=".".join(key[:2]),
-                        event=event_name,
-                        count=len(value),
-                        component=key[-1],
-                        files="\n\t".join(["'%s'" % _i for _i in value]))
-                    self._add_report(msg)
         if all_good:
             self._print_ok_message()
         else:
             self._print_fail_message()
 
-    def _validate_event_files(self):
+    def _validate_event_files(self, config):
         """
         Validates all event files in the currently active project.
 
@@ -491,7 +576,7 @@ class ValidatorComponent(Component):
         event_infos = list(self.comm.events.get_all_events().values())
 
         # Now check the time distribution of events.
-        print("\tChecking for duplicates and events too close in time %s" %
+        print("\tChecking for duplicates and events too close in time %s" % \
               (self.comm.events.count() * "."), end=' ')
         all_good = True
         # Sort the events by time.
@@ -520,19 +605,25 @@ class ValidatorComponent(Component):
             self._print_fail_message()
 
         # Check that all events fall within the chosen boundaries.
-        print("\tAssure all events are in chosen domain %s" %
-              (self.comm.events.count() * "."), end=' ')
-        all_good = True
-        domain = self.comm.project.domain
-        for event in event_infos:
-            if domain.point_in_domain(latitude=event["latitude"],
-                                      longitude=event["longitude"]):
-                continue
-            all_good = False
-            self._add_report(
-                "\nWARNING: "
-                "Event '{filename}' is out of bounds of the chosen domain."
-                "\n".format(filename=event["filename"]))
+        if config == "teleseismic":
+            print((\
+                "\tSkipping the check that all %s events are in chosen domain for teleseismic configuration"%\
+                self.comm.events.count()))
+            all_good = True
+        else:
+            print("\tAssure all events are in chosen domain %s" % \
+                  (self.comm.events.count() * "."), end=' ')
+            all_good = True
+            domain = self.comm.project.domain
+            for event in event_infos:
+                if domain.point_in_domain(latitude=event["latitude"],
+                                          longitude=event["longitude"]):
+                    continue
+                all_good = False
+                self._add_report(
+                    "\nWARNING: "
+                    "Event '{filename}' is out of bounds of the chosen domain."
+                    "\n".format(filename=event["filename"]))
         if all_good is True:
             self._print_ok_message()
         else:

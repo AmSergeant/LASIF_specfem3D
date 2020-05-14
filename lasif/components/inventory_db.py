@@ -4,9 +4,7 @@
 
 import re
 import sqlite3
-import urllib.request
-import urllib.error
-import urllib.parse
+import urllib.request, urllib.error, urllib.parse
 
 from .component import Component
 
@@ -246,7 +244,7 @@ class InventoryDBComponent(Component):
                     "elevation_in_m": None, "local_depth_in_m": None}
 
         # Now simply find the coordinates.
-        request_text = req.read()
+        request_text = str(req.read())
         try:
             lat = float(re.findall("<Latitude>(.*)</Latitude>",
                                    request_text)[0])

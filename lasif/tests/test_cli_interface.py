@@ -30,6 +30,7 @@ import re
 import mock
 import numpy as np
 import matplotlib as mpl
+import collections
 mpl.use("agg")
 
 
@@ -38,7 +39,7 @@ from lasif.tests.testing_helpers import communicator, cli  # NOQA
 # Get a list of all available commands.
 CMD_LIST = [key.replace("lasif_", "")
             for (key, value) in lasif_cli.__dict__.items()
-            if (key.startswith("lasif_") and callable(value))]
+            if (key.startswith("lasif_") and isinstance(value, collections.Callable))]
 
 
 def setup_function(function):
@@ -355,12 +356,12 @@ def test_various_list_functions(cli):
     iterations = cli.run("lasif list_iterations").stdout
     assert "0 iterations" in iterations
     with open(os.path.join(cli.comm.project.paths["iterations"],
-                           "ITERATION_1.xml"), "wt") as fh:
+                           "ITERATION_1.xml"), "wb") as fh:
         fh.write("<>")
     iterations = cli.run("lasif list_iterations").stdout
     assert "1 iteration" in iterations
     with open(os.path.join(cli.comm.project.paths["iterations"],
-                           "ITERATION_2.xml"), "wt") as fh:
+                           "ITERATION_2.xml"), "wb") as fh:
         fh.write("<>")
     iterations = cli.run("lasif list_iterations").stdout
     assert "2 iteration" in iterations

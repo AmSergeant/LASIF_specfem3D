@@ -173,7 +173,7 @@ def distribute_across_ranks(function, items, get_name, logfile):
             print(("Approximately %i of %i items have been processed." % (
                 min((_i + 1) * MPI.COMM_WORLD.size, total_length),
                 total_length)))
-    # print(results)
+    #print(results)
 
     results=MPI.COMM_WORLD.gather(results, root=0)
 
@@ -189,10 +189,12 @@ def distribute_across_ranks(function, items, get_name, logfile):
 
     # Log the results.
     with open(logfile, "wt") as fh:
+        
         for result in results:
-            fh.write("\n============\nItem: %s" % get_name(result.func_args))
-            has_exception=False
-            has_warning=False
+            
+            fh.write("\n============\nItem: %s" %get_name(result.func_args))
+            has_exception = False
+            has_warning = False
             if result.exception:
                 has_exception=True
                 fh.write("\n")

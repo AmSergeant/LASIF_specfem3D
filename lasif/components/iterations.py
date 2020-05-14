@@ -104,17 +104,11 @@ class IterationsComponent(Component):
 
         return iteration_name in self.get_iteration_dict()
 
-    def create_new_iteration(
-            self,
-            iteration_name,
-            solver_name,
-            events_dict,
-            min_period,
-            max_period,
-            seconds_prior_arrival=5.,
-            window_length_in_sec=50.,
-            quiet=False,
-            create_folders=True):
+    def create_new_iteration(self, iteration_name, solver_name, events_dict,
+                             min_period, max_period, 
+                             seconds_prior_arrival = 5., window_length_in_sec = 50.,
+                             quiet=False,
+                             create_folders=True):
         """
         Creates a new iteration XML file.
 
@@ -146,15 +140,11 @@ class IterationsComponent(Component):
             raise LASIFError(msg)
 
         from lasif.iteration_xml import create_iteration_xml_string
-        xml_string = create_iteration_xml_string(
-            iteration_name,
-            solver_name,
-            events_dict,
-            min_period,
-            max_period,
-            seconds_prior_arrival,
-            window_length_in_sec,
-            quiet=quiet)
+        xml_string = create_iteration_xml_string(iteration_name,
+                                                 solver_name, events_dict,
+                                                 min_period, max_period,
+                                                 seconds_prior_arrival, window_length_in_sec,
+                                                 quiet=quiet)
         with open(self.get_filename_for_iteration(iteration_name), "wb")\
                 as fh:
             fh.write(xml_string)
@@ -184,7 +174,7 @@ class IterationsComponent(Component):
         """
         iteration = self.comm.iterations.get(iteration_name)
         path = self.comm.project.paths["stf"]
-        for event_name in iteration.events.keys():
+        for event_name in list(iteration.events.keys()):
             folder = os.path.join(path, event_name, iteration.long_name)
             if not os.path.exists(folder):
                 os.makedirs(folder)
@@ -258,8 +248,8 @@ class IterationsComponent(Component):
             stf_fct=self.comm.project.get_project_function(
                 "source_time_function"))
 
-        # update the events: keep only the ones given in events_dict
-        events = OrderedDict()
+        # update the events: keep only the ones given in events_dict 
+        events= OrderedDict()
         for event_name in events_dict:
             events[event_name] = existing_iteration.events[event_name]
         existing_iteration.events = events

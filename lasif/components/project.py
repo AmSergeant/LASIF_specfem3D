@@ -41,6 +41,7 @@ from .validator import ValidatorComponent
 from .visualizations import VisualizationsComponent
 from .waveforms import WaveformsComponent
 from .windows import WindowsComponent
+import collections
 
 
 class Project(Component):
@@ -238,6 +239,25 @@ class Project(Component):
 
         self.config["download_settings"] = default_download_settings
         dl_settings = root.find("download_settings")
+        self.config["download_settings"]["configuration"] = \
+            dl_settings.find("configuration").text.lower()
+        evt_settings = dl_settings.find("event_criteria")
+        self.config["download_settings"]["minimum_magnitude"] = \
+            float(evt_settings.find("minimum_magnitude").text)
+        self.config["download_settings"]["maximum_magnitude"] = \
+            float(evt_settings.find("maximum_magnitude").text)
+        self.config["download_settings"]["minimum_epicentral_distance_in_degree"] = \
+            float(evt_settings.find("minimum_epicentral_distance_in_degree").text)
+        self.config["download_settings"]["maximum_epicentral_distance_in_degree"] = \
+            float(evt_settings.find("maximum_epicentral_distance_in_degree").text)
+        self.config["download_settings"]["minimum_depth_in_km"] = \
+            float(evt_settings.find("minimum_depth_in_km").text)
+        self.config["download_settings"]["maximum_depth_in_km"] = \
+            float(evt_settings.find("maximum_depth_in_km").text)
+        self.config["download_settings"]["minimum_adjacent_distance_in_km"] = \
+            float(evt_settings.find("minimum_adjacent_distance_in_km").text)
+        self.config["download_settings"]["phase_of_interest"] = \
+            evt_settings.find("phase_of_interest").text
         self.config["download_settings"]["seconds_before_event"] = \
             float(dl_settings.find("seconds_before_event").text)
         self.config["download_settings"]["seconds_after_event"] = \
@@ -260,6 +280,7 @@ class Project(Component):
 
         # Read the domain.
         domain = root.find("domain")
+
 
         # Check if the domain is global.
         is_global = domain.find("global")
@@ -466,7 +487,7 @@ class Project(Component):
         self.paths["wavefields"] = os.path.join(root_path, "WAVEFIELDS")
         self.paths["iterations"] = os.path.join(root_path, "ITERATIONS")
         self.paths["synthetics"] = os.path.join(root_path, "SYNTHETICS")
-        self.paths["stf"] = os.path.join(root_path, "STF")
+        self.paths["stf"] = os.path.join(root_path,"STF")
         self.paths["kernels"] = os.path.join(root_path, "KERNELS")
         self.paths["stations"] = os.path.join(root_path, "STATIONS")
         self.paths["output"] = os.path.join(root_path, "OUTPUT")
@@ -533,9 +554,19 @@ class Project(Component):
             E.name(project_name),
             E.description(""),
             E.download_settings(
+                getattr(E, "configuration")("teleseismic"),
+                E.event_criteria(
+                    E.minimum_magnitude((str(5))),
+                    E.maximum_magnitude((str(8.5))),
+                    E.minimum_epicentral_distance_in_degree(str(30)),
+                    E.maximum_epicentral_distance_in_degree(str(100)),
+                    E.minimum_depth_in_km(str(0)),
+                    E.maximum_depth_in_km(str(700)),
+                    E.minimum_adjacent_distance_in_km(str(50)),
+                    E.phase_of_interest("P")),
                 E.seconds_before_event(str(300)),
                 E.seconds_after_event(str(3600)),
-                E.interstation_distance_in_m(str(1000.0)),
+                E.interstation_distance_in_m(str(5)),
                 E.channel_priorities(
                     E.priority("BH[Z,N,E]"),
                     E.priority("LH[Z,N,E]"),
@@ -614,7 +645,7 @@ class Project(Component):
             raise LASIFNotFoundError("Could not find function %s in file '%s'"
                                      % (fct_type, filename))
 
-        if not callable(fct):
+        if not isinstance(fct, collections.Callable):
             raise LASIFError("Attribute %s in file '%s' is not a function."
                              % (fct_type, filename))
 

@@ -224,8 +224,8 @@ class Iteration(object):
             self=self, comments=comments,
             hp=self.data_preprocessing["highpass_period"],
             lp=self.data_preprocessing["lowpass_period"],
-            prior_sec=self.data_preprocessing["seconds_prior_arrival"],
-            window=self.data_preprocessing["window_length_in_sec"],
+            prior_sec = self.data_preprocessing["seconds_prior_arrival"],
+            window = self.data_preprocessing["window_length_in_sec"],
             solver=self.solver_settings["solver"],
             timesteps=self.solver_settings["solver_settings"][
                 "simulation_parameters"]["number_of_time_steps"],
@@ -353,7 +353,7 @@ def _recursive_etree(dictionary):
 
 def create_iteration_xml_string(iteration_name, solver_name, events,
                                 min_period, max_period,
-                                seconds_prior_arrival, window_length_in_sec,
+                                seconds_prior_arrival, window_length_in_sec, 
                                 quiet=False):
     """
     Creates a new iteration string.
