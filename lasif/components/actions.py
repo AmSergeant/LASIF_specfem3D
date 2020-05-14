@@ -212,7 +212,7 @@ class ActionsComponent(Component):
         ###################################################
         # svd to be computed only for teleseismic events :
         ##################################################
-        if svd_selection:
+        if svd_selection==True:
             # Load project specific data selection function.
             data_svd_selection = self.comm.project.get_project_function(
                 "data_svd_selection")
