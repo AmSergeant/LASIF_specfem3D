@@ -16,7 +16,7 @@ from obspy.io.xseed import Parser
 from scipy import signal
 import warnings
 
-from lasif import LASIFError
+from lasif import LASIFError, LASIFWarning
 
 
 def preprocessing_function(processing_info, iteration, components, noise_threshold = 0.5):  # NOQA
@@ -127,7 +127,7 @@ def preprocessing_function(processing_info, iteration, components, noise_thresho
 
         minimum_period = 1./process_params["highpass"]
         dt = process_params["dt"]
-
+        npts = process_params["npts"]
 
         # Estimate noise level from waveforms prior to the first arrival.
         idx_noise_end = int(np.ceil((first_tt_arrival - 0.5 * minimum_period) / dt)) - 1
@@ -136,26 +136,20 @@ def preprocessing_function(processing_info, iteration, components, noise_thresho
         idx_noise_start = max(10, idx_noise_start)
         idx_sigwin_start = int(np.ceil((first_tt_arrival - 0.5 * minimum_period) / dt))
         idx_sigwin_end = idx_sigwin_start + int(minimum_period/ dt)
+        idx_sigwin_end = min(idx_sigwin_end, npts)
 
         if idx_noise_start >= idx_noise_end:
             idx_noise_start = max(10, idx_noise_end - 10)
-
+        
         abs_data = np.abs(data[idx_sigwin_start:idx_sigwin_end])
         noise_absolute = np.abs(data[idx_noise_start:idx_noise_end]).max()
         noise_relative = noise_absolute / abs_data.max()
 
         return noise_relative, noise_absolute
 
-    '''
-    # =========================================================================
-    # Define noise_theshold by default if not given in argument
-    # =========================================================================
-    if processing_info["noise_threshold"] is None:
-        noise_threshold = 0.1
-    else:
-        noise_threshold = processing_info["noise_threshold"]
-    '''
+    
 
+    info_msg = []
     # =========================================================================
     # Read seismograms and gather basic information.
     # =========================================================================
@@ -166,7 +160,6 @@ def preprocessing_function(processing_info, iteration, components, noise_thresho
 
     receiver = processing_info["station_coordinates"]
     waveform_infos = processing_info["waveforms"]
-
 
     # loop over components
     stream = obspy.Stream()
@@ -215,6 +208,12 @@ def preprocessing_function(processing_info, iteration, components, noise_thresho
         # No nans or infinity values allowed.
         if not np.isfinite(tr.data).all():
             msg = "Data contains NaNs or Infs. File skipped"
+            raise LASIFError(msg)
+            
+        # check that the window and interpolated trace (to be done below) will contain seismic phase
+        if processing_info["first_P_arrival"]/processing_info["process_params"]["dt"] \
+            >= processing_info["process_params"]["npts"]:
+            msg = "Windowed and interpolated preprocess data do not contain the phase of interest.\n--> Please adjust the sampling rate and number of points in the iteration file"
             raise LASIFError(msg)
 
         # =========================================================================
@@ -325,51 +324,17 @@ def preprocessing_function(processing_info, iteration, components, noise_thresho
                 msg = ("Could not open StationXML file '%s'. Due to: %s. Will be "
                        "skipped." % (station_file, str(e)))
                 raise LASIFError(msg)
-            '''
-            if tr.stats.network == "IB":
-                print("inventory correction for IBERarray")
-                for net in inv:
-                    for sta in net:
-                        for cha in sta:
-                            cha.response.response_stages[-1].decimation_factor = 1
-                            cha.response.response_stages[-1].decimation_delay = 0.0
-                            cha.response.response_stages[-1].decimation_correction = 0.0
-                            cha.response.response_stages[-1].decimation_offset = 0
-                            cha.response.response_stages[-1].decimation_input_sample_rate = \
-                                    cha.response.response_stages[-2].decimation_input_sample_rate/cha.response.response_stages[-2].decimation_factor
-            '''
             tr.attach_response(inv)
             try:
                 tr.remove_response(output=output_units, pre_filt=pre_filt,
                                    zero_mean=False, taper=False)
-                if Warning:
-                    raise Exception
+                if np.isnan(np.sum(tr.data)):
+                    raise Exception("Corrected trace contains NaN")
             except Exception as e:
-                # try with corresponding RESP file
-                import os
-                print("Problem with StationXML file, try with RESP file if available ...")
-                station_folder = station_file.split('/StationXML')[0]
-                resp_file = os.path.join(
-                    station_folder,'RESP',
-                    "RESP.%s"%channel_id)
-                if os.path.isfile(resp_file):
-                    print(('Using RESP file %s'%resp_file))
-                    try:
-                        tr.simulate(seedresp={"filename": resp_file,
-                                              "units": output_units,
-                                              "date": tr.stats.starttime},
-                                    pre_filt=pre_filt, zero_mean=False, taper=False)
-                    except ValueError as e:
-                        msg = ("File  could not be corrected with the help of the "
-                               "RESP file '%s'. Will be skipped. Due to: %s") \
-                            % (processing_info["station_filename"], str(e))
-                        raise LASIFError(msg)
-
-                else:
-                    msg = ("File  could not be corrected with the help of the "
-                           "StationXML file '%s'. Due to: '%s'  Will be skipped.") \
-                        % (processing_info["station_filename"], e.__repr__()),
-                    raise LASIFError(msg)
+                msg = ("File  could not be corrected with the help of the "
+                       "StationXML file '%s'. Due to: '%s'  Will be skipped.") \
+                    % (channel_infos["station_filename"], e.__repr__()),
+                raise LASIFError(msg)
         else:
             raise NotImplementedError
 
@@ -411,12 +376,13 @@ def preprocessing_function(processing_info, iteration, components, noise_thresho
         tr_north = stream.select(component = 'N')
         if len(tr_east)==0 or len(tr_north)==0:
             msg = "No data found for N or E component. Could not compute R and T rotation."
-            raise LASIFError(msg)
-        from obspy.geodetics.base import gps2dist_azimuth
-        epicentral_distance, azimuth, baz = gps2dist_azimuth(
-            processing_info["event_information"]["latitude"], processing_info["event_information"]["longitude"], 
-            receiver["latitude"],receiver["longitude"])
-        stream.rotate('NE->RT', back_azimuth = baz)
+            warnings.warn(msg, LASIFWarning)
+        else:
+            from obspy.geodetics.base import gps2dist_azimuth
+            epicentral_distance, azimuth, baz = gps2dist_azimuth(
+                processing_info["event_information"]["latitude"], processing_info["event_information"]["longitude"], 
+                receiver["latitude"],receiver["longitude"])
+            stream.rotate('NE->RT', back_azimuth = baz)
 
     #print(stream)
     # =========================================================================
@@ -427,7 +393,6 @@ def preprocessing_function(processing_info, iteration, components, noise_thresho
         channel_infos = waveform_infos[channel_id]
         snr = signal_to_noise_ratio(tr.data, processing_info["first_P_arrival"], 
                                     processing_info["process_params"])[0]
-
 
         # selection
         if snr < noise_threshold:
@@ -457,3 +422,19 @@ def preprocessing_function(processing_info, iteration, components, noise_thresho
 
                 # write output data file
                 tr.write(output_filename, format=tr.stats._format)
+        else:
+            channel_to_print = channel_id
+            if 'R' in components or 'T' in components:
+                if 'E' in channel_id.split('.')[-1][-1]:
+                    temp = channel_id.split('.')
+                    channel_to_print = temp[0]+'.'+temp[1]+'.'+temp[2]+'.'+temp[3][:-1]+'R'
+                elif 'N' in channel_id.split('.')[-1][-1]:
+                    temp = channel_id.split('.')
+                    channel_to_print = temp[0]+'.'+temp[1]+'.'+temp[2]+'.'+temp[3][:-1]+'T'
+            msg = "\tNon selected trace for %s due to low snr (%0.2f > %0.2f)"\
+                %(channel_to_print, snr, noise_threshold)            
+            #warnings.warn(msg, UserWarning)
+            print(msg)
+            
+            
+    

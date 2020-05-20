@@ -232,9 +232,9 @@ def lasif_plot_raw_waveforms(parser, args):
                         help="Float for scaling the waveforms, 0.5 by default")
     parser.add_argument("--plot_arrival", default="True", choices=["False", "True"],
                         help="For additionally plotting the seismic arrivals for a specific phase, False by default")
-    parser.add_argument("--phase", default="P",
+    parser.add_argument("--phase", default=None,
                         help="Name of the seismic phase you want to mark for the plot_arrival option"
-                        "default: P")
+                        "default: <phase_of_interest> in config file")
 
     args = parser.parse_args(args)
     event_name = args.event_name
@@ -273,9 +273,9 @@ def lasif_plot_preprocessed_waveforms(parser, args):
                         help="Float for scaling the waveforms, 0.5 by default")
     parser.add_argument("--plot_window", default="True", choices=["False", "True"],
                         help="For additionally plotting the phase window defined in the iteration, False by default")
-    parser.add_argument("--phase", default="P",
+    parser.add_argument("--phase", default=None,
                         help="Name of the seismic phase you want to window for the plot_window option"
-                        "default: P")
+                        "default: <phase_of_interest> in config file")
 
     args = parser.parse_args(args)
     iteration_name = args.iteration_name
@@ -310,9 +310,9 @@ def lasif_plot_synthetic_waveforms(parser, args):
                         help="Float for scaling the waveforms, 0.5 by default")
     parser.add_argument("--plot_window", default="True", choices=["False", "True"],
                         help="For additionally plotting the phase window defined in the iteration, False by default")
-    parser.add_argument("--phase", default="P",
+    parser.add_argument("--phase", default=None,
                         help="Name of the seismic phase you want to window for the plot_window option"
-                        "default: P")
+                        "default: <phase_of_interest> in config file")
 
     args = parser.parse_args(args)
     iteration_name = args.iteration_name
@@ -339,6 +339,11 @@ def lasif_plot_event(parser, args):
     """
     Plot a single event including stations on a map.
     """
+    taup_phases = ['P', 'pP', 'sP', 'PcP', 'PP', 'PKiKP', 'sPKiKP', 'S', 'pS', 'SP',
+                       'sS', 'PS', 'SKS', 'SKKS', 'ScS', 'SKiKP', 'pSKS', 'sSKS', 'SS',
+                       'PKIKKIK', 'SKIKKIKP', 'PKIKKIKS', 'SKIKKIKS', 'PKIKPPKIKP', 'PKPPKP',
+                       'PKPPKP', 'SKIKSSKIKS']
+    
     parser.add_argument("event_name", help="name of the event to plot")
     parser.add_argument("--config", default="local", choices=["local", "teleseismic"],
                         help="the type of map plot. "
@@ -352,19 +357,24 @@ def lasif_plot_event(parser, args):
                         help="iteration_name. "
                         "None: will plot stations for available waveforms in the data raw folder, "
                         "FLOAT: will plot stations for available waveforms in the data preprocessed folder that corresponds to the iteration processing tag, ")
-    parser.add_argument("--phase", default="P", 
+    parser.add_argument("--phase", default=None, 
                         help="Names of seismic phases you want to plot on the beachball, option enabled only for local configuration. "
-                        "default: P "
-                        "example: P,S,pP")
+                        "default: <phase_of_interest> in config file "
+                        "example: P,S,pP"
+                        "List of seismic phases:%s"%(', ').join(taup_phases))
     args = parser.parse_args(args)
     event_name = args.event_name
     config=args.config
     azimuthal_proj=args.azimuthal_proj
     iteration_name = args.iteration
-    phases = args.phase.split(',')
-    Phases=[]
-    for phase in phases:
-        Phases.append(phase)
+    phases = args.phase
+    if phases is None:
+        Phases = phases
+    else:
+        phases = phases.split(',')
+        Phases=[]
+        for phase in phases:
+            Phases.append(phase)
 
 
     comm = _find_project_comm(".", args.read_only_caches)
@@ -392,7 +402,7 @@ def lasif_plot_events(parser, args):
                         "``depth``: depth distribution histogram, "
                         "``time``: time distribution histogram,"
                         "``azimuth``: azimuth distribution histogram")
-    parser.add_argument("--azimuthal_proj", default="False", choices=["True", "False"],
+    parser.add_argument("--azimuthal_proj", default=False, choices=["True", "False"],
                         help="the type of map projection. "
                         "``False``: for classic map projection, by default"
                         "``True``: for Azimuthal Equidistant Projection centered on the domain, ")
@@ -404,9 +414,12 @@ def lasif_plot_events(parser, args):
     plot_type = args.type
     azimuthal_proj=args.azimuthal_proj
     iteration_name = args.iteration
-
+    # some trick
+    if azimuthal_proj == "True":
+        azimuthal_proj = True
+        
     comm = _find_project_comm(".", args.read_only_caches)
-    comm.visualizations.plot_events(plot_type, azimuthal_proj, iteration_name)
+    comm.visualizations.plot_events(plot_type, azimuthal_projection=azimuthal_proj, iteration_name = iteration_name)
 
     import matplotlib.pyplot as plt
     plt.show()
@@ -418,15 +431,23 @@ def lasif_plot_stations(parser,args):
     """
     Plot a single event including stations on a map.
     """
-    parser.add_argument("--relief", type=int, default=1, choices=[1,0],
-                        help="Boolean for plotting relief as a background image. "
-                        "1: relief background, "
-                        "0: no relief background, ")
+    parser.add_argument("--relief", default=True, choices=["True","False"],
+                        help="For plotting relief as a background image. "
+                        "True: relief background, by default"
+                        "False: no relief background, ")
+    parser.add_argument("--color_per_network", default="True", choices=["True","False"],
+                        help="For using a color code based on seismic network. "
+                        "True: use network color code, by default"
+                        "False: no color code, plot in red triangles")
     args = parser.parse_args(args)
     plot_type = args.relief
-
+    color_code = args.color_per_network
+    if plot_type == "False":
+        plot_type = False
+    if color_code == "False":
+        color_code = False
     comm = _find_project_comm(".", args.read_only_caches)
-    comm.visualizations.plot_stations(plot_type)
+    comm.visualizations.plot_stations(plot_type, color_code)
 
     import matplotlib.pyplot as plt
     plt.show()    
@@ -460,6 +481,93 @@ def lasif_add_spud_event(parser, args):
     iris2quakeml(url, comm.project.paths["events"])
 
 
+
+@command_group("Plotting")
+def lasif_query_and_plot_available_stations(parser, args):
+    """
+    Query and plot data availability for stations in the chosen domain 
+    and for a specific time range
+    """
+    parser.add_argument("start_date", type=str,
+                        help="start date from which to query stations"
+                        "example: 2011-01-01")
+    parser.add_argument("end_date", type=str,
+                        help="end date from which to query stations")
+    
+
+    args = parser.parse_args(args)
+    start_date = args.start_date
+    end_date = args.end_date
+    from obspy.core import UTCDateTime
+    s_yyyy, s_mm, s_dd = start_date.split('-') 
+    start_date = UTCDateTime(int(s_yyyy), int(s_mm), int(s_dd), 0,0,0)
+    e_yyyy, e_mm, e_dd = end_date.split('-') 
+    end_date = UTCDateTime(int(e_yyyy), int(e_mm), int(e_dd), 0,0,0)
+    
+    comm = _find_project_comm(".", args.read_only_caches)
+    
+    
+    inventory = comm.downloads.query_station_inventory(start_date, end_date)
+    inventory = inventory.select(channel="*Z")
+    number_of_stations = comm.visualizations.plot_station_inventory_in_query(inventory)
+    import matplotlib.pyplot as plt
+    plt.title("%d stations available between %s and %s" %(number_of_stations, 
+                                                          start_date.datetime.strftime("%Y-%m-%d"),
+                                                          end_date.datetime.strftime("%Y-%m-%d")))
+    
+    comm.visualizations.plot_data_availability(inventory, start_date, end_date)
+
+    plt.show()
+
+
+@command_group("Plotting")
+def lasif_plot_data_availability(parser, args):
+    """
+    Plot data availability for the station channels in the project 
+    and indicates the event occurence times
+    """
+    args = parser.parse_args(args) 
+    comm = _find_project_comm(".", args.read_only_caches)
+    channels = comm.stations.get_all_channels()
+    from obspy.core.inventory import Inventory
+    import obspy
+    read_filenames = []
+    inventory = Inventory()
+    print("Reading inventory for all stations. This might take a while ...")
+    for channel in channels:
+        filename = channel["filename"]
+        if filename in read_filenames:
+            continue
+        else:
+            inv = obspy.read_inventory(filename)
+            if inv:
+                inventory.extend(inv)
+    inventory = inventory.select(channel="*Z")
+    
+        
+    import matplotlib.pyplot as plt
+    import numpy as np
+    from obspy.core import UTCDateTime
+    from matplotlib.dates import date2num
+    print("Reading event catalog ...")
+    events = list(comm.events.get_all_events().values())
+    dates = []
+    for event in events:
+        dates.append(event["origin_time"].datetime)
+    start_date = np.min(dates)
+    start_date = UTCDateTime(start_date.year,start_date.month,start_date.day)
+    end_date = np.max(dates)
+    end_date = UTCDateTime(end_date.year,end_date.month,end_date.day)
+    ax0, ax1 = comm.visualizations.plot_data_availability(inventory, start_date, end_date)
+    
+    for date in dates:
+        ax0.plot([date2num(date), date2num(date)], [ax0.get_ylim()[0], ax0.get_ylim()[1]], 'k')
+        ax1.plot([date2num(date), date2num(date)], [ax1.get_ylim()[0], ax1.get_ylim()[1]], 'k')
+        
+    plt.show()
+   
+    
+    
 @command_group("Data Acquisition")
 def lasif_add_gcmt_events(parser, args):
     """
@@ -477,7 +585,8 @@ def lasif_add_gcmt_events(parser, args):
                         help="minimum magnitude from which to add events")
     parser.add_argument("--max_magnitude", default=None, type=int,
                         help="maximum magnitude from which to add events")
-
+    
+    
     args = parser.parse_args(args)
     from lasif.tools.query_gcmt_catalog import add_new_events
     comm = _find_project_comm(".", args.read_only_caches)
@@ -1450,7 +1559,7 @@ def lasif_preprocess_data(parser, args):
     parser.add_argument(
         "events", help="One or more events. If none given, all will be done.",
         nargs="*")
-    parser.add_argument("--snr", 
+    parser.add_argument("--snr",
                         help="Relative noise level threshold above which data trace will be disregarded, 0.5 by default")
     parser.add_argument("--components", default="ENZ", help="list of components to process, examples: ENZ, or Z or RTZ")
     parser.add_argument("--svd_selection",default="False", choices=["True", "False"],
@@ -2104,6 +2213,10 @@ def lasif_validate_data(parser, args):
     parser.add_argument(
         "--waveforms", help="asserts that waveforms for one event have only "
         "a single location and channel type. Fast.", action="store_true")
+    parser.add_argument(
+        "--station_files", help="check the validity of StationXML files by simulating a correction response"
+        "if exceptions araised, will try do download a new file"
+        "Slow.", action="store_true")
 
     parser.add_argument("--full", help="run all validations.",
                         action="store_true")
@@ -2113,17 +2226,30 @@ def lasif_validate_data(parser, args):
     station_file_availability = args.station_file_availability
     raypaths = args.raypaths
     waveforms = args.waveforms
+    stationxml = args.station_files
 
     # If full check, check everything.
     if full_check:
         station_file_availability = True
         raypaths = True
         waveforms = True
+        stationxml = True
 
     comm = _find_project_comm(".", args.read_only_caches)
     comm.validator.validate_data(
         station_file_availability=station_file_availability,
-        raypaths=raypaths, waveforms=waveforms)
+        raypaths=raypaths, waveforms=waveforms,
+        stationxml_file_check=stationxml)
+    
+
+@command_group("Project Management")
+def lasif_validate_station_files(parser, args):
+    """
+    Validate the station files currently in the project.
+    """
+    args = parser.parse_args(args)
+    comm = _find_project_comm(".", args.read_only_caches)
+    comm.validator.validate_StationXML_files()
 
 
 @command_group("Iteration Management")

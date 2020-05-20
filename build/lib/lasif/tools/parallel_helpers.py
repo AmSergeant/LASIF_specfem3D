@@ -189,7 +189,7 @@ def distribute_across_ranks(function, items, get_name, logfile):
     total_file_count = len(results)
 
     # Log the results.
-    with open(logfile, "wt") as fh:
+    with open(logfile, "at") as fh:
         
         for result in results:
             

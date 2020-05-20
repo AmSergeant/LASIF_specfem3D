@@ -3,7 +3,7 @@
 """
 Created on Thu May  7 18:19:38 2020
 
-Project specific function for a gui app to select the evets in the query 
+Project specific function for a gui app to select the events in the query 
 and store them in the project.
 
 :copyright:
@@ -40,7 +40,7 @@ from lasif.utils import get_event_filename
 import lasif.visualization
 
 from obspy.core.event import Catalog
-from obspy.imaging.beachball import beach
+from obspy.imaging.beachball import beach, MomentTensor, mt2axes
 from obspy.geodetics.base import gps2dist_azimuth, locations2degrees
 from obspy.taup import TauPyModel
 
@@ -83,7 +83,6 @@ class MainWindow(QtWidgets.QMainWindow):
         
         
     def init_figure(self, comm):
-        
         # Create the maptlotlib FigureCanvas object, 
         # which defines a single set of axes as self.axes.
         self.canvas = PlotCanvas(self, width=5, height=4)
@@ -100,10 +99,15 @@ class MainWindow(QtWidgets.QMainWindow):
         self.beachball_subax.set_aspect('equal')
         self.beachball_subax.set_theta_direction(-1)
         self.beachball_subax.set_theta_zero_location("N")
+        # for T and P axis on beachball
+        self.beachball_Tax = self.canvas.figure.add_axes(self.beachball_ax.get_position(), 
+                                  projection='polar', label='pol', frameon=False)
+        self.beachball_Tax.set_aspect('equal')
+        self.beachball_Tax.set_theta_direction(-1)
+        self.beachball_Tax.set_theta_zero_location("N")
         
         
     def init_buttons(self):
-        
         # select all events and quit button
         self.quit_btn = QtWidgets.QPushButton('Select all remaining events\n and Quit', self)
         self.quit_btn.setStyleSheet('QPushButton {color: red;}')
@@ -111,26 +115,23 @@ class MainWindow(QtWidgets.QMainWindow):
         self.quit_btn.move(580, 500)
         
         # go to next event button
-        self.next_btn = QtWidgets.QPushButton('Go to next event', self)
+        self.next_btn = QtWidgets.QPushButton('Go to next event\n or press \'right arrow\'', self)
         self.next_btn.resize(self.next_btn.sizeHint())
         self.next_btn.move(580, 550)
         
-        
         # select/disregard the event buttons
         self.select_btn = QtWidgets.QCheckBox(self)
-        self.select_btn.setText('select the event')
+        self.select_btn.setText('select the event\n or press \'s\'')
         self.select_btn.resize(self.select_btn.sizeHint())
         self.select_btn.move(430, 550)
         self.unselect_btn = QtWidgets.QCheckBox(self)
-        self.unselect_btn.setText('disregard the event')
+        self.unselect_btn.setText('disregard the event\n or press \'q\'')
         self.unselect_btn.resize(self.unselect_btn.sizeHint())
         self.unselect_btn.move(280, 550)
         self.unselect_btn.setChecked(False)
         self.select_btn.setChecked(True)
         
     def init_shortcuts(self):
-        
-        
         # shortcut "right arrow" for "go to next event" button
         self.next_shortcut = QtWidgets.QShortcut(QtGui.QKeySequence("right"), self.next_btn)
         self.next_shortcut.setEnabled(True)
@@ -146,15 +147,14 @@ class MainWindow(QtWidgets.QMainWindow):
                   
 
     def ui(self, comm, chosen_events, events):
-        
         # Get infos from Lasif project
         self.comm = comm
         self._gather_infos_from_lasif_comm()
         # earth model for taup
         self.earth_model = TauPyModel("ak135")
         # store the nb of events already existing in the project database
-        self.nb_of_events_in_database = len(list(comm.events.get_all_events().values()))
-        
+        events_in_database = list(comm.events.get_all_events().values())
+        self.nb_of_events_in_database = len(events_in_database)
         
         # store the events to inspect
         self.events = chosen_events
@@ -164,14 +164,26 @@ class MainWindow(QtWidgets.QMainWindow):
         self.final_event_cat = []
         
         # plot event global map, draw just once
-        self.basemap = comm.visualizations.plot_events(events=events,
+        self.basemap = self.comm.visualizations.plot_events(events=events_in_database,
             ax=self.map_ax, azimuthal_projection=self.azimuthal_proj)
+        # plot all the events to inspect beachball on global map 
+        self.inspected_events_mt_patched = []
+        self.inspected_event_names = []
+        for event in chosen_events:
+            self.inspected_event_names.append(event["event_info"]["event_name"])
+            self.inspected_events_mt_patched.append(lasif.visualization.plot_events(
+            events=[event["event_info"]], map_object=self.basemap,
+            beachball_size=self.beachballsize, color="red"))
+        self.mt_patched_to_remove = []
                
         # launch with first event
         self.index_current_event = 0
         self.current_event = self.events[self.index_current_event]
         # initiate the current beachball patch
         self.current_mt_patches = []
+        self.arrival_patches= []
+        self.Paxis = []
+        self.Taxis = []
         # do plots
         self._update_event_map() 
         
@@ -197,7 +209,7 @@ class MainWindow(QtWidgets.QMainWindow):
         
         
     def add_selected_phases_on_beachball(self):
-        # compute ray parameters and plot them on beachball
+        # ----- function to compute ray parameters and plot them on beachball -----
         def compute_ray_parameters(self):
             azimuths = []
             takeoff = []
@@ -217,10 +229,12 @@ class MainWindow(QtWidgets.QMainWindow):
                     takeoff.append(tts[0].takeoff_angle)
             return azimuths, takeoff
         
-        # plot
+        # ----- plot -----
         azimuths, takeoff = compute_ray_parameters(self)
         for azimuth, takeoff_angle in zip(azimuths,takeoff):
-            self.beachball_subax.plot(azimuth, takeoff_angle, '+', ms=10., mew=2.0, mec='black') #withdash=True
+            self.arrival_patches.append(
+                self.beachball_subax.plot(azimuth*np.pi/180, takeoff_angle*np.pi/180, '+',
+                                          ms=10., mew=2.0, mec='purple')[0])
             self.beachball_subax.set_rmax(np.pi / 2.)
             self.beachball_subax.set_yticks([0, np.pi/6., 2.*np.pi/6., np.pi/2.])
             self.beachball_subax.set_yticklabels([])
@@ -229,32 +243,50 @@ class MainWindow(QtWidgets.QMainWindow):
             
         
     def _update_event_map(self):
-        # clear beachball axes
-        self.beachball_ax.cla()
-        self.beachball_subax.cla()
-        # clear current event mt on global map
-        for i in self.current_mt_patches:
-            i.remove()
-        
         self.event_info = self.current_event["event_info"]
         
-        # draw current event mt on global map
+        # ---- clear some features -----
+        # clear the mt patch on global map for the events which have been removed
+        for i in self.mt_patched_to_remove:
+            i[0].set_visible(False)
+        # clear current event blue mt patch on global map
+        for i in self.current_mt_patches:
+            i.remove()
+        # clear seismic arrivals on beachball axes
+        for i in self.arrival_patches:
+            self.beachball_subax.lines.remove(i)
+        self.arrival_patches= []
+        # clear T and P axis on beachball axes
+        if self.Paxis:
+            self.beachball_Tax.lines.remove(self.Paxis)
+            self.beachball_Tax.lines.remove(self.Taxis)
+        
+        # ---- Plotting ------ 
+        # draw current event blue mt on global map
         self.current_mt_patches = lasif.visualization.plot_events(
             events=[self.event_info], map_object=self.basemap,
             beachball_size=self.beachballsize, color="blue")
         
-        # draw current event mt and arrivals on beachball axes
+        # draw current event mt on beachball axes        
         focmec = [self.event_info["m_rr"], self.event_info["m_tt"], 
                   self.event_info["m_pp"], self.event_info["m_rt"],
                   self.event_info["m_rp"], self.event_info["m_tp"]]
-        mybeachball = beach(focmec, linewidth=1, xy=(0.5,0.5), width=1, facecolor='b')
+        mybeachball = beach(focmec, linewidth=1, xy=(0.5,0.5), width=0.97, facecolor='b')
         self.beachball_ax.add_collection(mybeachball)
         self.beachball_ax.set_aspect('equal')
         self.beachball_ax.set_axis_off()
+        # draw seismic arrivals on beachball axes
         self.add_selected_phases_on_beachball()
+        # plot T and P axis on beachball axes
+        (t, n, p) = mt2axes(MomentTensor(focmec,0))
+        self.Taxis, = self.beachball_Tax.plot(t.strike*np.pi/180, np.pi/2-t.dip*np.pi/180, 'o',  ms = 4, mfc='black', mec='black') 
+        self.Paxis, = self.beachball_Tax.plot(p.strike*np.pi/180, np.pi/2-p.dip*np.pi/180, 'o', ms = 4, mfc='white', mec='black')
+        self.beachball_Tax.set_rmax(np.pi / 2.)
+        self.beachball_Tax.set_yticklabels([])
+        self.beachball_Tax.set_xticklabels([])
+        self.beachball_Tax.set_axis_off()
         
-    
-        # titles
+        # ---- Titles ----
         self.canvas.figure.suptitle("Event %i/%i to inspect\n %s" \
                                      %(self.index_current_event+1, 
                                        self.nb_of_events_to_inspect,
@@ -267,20 +299,19 @@ class MainWindow(QtWidgets.QMainWindow):
         
        
     def _gather_infos_from_lasif_comm(self):
-        
         # get project infos
         proj = self.comm.project
         
         # phase of interest to plot
         self.Phase = [proj.config["download_settings"]["phase_of_interest"]]
-        
         # get the domain corners and center to plot seismic arrivals on beachball
-        self.domain_points = self.comm.query.domain_corners()
+        self.domain_points = self.comm.query.inner_domain_corners()
         central_point = self.comm.query.center()
         self.domain_points["center"] = \
             {"latitude": central_point.latitude,
              "longitude": central_point.longitude}
         
+        # define some options for plotting
         self.azimuthal_proj = False
         self.beachballsize = 0.02
         if proj.config["download_settings"]["configuration"] == "teleseismic":
@@ -288,24 +319,22 @@ class MainWindow(QtWidgets.QMainWindow):
             self.beachballsize = 0.04
             
         
-     
     @pyqtSlot()
     def _check_and_store_event_status(self):
-        
         # if select button is True: store the event and upgrade nb of saved events
         if self.select_btn.isChecked() == True :
             self.unselect_btn.setChecked(False)
-            
             print("Will save the current event: %s"%self.event_info["event_name"])
             self.final_event_cat.append(self.current_event)
             self.nb_of_events_in_database += 1
-            
-            # upgrade the label for save events
-            #self._label_for_events_in_database()
-        
+        # if unselect button is True: no action but upgrade the mt patches to remove on global map
         elif self.unselect_btn.isChecked() == True :
             self.select_btn.setChecked(False)
             print("Will remove the current event: %s"%self.event_info["event_name"])
+            # store the current mt patch on global map to remove
+            self.mt_patched_to_remove.append(self.inspected_events_mt_patched[
+                [index for index, ev in enumerate(self.inspected_event_names)
+                   if self.event_info["event_name"] in ev][0]])
             
             
             
@@ -314,15 +343,14 @@ class MainWindow(QtWidgets.QMainWindow):
         index_next_event = self.index_current_event +1
         if index_next_event == self.nb_of_events_to_inspect :
             # we reached the end, now quit
-            print("You have inspected all events, now quitting")
-            print(self.final_event_cat)
+            print("--> You have inspected all events, now quitting")
             self._write_catalog_and_quit_the_app()
         else:
+            # upgrade the current event and current event index for next actions
             self.index_current_event = index_next_event
             self.current_event = self.events[self.index_current_event]
             
             
-    
     @pyqtSlot()
     def _go_to_next_event(self):
         self._check_and_store_event_status()
@@ -337,14 +365,12 @@ class MainWindow(QtWidgets.QMainWindow):
         
     @pyqtSlot()
     def _select_all_remaining_events_and_quit(self):
+        
+        self._check_and_store_event_status()
+        self._update_current_event()
         msg = ("--> Will select all remaining events and quit the GUI")
         print(msg)
-        if self.unselect_btn.isChecked() == True :
-            first_event_to_select = self.index_current_event + 1
-        else:
-            first_event_to_select = self.index_current_event 
-            
-        for index_event in np.arange(first_event_to_select, 
+        for index_event in np.arange(self.index_current_event, 
                                       self.nb_of_events_to_inspect,1):
             self.final_event_cat.append(self.events[index_event])
             
@@ -353,8 +379,7 @@ class MainWindow(QtWidgets.QMainWindow):
     
     @pyqtSlot()
     def _write_catalog_and_quit_the_app(self):
-        
-        print("You have finally selected %i events"%len(self.final_event_cat))
+        print("--> You have finally selected %i events"%len(self.final_event_cat))
         folder = self.comm.project.paths["events"]
         for item in self.final_event_cat:
             filename = os.path.join(folder, get_event_filename(item, "GCMT"))
@@ -390,7 +415,7 @@ class MainWindow(QtWidgets.QMainWindow):
         
         
         
-
+# ----- Main function -------
 def launch_event_gui(chosen_events, events):
     
     comm = Project('.').get_communicator()

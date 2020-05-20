@@ -3,8 +3,8 @@
 """
 Created on Thu May  7 18:19:38 2020
 
-Project specific function for a gui app to select the events in the query 
-and store them in the project.
+Project specific function for a gui app to select the preprocessed waveforms 
+that will be kept in the inversion
 
 :copyright:
     Amandine Sergeant (sergeant@lma.cnrs-mrs.fr), 2019
@@ -65,7 +65,7 @@ class PlotCanvas(FigureCanvas):
         
 class MainWindow(QtWidgets.QMainWindow):
     
-    def __init__(self, comm, chosen_events, events):
+    def __init__(self, comm, iteration_name):
         super().__init__()
         self.left = 10
         self.top = 10
@@ -79,7 +79,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.init_figure(comm)
         self.init_buttons()
         self.init_shortcuts()
-        self.ui(comm, chosen_events, events)
+        self.ui(comm, iteration_name)
         
         
     def init_figure(self, comm):
@@ -146,46 +146,41 @@ class MainWindow(QtWidgets.QMainWindow):
         
                   
 
-    def ui(self, comm, chosen_events, events):
-        # Get infos from Lasif project
+    def ui(self, comm, iteration_name):
+
         self.comm = comm
-        self._gather_infos_from_lasif_comm()
-        # earth model for taup
-        self.earth_model = TauPyModel("ak135")
-        # store the nb of events already existing in the project database
-        events_in_database = list(comm.events.get_all_events().values())
-        self.nb_of_events_in_database = len(events_in_database)
         
-        # store the events to inspect
-        self.events = chosen_events
+        # get project infos
+        proj = self.comm.project
+        configuration = proj.config["download_settings"]["configuration"]
+        Phase = proj.config["download_settings"]["phase_of_interest"]
+        
+        # get iteration tag
+        iteration = comm.iterations.get(iteration_name)
+        pparam = iteration.get_process_params()
+        processing_tag = iteration.processing_tag
+        
+        # get events for iteration
+        self.events = self.comm.query.get_all_events_for_processed_data(iteration_name)
         self.nb_of_events_to_inspect = len(self.events)
         
-        # initalize the final event catalog that will be selected
-        self.final_event_cat = []
+        # earth model for taup
+        self.earth_model = TauPyModel("ak135")
         
-        # plot event global map, draw just once
-        self.basemap = self.comm.visualizations.plot_events(events=events_in_database,
-            ax=self.map_ax, azimuthal_projection=self.azimuthal_proj)
-        # plot all the events to inspect beachball on global map 
-        self.inspected_events_mt_patched = []
-        self.inspected_event_names = []
-        for event in chosen_events:
-            self.inspected_event_names.append(event["event_info"]["event_name"])
-            self.inspected_events_mt_patched.append(lasif.visualization.plot_events(
-            events=[event["event_info"]], map_object=self.basemap,
-            beachball_size=self.beachballsize, color="red"))
-        self.mt_patched_to_remove = []
-               
         # launch with first event
         self.index_current_event = 0
         self.current_event = self.events[self.index_current_event]
-        # initiate the current beachball patch
-        self.current_mt_patches = []
-        self.arrival_patches= []
-        self.Paxis = []
-        self.Taxis = []
-        # do plots
-        self._update_event_map() 
+        stations = self.comm.query.get_all_stations_for_event_for_iteration(self.current_event["event_name"], iteration_name)
+        
+        # waveforms for current event
+        self.comm.visualization.plot_synthetic_waveforms(\
+                                                         self.current_event["event_name"], 
+                                                         iteration_name, components = ['Z'], 
+                                                         scaling = 0.5, plot_window=True, Phase=Phase)
+        
+        
+        
+        
         
         
         # connect the "go to next event" button to action
@@ -209,7 +204,7 @@ class MainWindow(QtWidgets.QMainWindow):
         
         
     def add_selected_phases_on_beachball(self):
-        # ----- function to compute ray parameters and plot them on beachball -----
+        # compute ray parameters and plot them on beachball
         def compute_ray_parameters(self):
             azimuths = []
             takeoff = []
@@ -228,13 +223,10 @@ class MainWindow(QtWidgets.QMainWindow):
                     azimuths.append(baz)
                     takeoff.append(tts[0].takeoff_angle)
             return azimuths, takeoff
-        
-        # ----- plot -----
+        # plot
         azimuths, takeoff = compute_ray_parameters(self)
         for azimuth, takeoff_angle in zip(azimuths,takeoff):
-            self.arrival_patches.append(
-                self.beachball_subax.plot(azimuth*np.pi/180, takeoff_angle*np.pi/180, '+',
-                                          ms=10., mew=2.0, mec='purple')[0])
+            self.beachball_subax.plot(azimuth, takeoff_angle, '+', ms=10., mew=2.0, mec='black') #withdash=True
             self.beachball_subax.set_rmax(np.pi / 2.)
             self.beachball_subax.set_yticks([0, np.pi/6., 2.*np.pi/6., np.pi/2.])
             self.beachball_subax.set_yticklabels([])
@@ -242,81 +234,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.beachball_subax.set_axis_off()
             
         
-    def _update_event_map(self):
-        self.event_info = self.current_event["event_info"]
-        
-        # ---- clear some features -----
-        # clear the mt patch on global map for the events which have been removed
-        for i in self.mt_patched_to_remove:
-            i[0].set_visible(False)
-        # clear current event blue mt patch on global map
-        for i in self.current_mt_patches:
-            i.remove()
-        # clear seismic arrivals on beachball axes
-        for i in self.arrival_patches:
-            self.beachball_subax.lines.remove(i)
-        self.arrival_patches= []
-        # clear T and P axis on beachball axes
-        if self.Paxis:
-            self.beachball_Tax.lines.remove(self.Paxis)
-            self.beachball_Tax.lines.remove(self.Taxis)
-        
-        # ---- Plotting ------ 
-        # draw current event blue mt on global map
-        self.current_mt_patches = lasif.visualization.plot_events(
-            events=[self.event_info], map_object=self.basemap,
-            beachball_size=self.beachballsize, color="blue")
-        
-        # draw current event mt on beachball axes        
-        focmec = [self.event_info["m_rr"], self.event_info["m_tt"], 
-                  self.event_info["m_pp"], self.event_info["m_rt"],
-                  self.event_info["m_rp"], self.event_info["m_tp"]]
-        mybeachball = beach(focmec, linewidth=1, xy=(0.5,0.5), width=0.97, facecolor='b')
-        self.beachball_ax.add_collection(mybeachball)
-        self.beachball_ax.set_aspect('equal')
-        self.beachball_ax.set_axis_off()
-        # draw seismic arrivals on beachball axes
-        self.add_selected_phases_on_beachball()
-        # plot T and P axis on beachball axes
-        (t, n, p) = mt2axes(MomentTensor(focmec,0))
-        self.Taxis, = self.beachball_Tax.plot(t.strike*np.pi/180, np.pi/2-t.dip*np.pi/180, 'o',  ms = 4, mfc='black', mec='black') 
-        self.Paxis, = self.beachball_Tax.plot(p.strike*np.pi/180, np.pi/2-p.dip*np.pi/180, 'o', ms = 4, mfc='white', mec='black')
-        self.beachball_Tax.set_rmax(np.pi / 2.)
-        self.beachball_Tax.set_yticklabels([])
-        self.beachball_Tax.set_xticklabels([])
-        self.beachball_Tax.set_axis_off()
-        
-        # ---- Titles ----
-        self.canvas.figure.suptitle("Event %i/%i to inspect\n %s" \
-                                     %(self.index_current_event+1, 
-                                       self.nb_of_events_to_inspect,
-                                       self.event_info["event_name"]), fontsize=10)
-        self.map_ax.set_title("%i events in the project database"
-                                 %self.nb_of_events_in_database, 
-                                 fontsize=8, fontweight = "bold")
-        self._draw()
+   
         
         
        
-    def _gather_infos_from_lasif_comm(self):
-        # get project infos
-        proj = self.comm.project
-        
-        # phase of interest to plot
-        self.Phase = [proj.config["download_settings"]["phase_of_interest"]]
-        # get the domain corners and center to plot seismic arrivals on beachball
-        self.domain_points = self.comm.query.inner_domain_corners()
-        central_point = self.comm.query.center()
-        self.domain_points["center"] = \
-            {"latitude": central_point.latitude,
-             "longitude": central_point.longitude}
-        
-        # define some options for plotting
-        self.azimuthal_proj = False
-        self.beachballsize = 0.02
-        if proj.config["download_settings"]["configuration"] == "teleseismic":
-            self.azimuthal_proj = True
-            self.beachballsize = 0.04
+    
             
         
     @pyqtSlot()
@@ -327,15 +249,9 @@ class MainWindow(QtWidgets.QMainWindow):
             print("Will save the current event: %s"%self.event_info["event_name"])
             self.final_event_cat.append(self.current_event)
             self.nb_of_events_in_database += 1
-        # if unselect button is True: no action but upgrade the mt patches to remove on global map
         elif self.unselect_btn.isChecked() == True :
             self.select_btn.setChecked(False)
             print("Will remove the current event: %s"%self.event_info["event_name"])
-            # store the current mt patch on global map to remove
-            self.mt_patched_to_remove.append(self.inspected_events_mt_patched[
-                [index for index, ev in enumerate(self.inspected_event_names)
-                   if self.event_info["event_name"] in ev][0]])
-            
             
             
     @pyqtSlot()    
@@ -346,7 +262,6 @@ class MainWindow(QtWidgets.QMainWindow):
             print("--> You have inspected all events, now quitting")
             self._write_catalog_and_quit_the_app()
         else:
-            # upgrade the current event and current event index for next actions
             self.index_current_event = index_next_event
             self.current_event = self.events[self.index_current_event]
             
@@ -356,7 +271,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self._check_and_store_event_status()
         self._update_current_event()
         self.close()
-        self._update_event_map()
+        #self._update_event_map()
         # set the select buttons back to defaults values
         self.unselect_btn.setChecked(False)
         self.select_btn.setChecked(True) 
@@ -366,6 +281,8 @@ class MainWindow(QtWidgets.QMainWindow):
     @pyqtSlot()
     def _select_all_remaining_events_and_quit(self):
         
+        #if self.select_btn.isChecked() == True :
+        #    self.final_event_cat.append(self.events[self.index_current_event])
         self._check_and_store_event_status()
         self._update_current_event()
         msg = ("--> Will select all remaining events and quit the GUI")
@@ -415,14 +332,15 @@ class MainWindow(QtWidgets.QMainWindow):
         
         
         
-# ----- Main function -------
-def launch_event_gui(chosen_events, events):
+
+def launch_waveform_gui(iteration_name):
     
     comm = Project('.').get_communicator()
+    
         
     # Launch and open the window.
     app = QtWidgets.QApplication(sys.argv)
-    window = MainWindow(comm, chosen_events, events)
+    window = MainWindow(comm, iteration_name)
     #app.exec_()
     # Move window to center of screen.
     window.move(

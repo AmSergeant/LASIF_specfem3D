@@ -99,13 +99,18 @@ def instaseis_synthetics_function(processing_info, iteration, db):  # NOQA
     # =========================================================================
     # Step 1: Compute synthetic seismogram
     # =========================================================================
-    st = \
-        db.get_seismograms(source=processing_info["event_information"]["source"],
-                           receiver=processing_info["receiver"], 
-                           kind='velocity',
-                           components=processing_info["component"],
-                           remove_source_shift=True, 
-                           dt = processing_info["process_params"]["dt"])
+    try:
+        st = \
+            db.get_seismograms(source=processing_info["event_information"]["source"],
+                               receiver=processing_info["receiver"], 
+                               kind='velocity',
+                               components=processing_info["component"],
+                               remove_source_shift=True, 
+                               dt = processing_info["process_params"]["dt"])
+    except Exception as e:
+        msg = ("Could not compute synthetic for %s'. Due to: '%s'  Will be skipped.") \
+                        % (processing_info["channel_id"], e.__repr__()),
+        raise LASIFError(msg)
 
     # =========================================================================
     # Step 2: Preprocess the synthetic seismogram

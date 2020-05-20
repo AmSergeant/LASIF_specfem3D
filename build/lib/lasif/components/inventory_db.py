@@ -215,7 +215,7 @@ class InventoryDBComponent(Component):
                     "local_depth_in_m": coordinates[3]}
 
         # Otherwise try to download the necessary information.
-        msg = ("Attempting to download coordinates for %s. This will only "
+        msg = ("\nAttempting to download coordinates for %s. This will only "
                "happen once ... ") % station_id
         print(msg, end=' ')
 

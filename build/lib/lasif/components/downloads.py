@@ -116,6 +116,58 @@ class DownloadsComponent(Component):
                      stationxml_storage=stationxml_storage)
 
         print("")
+        
+    def query_station_inventory(self, starttime, endtime):
+        """
+        Query stations inside the domain and store the inventory
+
+        Parameters
+        ----------
+        starttime : obspy UTCDateTime
+        endtime : obspy UTCDateTime
+
+        Returns
+        -------
+        station inventory. Obspy Inventory class
+
+        """
+        from obspy.clients.fdsn import Client
+        from obspy.clients.fdsn.header import URL_MAPPINGS
+        from obspy.core.inventory import Inventory
+        
+        
+        proj = self.comm.project
+        #ds = proj.config["download_settings"]
+        #channel_priorities=ds["channel_priorities"]
+        
+        if isinstance(proj.domain, lasif.domain.GlobalDomain):
+            minlongitude = 0
+            maxlongitude = 360
+            minlatitude = -90
+            maxlatitude = 90
+        else:
+            domain_points = self.comm.query.inner_domain_corners()
+            minlongitude = domain_points["bottom_left"]["longitude"]
+            maxlongitude = domain_points["upper_right"]["longitude"]
+            minlatitude = domain_points["bottom_left"]["latitude"]
+            maxlatitude = domain_points["upper_right"]["latitude"]
+            
+        
+        inventory = Inventory()
+        print("Querying station availability. This might take a while ...")
+        for client_name in sorted(URL_MAPPINGS.keys()):
+            client = Client(client_name)
+            try:
+                inv = client.get_stations(starttime=starttime, endtime=endtime, channel="*Z",
+                                                minlongitude=minlongitude, maxlongitude=maxlongitude,
+                                                minlatitude=minlatitude, maxlatitude=maxlatitude)
+                print("\tSucessfull query at %s"%client_name)
+            except Exception:
+                continue
+            if inv:
+                inventory.extend(inv)
+        return inventory
+        
 
     def _get_stationxml_storage_fct(self, starttime, endtime):
         # Get the stationxml storage function required by the download helpers.

@@ -38,6 +38,7 @@ class LASIFWarning(UserWarning):
     pass
 
 
+
 # Determine the version of LASIF. Using git.
 __root_path = os.path.abspath(os.path.dirname(os.path.dirname(inspect.getfile(
     inspect.currentframe()))))
