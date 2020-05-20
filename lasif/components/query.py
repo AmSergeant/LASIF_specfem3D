@@ -657,21 +657,52 @@ class QueryComponent(Component):
         """
         Get the corners of the domain.
         """
+        import numpy as np
         domain_corners = {}
         
         domain = self.comm.project.domain.extent
+        min_latitude = np.min([domain.min_latitude, domain.max_latitude])
+        min_longitude = np.min([domain.min_longitude, domain.max_longitude])
+        max_latitude = min_latitude + domain.latitudinal_extent
+        max_longitude = min_longitude + domain.longitudinal_extent
         domain_corners["bottom_left"] = \
-            {"latitude": domain.min_latitude,
-             "longitude": domain.min_longitude}
+            {"latitude": min_latitude,
+             "longitude": min_longitude}
         domain_corners["bottom_right"] = \
-            {"latitude": domain.min_latitude,
-             "longitude": domain.max_longitude}
+            {"latitude": min_latitude,
+             "longitude": max_longitude}
         domain_corners["upper_left"] =\
-            {"latitude": domain.max_latitude,
-             "longitude": domain.min_longitude}
+            {"latitude": max_latitude,
+             "longitude": min_longitude}
         domain_corners["upper_right"] = \
-            {"latitude": domain.max_latitude,
-             "longitude": domain.max_longitude}
+            {"latitude": max_latitude,
+             "longitude": max_longitude}
+        return domain_corners
+    
+    def inner_domain_corners(self):
+        """
+        Get the corners of the inner domain.
+        """
+        import numpy as np
+        domain_corners = {}
+        
+        domain = self.comm.project.domain.extent_inner_border
+        min_latitude = np.min([domain.min_latitude, domain.max_latitude])
+        min_longitude = np.min([domain.min_longitude, domain.max_longitude])
+        max_latitude = min_latitude + domain.latitudinal_extent
+        max_longitude = min_longitude + domain.longitudinal_extent
+        domain_corners["bottom_left"] = \
+            {"latitude": min_latitude,
+             "longitude": min_longitude}
+        domain_corners["bottom_right"] = \
+            {"latitude": min_latitude,
+             "longitude": max_longitude}
+        domain_corners["upper_left"] =\
+            {"latitude": max_latitude,
+             "longitude": min_longitude}
+        domain_corners["upper_right"] = \
+            {"latitude": max_latitude,
+             "longitude": max_longitude}
         return domain_corners
 
     def what_is(self, path):

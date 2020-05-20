@@ -410,7 +410,7 @@ def plot_event_histogram(events, plot_type, lat_0 = None, lon_0 = None):
     from matplotlib import ticker
     from obspy.geodetics.base import gps2dist_azimuth
 
-    plt.figure(figsize=(12, 4))
+    #plt.figure(figsize=(12, 4))
 
     values = []
     for event in events:

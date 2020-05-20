@@ -22,14 +22,229 @@ class VisualizationsComponent(Component):
     :param component_name: The name of this component for the communicator.
     """
 
+    def plot_station_inventory_in_query(self, inventory, time = None, label = True, ax = None):
+        """
+        Plots the station locations for station inventory
+        """
+        import matplotlib.pyplot as plt
+        if not ax:
+            ax = plt.subplot(111)
+        
+        # from obspy.core.inventory.inventory.py
+        import warnings
+        import matplotlib.pyplot as plt
+        if time is not None:
+            inventory = inventory.select(time=time, keep_empty=True)
+            
 
-    def plot_stations(self,plot_relief=True):
+        # lat/lon coordinates, magnitudes, dates
+        lats = []
+        lons = []
+        labels = []
+        colors = []
+        
+        color_per_network = True
+        if color_per_network:
+            from matplotlib.cm import get_cmap
+            colormap="Paired"
+            codes = set([n.code for n in inventory])
+            cmap = get_cmap(name=colormap, lut=len(codes))
+            color_per_network = dict([(code, cmap(i))
+                                      for i, code in enumerate(sorted(codes))])
+        else:
+            color = "red"
+        stations = []
+        for net in inventory:
+            for sta in net:
+                if sta.latitude is None or sta.longitude is None:
+                    msg = ("Station '%s' does not have latitude/longitude "
+                           "information and will not be plotted." % label)
+                    warnings.warn(msg)
+                    continue
+                try:
+                    label_ = "%s.%s\n%s\n%s"%(net.code, sta.code,
+                                                 sta.start_date.datetime.strftime("%Y-%m-%d"),
+                                                 sta.end_date.datetime.strftime("%Y-%m-%d"))
+                except Exception:
+                    label_ = "%s.%s\n%s\n-"%(net.code, sta.code,
+                                             sta.start_date.datetime.strftime("%Y-%m-%d"))
+                station = "%s.%s"%(net.code, sta.code)
+                if station in stations:
+                    continue
+                else:
+                    stations.append(station)
+                
+                if color_per_network:
+                    
+                    color_ = color_per_network.get(net.code, "k")
+                else:
+                    label_ = "%s.%s"%(net.code, sta.code)
+                    color_ = color
+                
+                lats.append(sta.latitude)
+                lons.append(sta.longitude)
+                labels.append(label_)
+                colors.append(color_)
+        map_object = self.comm.project.domain.plot(ax=ax)
+        x, y = map_object(lons, lats)
+        scatter_stations = map_object.scatter(x, y, color=colors, s=35, marker="v",
+                                      alpha=1., zorder=5)
+        if time is not None:
+            ax.set_title('%d available stations at %s'\
+                      %(len(lats), time.datetime.strftime("%Y-%m-%d")))
+                
+        # Setting the picker overwrites the edgecolor attribute on certain
+        # matplotlib and basemap versions. Fix it here.
+        scatter_stations._edgecolors = np.array([[0.0, 0.0, 0.0, 1.0]])
+        scatter_stations._edgecolors_original = "black"
+        fig = plt.gcf()
+        annot = ax.annotate("", xy=(0,0), xytext=(-10,10),textcoords="offset points",
+                            bbox=dict(boxstyle="round", fc="w"),
+                            arrowprops=dict(arrowstyle="->"))
+        annot.set_visible(False)
+        
+        def hover_stations(event):        
+            vis = annot.get_visible()
+            cont, ind = scatter_stations.contains(event)
+            if cont:
+                pos = scatter_stations.get_offsets()[ind["ind"][0]]
+                annot.xy = pos
+                text = [labels[n] for n in ind["ind"]][0]
+                annot.set_text(text)
+                annot.set_visible(True)
+                fig.canvas.draw_idle()
+            else:
+                if vis:
+                    annot.set_visible(False)
+                    fig.canvas.draw_idle()
+
+        fig.canvas.mpl_connect("button_press_event", hover_stations)
+        return len(lats)
+    
+    
+    def plot_data_availability(self, inventory, start_date, end_date):
+        from matplotlib.cm import get_cmap
+        colormap="Paired"
+        codes = set([n.code for n in inventory])
+        cmap = get_cmap(name=colormap, lut=len(codes))
+        color_per_network = dict([(code, cmap(i))
+                                  for i, code in enumerate(sorted(codes))])
+        
+        stations = []
+        for net in codes:
+            inv = inventory.select(network = net)
+            for nnet in inv:
+                for sta in nnet:
+                    label_ = "%s.%s"%(nnet.code, sta.code)
+                    if label_ not in stations:
+                            stations.append(label_)
+        number_of_stations = len(stations)
+        print("%d available stations"%number_of_stations)
+        print("for networks:")
+            
+        import numpy as np
+        from datetime import timedelta
+        from matplotlib.dates import date2num, num2date
+        from matplotlib import ticker
+        import matplotlib.gridspec as gridspec
+        import matplotlib.pyplot as plt
+        from obspy.core import UTCDateTime
+        d1 = start_date.datetime
+        d2 = end_date.datetime   
+        dates = [d1 + timedelta(days=x) for x in range((d2-d1).days + 1)]
+        dates_utc = [UTCDateTime(date.year,date.month,date.day) for date in dates]
+        matrix = np.zeros((number_of_stations,len(dates_utc)),dtype = int)
+        matrix_color = np.nan*np.zeros((number_of_stations,len(dates_utc)),dtype = int)
+        colors = []
+        #stations = []
+        ind_sta = 0
+        for net in codes:
+            inv = inventory.select(network = net)
+            print("\t%s"%net)
+            for nnet in inv:
+                for sta in nnet:
+                    color_ = color_per_network.get(nnet.code, "k")
+                    colors.append(color_)
+                    label_ = "%s.%s"%(nnet.code, sta.code)
+                    if label_ not in stations:
+                        stations.append(label_)
+                    else:
+                        ind_sta = [j for j,station in enumerate(stations) if label_ in station][0]
+                    t1 = sta.start_date
+                    t2 = sta.end_date
+                    if t2 is None:
+                        t2 = UTCDateTime(2500,1,1)
+                    ind_ok = [i for i,date in enumerate(dates_utc) if date >=t1 and date<=t2]
+                    matrix[ind_sta, ind_ok] = 1
+                    matrix_color[ind_sta, ind_ok] = [i for i, n in enumerate(color_per_network) if nnet.code in n][0]
+                    
+                    
+        
+        plt.figure(figsize=(12, 7)) 
+        gs = gridspec.GridSpec(2, 1, height_ratios=[4, 1])  
+        ax0 = plt.subplot(gs[0])   
+        
+        plt.imshow(matrix_color, interpolation="none", aspect='auto', cmap=cmap,
+                   vmin=0, vmax=len(codes), extent=(date2num(d1), date2num(d2),
+                                            0, number_of_stations), origin='lower')
+        plt.gca().xaxis.set_major_formatter(ticker.FuncFormatter(
+                lambda numdate, _: num2date(numdate).strftime('%Y-%d-%m')))
+        plt.gcf().autofmt_xdate()
+        plt.yticks(np.arange(number_of_stations)+0.5, stations)
+        plt.title('Data availability between %s and %s'%(start_date.datetime.strftime("%Y-%m-%d"),
+                                                         end_date.datetime.strftime("%Y-%m-%d")))
+        
+        ax1 = plt.subplot(gs[1], sharex=ax0)
+        plt.plot(dates, np.sum(matrix, axis=0))
+        ax1.set_ylim((-0.1, np.amax(np.sum(matrix, axis=0))+0.1))
+        plt.ylabel('N stations')
+        plt.gcf().autofmt_xdate()
+        plt.grid()
+        plt.tight_layout()
+        
+        return ax0, ax1
+    
+            
+        
+        
+    def plot_stations(self,plot_relief=True, color_per_network=True):
         """
         Plots the domain and locations for all stations on the map.
         """
-        from lasif import visualization
 
-        stations = self.comm.query.get_all_stations()
+        #stations = self.comm.query.get_all_stations()
+        channels = self.comm.stations.get_all_channels()
+        stations_all = {}
+        stations = []
+        for channel in channels:
+            station = channel["channel_id"].split('.')
+            station = station[0]+'.'+station[1]
+            if station in stations:
+                continue
+            else:
+                if channel["latitude"] is None:
+                    try:
+                        sta_coordinates = self.comm.inventory_db.get_coordinates(channel["channel_id"])
+                        channel["longitude"] = sta_coordinates["longitude"]
+                        channel["latitude"] = sta_coordinates["latitude"]
+                    except Exception:
+                        continue
+                stations.append(station)
+                stations_all[station]={"latitude": channel["latitude"],
+                                       "longitude": channel["longitude"]}
+        stations = stations_all
+            
+        if color_per_network:
+            from matplotlib.cm import get_cmap
+            colormap="Paired"
+            codes = set([station.split('.')[0] for station in stations])
+            cmap = get_cmap(name=colormap, lut=len(codes))
+            color_per_network = dict([(code, cmap(i))
+                                      for i, code in enumerate(sorted(codes))])
+        else:
+            color = "red"
+        
+            
         if plot_relief:
             m = self.comm.project.domain.plot(skip_map_features=True)
             m.shadedrelief()
@@ -53,16 +268,34 @@ class VisualizationsComponent(Component):
             m.drawmeridians(meridians, labels=[0,0,0,1], color='white')
         else:
             m = self.comm.project.domain.plot()
-        scatter_stations = visualization.plot_stations(map_object=m, station_dict=stations)
+        #scatter_stations = visualization.plot_stations(map_object=m, station_dict=stations)
+        lats = []
+        lons = []
+        labels = []
+        colors = []
+        for station in stations:
+            net, sta = station.split('.')
+            label_ = "%s.%s"%(net, sta)
+            if color_per_network:
+                color_ = color_per_network.get(net, "k")
+            else:
+                color_ = color
+            lats.append(stations[station]["latitude"])
+            lons.append(stations[station]["longitude"])
+            labels.append(label_)
+            colors.append(color_)
+        x, y = m(lons, lats)
+        scatter_stations = m.scatter(x, y, color=colors, s=35, marker="v",
+                                      alpha=1., zorder=5)
+        scatter_stations._edgecolors = np.array([[0.0, 0.0, 0.0, 1.0]])
+        scatter_stations._edgecolors_original = "black"
         fig = plt.gcf()
         ax = plt.gca()
         annot = ax.annotate("", xy=(0,0), xytext=(-10,10),textcoords="offset points",
                             bbox=dict(boxstyle="round", fc="w"),
                             arrowprops=dict(arrowstyle="->"))
         annot.set_visible(False)
-        station_names = []
-        for station_name in stations:
-            station_names.append(station_name)
+        
 
         def hover_stations(event):        
             vis = annot.get_visible()
@@ -70,7 +303,7 @@ class VisualizationsComponent(Component):
             if cont:
                 pos = scatter_stations.get_offsets()[ind["ind"][0]]
                 annot.xy = pos
-                text = [station_names[n] for n in ind["ind"]][0]
+                text = [labels[n] for n in ind["ind"]][0]
                 annot.set_text(text)
                 annot.set_visible(True)
                 fig.canvas.draw_idle()
@@ -148,7 +381,6 @@ class VisualizationsComponent(Component):
         ds = proj.config["download_settings"]
         config = ds["configuration"]
 
-
         # Get a dictionary containing all events
         if events is None:
             if iteration_name =='raw':
@@ -185,84 +417,100 @@ class VisualizationsComponent(Component):
         else:
             msg = "Unknown plot_type"
             raise LASIFError(msg)
-
-    def plot_beachball_arrivals(self,event_info, stations, Phases=['P'], beachcolor="red",ax=None):
-        """
-            plot seismic arrivals for phases on a beachball plot
-        """
+            
+            
+    def plot_beachball_arrivals(self, event_info, stations, Phases=['P'], beachcolor="red",ax=None):
+        from obspy.imaging.beachball import beach
         
-        import matplotlib.pyplot as plt
-        if not ax:
-            ax = plt.subplot(111)
-        from lasif.tools.pyrocko import beachball, cake, orthodrome
-        ax.set_axis_off()
-        ax.set_xlim(-1.1, 1.1)
-        ax.set_ylim(-1.1, 1.1)
+        #https://docs.obspy.org/packages/obspy.taup.html
+        taup_phases = ['P', 'pP', 'sP', 'PcP', 'PP', 'PKiKP', 'sPKiKP', 'S', 'pS', 'SP',
+                       'sS', 'PS', 'SKS', 'SKKS', 'ScS', 'SKiKP', 'pSKS', 'sSKS', 'SS',
+                       'PKIKKIK', 'SKIKKIKP', 'PKIKKIKS', 'SKIKKIKS', 'PKIKPPKIKP', 'PKPPKP',
+                       'PKPPKP', 'SKIKSSKIKS']
+        for phase in Phases:
+            if phase not in taup_phases:
+                raise LASIFError('%s not in taup phases\nshould be within %s'%(phase, ', '.join(taup_phases)))
+        
+        # compute ray parameters and plot them on beachball
+        def compute_ray_parameters(event_info, stations, Phases):
+            from obspy.geodetics.base import gps2dist_azimuth, locations2degrees
+            from obspy.taup import TauPyModel
+            earth_model = TauPyModel("ak135")
+            azimuths = []
+            takeoff = []
+            for point in stations:
+                station = stations[point]
+                epicentral_distance, azimuth, baz = gps2dist_azimuth(
+                    event_info["latitude"], event_info["longitude"], 
+                    station["latitude"],station["longitude"])
+                dist_in_deg = locations2degrees(
+                    event_info["latitude"], event_info["longitude"], 
+                    station["latitude"],station["longitude"])
+                tts = earth_model.get_travel_times(source_depth_in_km=event_info["depth_in_km"],
+                                                        distance_in_degree=dist_in_deg,
+                                                        phase_list=[phase])
+                if tts:
+                    azimuths.append(baz)
+                    takeoff.append(tts[0].takeoff_angle)
+            return azimuths, takeoff
+        
+        # beachball plot
+        focmec = [event_info["m_rr"], event_info["m_tt"], 
+                  event_info["m_pp"], event_info["m_rt"],
+                  event_info["m_rp"], event_info["m_tp"]]
+        mybeachball = beach(focmec, linewidth=1, xy=(0.5,0.5), width=1., facecolor=beachcolor)
+        ax.add_collection(mybeachball)
         ax.set_aspect('equal')
-        mt = [event_info["m_tt"], event_info["m_pp"], event_info["m_rr"], -event_info["m_tp"],
-              event_info["m_rt"], -event_info["m_rp"]]
-        beachball.plot_beachball_mpl(
-            mt, ax,
-            position=(0, 0),
-            size=2.0,
-            color_t=beachcolor,
-            linewidth=1.,
-            projection='lambert',
-            size_units='data')
-
-        # earth model and phase for takeoff angle computations
-        mod = cake.load_model('ak135-f-average.vf')
-        slat = event_info["latitude"]
-        slon = event_info["longitude"]
-        rdepth = 0.
-        sdepth = event_info["depth_in_km"]*1e3
-        lats = []
-        lngs = []
-        for station in stations:
-            lats.append(stations[station]["latitude"])
-            lngs.append(stations[station]["longitude"])
-        for i, Phase in enumerate(Phases):
-            xcoor = []
-            ycoor = []
-            if i>2:
-                import random
-                r = random.random()
-                b = random.random()
-                g = random.random()
-                color = (r, g, b)
-            elif i == 0:
-                color = 'black'
-            elif i == 1:
-                color = 'blue'
-            for rlat, rlon in zip(lats,lngs):
-                distance = orthodrome.distance_accurate50m(slat, slon, rlat, rlon)
-                rays = mod.arrivals(
-                    phases=cake.PhaseDef(Phase),
-                    zstart=sdepth, zstop=rdepth, distances=[distance*cake.m2d])
-                if not rays:
-                    continue      
-                takeoff = rays[0].takeoff_angle()
-                azi = orthodrome.azimuth(slat, slon, rlat, rlon)        
-                # to spherical coordinates, r, theta, phi in radians
-                rtp = np.array([[1., np.deg2rad(takeoff), np.deg2rad(90.-azi)]])        
-                # to 3D coordinates (x, y, z)
-                points = beachball.numpy_rtp2xyz(rtp)        
-                # project to 2D with same projection as used in beachball
-                x, y = beachball.project(points, projection='lambert').T
-
-                xcoor.append(x)
-                ycoor.append(y)
-                ax.plot(x, y, '+', ms=10., mew=2.0, mec=color, mfc='none')
-                #ax.text(x, y, Phase, color = 'blue', horizontalalignment='center', verticalalignment='center')
-
-            annot = ax.annotate("", xy=(np.mean(xcoor),np.mean(ycoor)), xytext=(-20,-20),textcoords="offset points",
-                                        arrowprops=dict(arrowstyle="-", color = color), color = color)
-            annot.set_text(Phase)
+        ax.set_axis_off()
+        
+        # arrival plot - define axes
+        import matplotlib.pyplot as plt
+        figure = plt.gcf()
+        subax = figure.add_axes(ax.get_position(), 
+                                  projection='polar', label='pol', frameon=False)
+        subax.set_aspect('equal')
+        subax.set_theta_direction(-1)
+        subax.set_theta_zero_location("N")
+        
+        # define colors
+        if len(Phases)>2:
+            from matplotlib.cm import get_cmap
+            colormap="tab10"
+            cmap = get_cmap(name=colormap, lut=len(Phases))
+            color_per_phase = dict([(code, cmap(i))
+                                      for i, code in enumerate(sorted(Phases))])
+        elif len(Phases)==2:
+            color_per_phase = {Phases[0]: "black",
+                               Phases[1]: "blue"}
+        elif len(Phases)==1:
+            color_per_phase = {Phases[0]: "black"}
+            
+        # loop on Phases
+        from random import randint
+        for i, phase in enumerate(Phases):
+            azimuths, takeoff = compute_ray_parameters(event_info, stations, phase)
+            if not azimuths:
+                print("No possible ray computed for phase %s")
+                continue
+            color = color_per_phase.get(phase, "k")
+            for azimuth, takeoff_angle in zip(azimuths,takeoff):
+                subax.plot(azimuth*np.pi/180, takeoff_angle*np.pi/180, '+', ms=10., mew=2.0, mec=color) #withdash=True
+                subax.set_rmax(np.pi / 2.)
+                subax.set_yticks([0, np.pi/6., 2.*np.pi/6., np.pi/2.])
+                subax.set_yticklabels([])
+                subax.set_xticklabels([])
+            annot = subax.annotate("", xy=(np.mean(azimuths)*np.pi/180, np.mean(takeoff)*np.pi/180),
+                                   xytext=(randint(-45, 45),randint(-45, 45)),textcoords="offset points",
+                                   arrowprops=dict(arrowstyle="-", color = color), color = color,weight="bold")
+            annot.set_text(phase)
             annot.set_visible(True)
+        subax.set_axis_off()
+        
+
+    
             
             
-            
-    def plot_event(self, event_name, config="local", azimuthal_projection=False, iteration_name = "raw", Phases = ['P'], event_info=None, ax=None):
+    def plot_event(self, event_name, config="local", azimuthal_projection=False, iteration_name = "raw", Phases=None, event_info=None, ax=None):
         """
         Plots information about one event on the map.
         """
@@ -270,6 +518,9 @@ class VisualizationsComponent(Component):
         if not ax:
             ax = plt.subplot(111)
 
+        if Phases is None:
+            Phases = [self.comm.project.config["download_settings"]["phase_of_interest"]]
+            
         if event_info is None and not self.comm.events.has_event(event_name):
             self.comm.events.update_cache()
             if not self.comm.events.has_event(event_name):
@@ -338,7 +589,7 @@ class VisualizationsComponent(Component):
 
         # add beachball with arrival in subaxes
         if config == "local":      
-            ax_sub = fig.add_axes([0.05, 0.63, 0.3, 0.25])
+            ax_sub = fig.add_axes([0.05, 0.6, 0.3, 0.25])
             self.comm.visualizations.plot_beachball_arrivals(event_info, stations, Phases=Phases, beachcolor="red", ax=ax_sub)
         return map_object
 
@@ -404,7 +655,7 @@ class VisualizationsComponent(Component):
 
     def plot_raw_waveforms(self, event_name, components = ['E','N','Z'], 
                            scaling = 0.5, Filter=False, freqmin=0.01, freqmax=0.1,
-                           plot_arrival=True, Phase='P'):
+                           plot_arrival=True, Phase=None):
         """
         Will plot raw seismic waveform gather with data stored in DATA/event_name/raw folder 
         that corresponds to preprocessing parameters of the iteration file
@@ -424,6 +675,7 @@ class VisualizationsComponent(Component):
             if True, will plot the time limits for the pase windowing as defined in the iteration file
         Phase: str
             Name of the seismic phase to window. 
+            if None, will read the seismic phase of interest in the config file
 
         Raises
         ------
@@ -444,6 +696,9 @@ class VisualizationsComponent(Component):
             from obspy.taup import TauPyModel
             earth_model = TauPyModel("ak135")
 
+        if Phase is None:
+            Phase = self.comm.project.config["download_settings"]["phase_of_interest"]
+            
         # First check the given components
 
         # check the number of components
@@ -695,7 +950,7 @@ class VisualizationsComponent(Component):
 
 
     def plot_preprocessed_waveforms(self, event_name, iteration_name, components = ['E','N','Z'], 
-                                    scaling = 0.5, plot_raw=False, plot_window=True, Phase='P'):
+                                    scaling = 0.5, plot_raw=False, plot_window=True, Phase=None):
         """
         Will plot seismic waveform gather with data stored in DATA/event_name/preprocessed folder
         that corresponds to preprocessing parameters of the iteration file
@@ -714,6 +969,7 @@ class VisualizationsComponent(Component):
             if True, will plot the time limits for the pase windowing as defined in the iteration file
         Phase: str
             Name of the seismic phase to window. 
+            if None, will read the phase of interest in the config file
 
         Raises
         ------
@@ -734,6 +990,9 @@ class VisualizationsComponent(Component):
             from obspy.taup import TauPyModel
             earth_model = TauPyModel("ak135")
 
+        if Phase is None:
+            Phase = self.comm.project.config["download_settings"]["phase_of_interest"]
+            
         # First check the given components
 
         # check the number of components
@@ -1071,7 +1330,7 @@ class VisualizationsComponent(Component):
 
 
     def plot_synthetic_waveforms(self, event_name, iteration_name, components = ['E','N','Z'], 
-                                 scaling = 0.5, plot_window=True, Phase='P'):
+                                 scaling = 0.5, plot_window=True, Phase=None):
         """
         Will plot seismic waveform gather with synthetics and preprocessed data
         that corresponds to preprocessing parameters of the iteration file
@@ -1087,6 +1346,7 @@ class VisualizationsComponent(Component):
             if True, will plot the time limits for the pase windowing as defined in the iteration file
         Phase: str
             Name of the seismic phase to window. 
+            if None, will read te phase of interest in the config file
 
 
         Raises
@@ -1108,6 +1368,9 @@ class VisualizationsComponent(Component):
             from obspy.taup import TauPyModel
             earth_model = TauPyModel("ak135")
 
+        if Phase is None:
+            Phase = self.comm.project.config["download_settings"]["phase_of_interest"]
+            
         # First check the given components
 
         # check the number of components

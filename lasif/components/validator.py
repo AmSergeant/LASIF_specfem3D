@@ -11,6 +11,8 @@ from .component import Component
 from ..domain import GlobalDomain
 from .. import LASIFNotFoundError
 
+import warnings
+
 
 class ValidatorComponent(Component):
     """
@@ -25,6 +27,7 @@ class ValidatorComponent(Component):
         super(ValidatorComponent, self).__init__(*args, **kwargs)
         self._reports = []
         self._total_error_count = 0
+        self._inspected_station_files = []
 
     def _print_ok_message(self):
         """
@@ -59,9 +62,114 @@ class ValidatorComponent(Component):
         """
         self._reports.append(message)
         self._total_error_count += error_count
+        
+    def validate_StationXML_files(self):
+        """
+        will simulate an instrumental correction, 
+        if exception raised, will try to download a new stationwml file 
+        from iris and orfeus
+        """
+        
+        from obspy.clients.fdsn import Client
+        import obspy
+        import numpy as np
+        iris_client = Client("IRIS")
+        orfeus_client = Client("ORFEUS")
+        
+        def get_raw_data_filename_for_channel(events, channel):
+            """
+            return the first raw data file which meets the channel
+            """
+            for event in events:
+                try:
+                    wav_cache = self.comm.waveforms.get_waveform_cache(event["event_name"],"raw").get_values()
+                except Exception:
+                    continue
+                wav_for_channelid = [wav for wav in wav_cache if wav["channel_id"] == channel["channel_id"]]
+                for value in wav_for_channelid:
+                    value["starttime"] = \
+                            obspy.UTCDateTime(value["starttime_timestamp"])
+                    value["endtime"] = \
+                            obspy.UTCDateTime(value["endtime_timestamp"])
+                    del value["starttime_timestamp"]
+                    del value["endtime_timestamp"]
+                wav_filename = [wav["filename"] for wav in wav_for_channelid 
+                                if wav["starttime"]>=channel["start_date"] and wav["endtime"]<=channel["end_date"]]
+                if wav_filename:
+                    return wav_filename[0]
+                
+        print("Checking all station files ", end=' ')
+
+        all_good = True
+        
+        channels = self.comm.stations.get_all_channels()
+        events = list(self.comm.events.get_all_events().values())
+        if not self._inspected_station_files:
+            self._inspected_station_files = []
+        
+        output_units = "VEL"
+        pre_filt = (0.004, 0.01, 0.1, 0.5)
+        fail_item = 0
+        warnings.filterwarnings("ignore")
+        for channel in channels:
+            station_file = channel["filename"]
+            if station_file in self._inspected_station_files:
+                continue
+            
+            if channel["end_date"] is None:
+                channel["end_date"] = obspy.UTCDateTime(2030,12,31,0,0,0)
+                
+            example_data_to_read = get_raw_data_filename_for_channel(events, channel)
+            if example_data_to_read:
+                st = obspy.read(get_raw_data_filename_for_channel(events, channel))
+                tr = st[0].copy()
+                        
+                if '/StationXML/' in station_file:
+                    self._flush_point()
+                    self._inspected_station_files.append(station_file)
+                    inv = obspy.read_inventory(station_file, format="stationxml")
+                    tr.attach_response(inv)
+                    try:
+                        tr.remove_response(output=output_units, pre_filt=pre_filt,
+                                                   zero_mean=False, taper=False)
+                        
+                        if np.isnan(np.sum(tr.data)):
+                            raise Exception
+                        print("%s: %sok%s"%(station_file, colorama.Fore.GREEN, colorama.Fore.RESET))
+                    except Exception:
+                        print("%sProblem with station file %s%s"%(colorama.Fore.YELLOW, station_file, colorama.Fore.RESET))
+                        print("\t--> will try to download from IRIS")
+                        network, station, location, chan = channel["channel_id"].split('.')
+                        try:
+                            iris_client.get_stations(network=network, station=station, level="response",
+                                                            filename = station_file, format="xml")
+                            print("\t%sSuccessfull download%s"%(colorama.Fore.GREEN,colorama.Forc.RESET))
+                        except Exception:
+                            print("\tNo available station response at IRIS for %s.%s"%(network,station))
+                            print("\t--> will try to download from ORFEUS")
+                            try:
+                                orfeus_client.get_stations(network=network, station=station, level="response",
+                                                                filename = station_file, format="xml")
+                                print("\t%sSuccessfull download%s"%(colorama.Fore.GREEN, colorama.Fore.RESET))
+                            except Exception:
+                                print("\tNo available station response at ORFEUS for %s.%s -- %sskipping%s"\
+                                      %(network,station,colorama.Fore.RED,colorama.Fore.RESET))
+                                fail_item += 1
+                                all_good = False
+                                self._add_report("Defective station file %s"%station_file)
+            
+        if all_good:
+            self._print_ok_message()
+        else:
+            print("%s%d/%d station files could not be fixed%s"
+                  %(colorama.Fore.RED, fail_item, len(self._inspected_station_files), colorama.Fore.RESET))
+            self._print_fail_message()
+
+        
+        
 
     def validate_data(self, station_file_availability=False, raypaths=False,
-                      waveforms=False):
+                      waveforms=False, stationxml_file_check = False):
         """
         Validates all data of the current project.
 
@@ -96,12 +204,21 @@ class ValidatorComponent(Component):
         else:
             print(("%sSkipping station files availability check.%s" % (
                 colorama.Fore.YELLOW, colorama.Fore.RESET)))
+        
+            
 
         # Assert that all waveform files have a corresponding station file.
         if waveforms:
             self._validate_waveform_files()
         else:
             print(("%sSkipping waveform file validation.%s" % (
+                colorama.Fore.YELLOW, colorama.Fore.RESET)))
+            
+        # checking station files
+        if stationxml_file_check:
+            self.validate_StationXML_files()
+        else:
+            print(("%sSkipping station file validation.%s" % (
                 colorama.Fore.YELLOW, colorama.Fore.RESET)))
 
         # self._validate_coordinate_deduction(ok_string, fail_string,
@@ -121,6 +238,8 @@ class ValidatorComponent(Component):
         else:
             print(("%sSkipping raypath checks.%s" % (
                 colorama.Fore.YELLOW, colorama.Fore.RESET)))
+            
+        
 
         # Depending on whether or not the tests passed, report it accordingly.
         if not self._reports:
@@ -135,7 +254,7 @@ class ValidatorComponent(Component):
                     tag="data_integrity_report")
             filename = os.path.join(folder, "report.txt")
             seperator_string = "\n" + 80 * "=" + "\n" + 80 * "=" + "\n"
-            with open(filename, "wb") as fh:
+            with open(filename, "wt") as fh:
                 for report in self._reports:
                     fh.write(report.strip())
                     fh.write(seperator_string)
@@ -149,7 +268,7 @@ class ValidatorComponent(Component):
                                               files_failing_raypath_test]
                 filename = os.path.join(folder,
                                         "delete_raypath_violating_files.sh")
-                with open(filename, "wb") as fh:
+                with open(filename, "wt") as fh:
                     fh.write("# CHECK THIS FILE BEFORE EXECUTING!!!\n")
                     fh.write("rm ")
                     fh.write("\nrm ".join(files_failing_raypath_test))
@@ -328,6 +447,7 @@ class ValidatorComponent(Component):
                             self.comm.waveforms.get_waveform_folder(
                                 event_name, "processed", processing_tag)
                         print(("NO PROCESSED %s!!!" % iteration))
+                        '''
                         if os.path.exists(data_path):
                             try:
                                 print(('Deleting directory %s'%data_path))
@@ -335,6 +455,7 @@ class ValidatorComponent(Component):
                                 os.remove("%_cache.sqlite"%data_path)
                             except OSError as e:
                                 print(("Error: %s : %s" % (data_path, e.strerror)))
+                        '''
                     try: 
                         synthetic_info = \
                             self.comm.waveforms.get_metadata_synthetic(event_name, 
@@ -373,6 +494,7 @@ class ValidatorComponent(Component):
                                 event_name, "synthetic", 
                                 iteration_tag)
                         print(("NO SYNTHETIC %s!!!" % iteration))
+                        '''
                         if os.path.exists(data_path):
                             try:
                                 print(('Deleting directory %s'%data_path))
@@ -387,6 +509,7 @@ class ValidatorComponent(Component):
                                 os.rmdir(stf_path)
                             except OSError as e:
                                 print(("Error: %s : %s" % (data_path, e.strerror)))
+                        '''
 
                         continue
 

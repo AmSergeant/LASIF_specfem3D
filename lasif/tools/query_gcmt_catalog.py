@@ -329,7 +329,17 @@ def add_new_events(comm, count, min_year=None, max_year=None,
                     coordinates.append((org.latitude, org.longitude))
                     azimuths.append(azimuth)
 
-        cat = temp_cat
+        # remove any duplicates from cat
+        event_names = []
+        for event in temp_cat:
+            event_names.append(get_event_filename(event, "GCMT").split(".xml")[0])
+        _u, index_unique = np.unique(np.array(event_names), return_index=True)
+        cat = Catalog()
+        temp_azimuth = []
+        for idx in index_unique:
+            cat.events.append(temp_cat[idx])
+            temp_azimuth.append(azimuths[idx])
+        azimuths = temp_azimuth
         
         
         if not cat:
@@ -411,7 +421,6 @@ def add_new_events(comm, count, min_year=None, max_year=None,
                     chosen_events = []
                     # get une uniform random selection of count events, which are sorted by origin time
                     from scipy.stats import randint as sp_randint
-                    print(("\tRandom selection of %i events from a uniform distribution on event azimuth"%count))
 
                     # first check if events from catalog are already in the project database, if yes, delete them
                     if existing_events:
@@ -423,11 +432,13 @@ def add_new_events(comm, count, min_year=None, max_year=None,
                             if not exist_event:
                                 temp_cat.events.append(event)
                                 temp_azimuth.append(azimuth)
+                        
                         if temp_cat:
-                            print(("--> %d events already stored in the database, disregard them"%(len(cat)-len(temp_cat))))
+                            print(("--> %d events already stored in the database, disregard them"%(np.abs(len(cat)-len(temp_cat)))))
                             cat = temp_cat
                             azimuths = temp_azimuth
-
+                    
+                    
                     # sort by azimuth
                     azimuths = np.array(azimuths)
                     Isort = np.argsort(azimuths)
@@ -437,7 +448,24 @@ def add_new_events(comm, count, min_year=None, max_year=None,
                     cat = sorted_cat
 
                     # random selection
-                    idx = sp_randint.rvs(0, len(cat), size=count, random_state=0)
+                    available_count = np.min([len(cat), count])
+                    print(("\tRandom selection of %i events from a uniform distribution on event azimuth"%available_count))
+                    idx = sp_randint.rvs(0, len(cat), size=available_count, random_state=0)
+                    
+                    # check repeatitive idx
+                    idx_unique,  unique_index, unique_counts = np.unique(np.array(idx), return_index=True, return_counts=True)
+                    repeated_idx = [index for index, index_count in zip(idx_unique, unique_counts) if index_count>1]
+                    idx_unique = list(idx_unique)
+                    if repeated_idx:
+                        for item in repeated_idx:
+                            new_idx = item + 1
+                            while new_idx in idx_unique:
+                                new_idx += 1
+                                if new_idx >= len(cat):
+                                    new_idx = np.random.randint(0,len(cat)-1,1)[0]
+                            idx_unique.append(new_idx)
+                        idx = idx_unique
+                        
                     for index in idx:
                         event = cat[index]
                         chosen_events.append(event)
@@ -496,6 +524,12 @@ def add_new_events(comm, count, min_year=None, max_year=None,
                 for event in existing_events: 
                     events.append(event)
             
+            '''
+            # query inventory for tations in chosen domain
+            t1 = UTCDateTime(int(min_year),1,1,0,0,0)
+            t2 = UTCDateTime(int(max_year),12,31,23,59,59)
+            inventory = comm.downloads.query_station_inventory(t1, t2)
+            '''
             
             # gui for event selection
             from lasif import gui_event_query
