@@ -37,7 +37,7 @@ class NiedDownloader():
         # authentication for NIED server
         user = input("Username: ")
         pswd = getpass.getpass("Password: ")
-        self.client = Client(user,pswd)
+        self.client = Client(user,pswd,retries=100)
 
         # select stations from domain boundary
         for network in self.network:
