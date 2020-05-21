@@ -50,6 +50,7 @@ class Project(Component):
 
     It represents the heart of LASIF.
     """
+
     def __init__(self, project_root_path, init_project=False,
                  read_only_caches=False):
         """
@@ -223,7 +224,7 @@ class Project(Component):
                         os.remove(cfile)
                     else:
                         return
-            except:
+            except BaseException:
                 os.remove(cfile)
 
         from lxml import etree
@@ -428,6 +429,7 @@ class Project(Component):
         StationsComponent(stationxml_folder=self.paths["station_xml"],
                           seed_folder=self.paths["dataless_seed"],
                           resp_folder=self.paths["resp"],
+                          sacpz_folder=self.paths["sacpz"],
                           cache_folder=self.paths["cache"],
                           communicator=self.comm, component_name="stations")
         WaveformsComponent(data_folder=self.paths["data"],
@@ -504,6 +506,9 @@ class Project(Component):
                                                  "StationXML")
         self.paths["resp"] = os.path.join(self.paths["stations"],
                                           "RESP")
+        self.paths["sacpz"] = os.path.join(self.paths["stations"],
+                                          "SACPZ")
+
 
         # Paths for various files.
         self.paths["config_file"] = os.path.join(root_path,
@@ -522,7 +527,10 @@ class Project(Component):
                 continue
             os.makedirs(path)
         events = self.comm.events.list()
-        folders = [self.paths["data"], self.paths["synthetics"], self.paths["stf"]]
+        folders = [
+            self.paths["data"],
+            self.paths["synthetics"],
+            self.paths["stf"]]
         for folder in folders:
             for event in events:
                 event_folder = os.path.join(folder, event)

@@ -21,21 +21,20 @@ being actually tested. So its just an additional design decision.
     GNU General Public License, Version 3
     (http://www.gnu.org/copyleft/gpl.html)
 """
+from lasif.tests.testing_helpers import reset_matplotlib
+from lasif.scripts import lasif_cli
+import lasif
+import shutil
+import os
+import re
+import mock
+import numpy as np
 import matplotlib as mpl
 import collections
 mpl.use("agg")
 
-import numpy as np
-import mock
-import re
-import os
-import shutil
-
-import lasif
-from lasif.scripts import lasif_cli
 
 from lasif.tests.testing_helpers import communicator, cli  # NOQA
-from lasif.tests.testing_helpers import reset_matplotlib
 
 # Get a list of all available commands.
 CMD_LIST = [key.replace("lasif_", "")

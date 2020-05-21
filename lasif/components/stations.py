@@ -13,15 +13,15 @@ from .component import Component
 class StationsComponent(Component):
     """
     Component responsible for dealing with station information in either
-    StationXML, SEED, or RESP formats. The information is always bound to a
+    StationXML, SEED, RESP or SACPZ formats. The information is always bound to a
     specific channel and time and never to the whole station despite the
     name of this component. Always use this component to get the required
     station related information
     and do not do it yourself.
 
     StationXML files must adhere to the naming scheme ``*.xml``, SEED files
-    to ``dataless.*``, and RESP files to ``RESP.*``. They must be stored in
-    separate, non-nested folders.
+    to ``dataless.*``, RESP files to ``RESP.*``, and SACPZ files to ``*.SAC``
+    and ``SAC_PZ``. They must be stored in separate, non-nested folders.
 
     The term ``channel_id`` always means the full SEED identifier,
     e.g. network, station , location, and channel codes.
@@ -29,18 +29,21 @@ class StationsComponent(Component):
     :param stationxml_folder: The StationXML folder.
     :param seed_folder: The dataless SEED folder.
     :param resp_folder: The RESP files folder.
+    :param sacpz_folder: The SACPZ file folder.
     :param cache_folder: The folder where the cache file should be
         stored. The file will be named ``station_cache.sqlite``.
     :param communicator: The communicator instance.
     :param component_name: The name of this component for the
         communicator.
     """
+
     def __init__(self, stationxml_folder, seed_folder, resp_folder,
-                 cache_folder, communicator, component_name):
+                 sacpz_folder, cache_folder, communicator, component_name):
         self.cache_folder = cache_folder
         self.stationxml_folder = stationxml_folder
         self.seed_folder = seed_folder
         self.resp_folder = resp_folder
+        self.sacpz_folder = sacpz_folder
 
         # Attribute will store the station cache if it has been initialized.
         self.__cached_station_cache = None
@@ -90,6 +93,7 @@ class StationsComponent(Component):
             seed_folder=self.seed_folder,
             resp_folder=self.resp_folder,
             stationxml_folder=self.stationxml_folder,
+            sacpz_folder=self.sacpz_folder,
             read_only=self.comm.project.read_only_caches)
         return self.__cached_station_cache
 

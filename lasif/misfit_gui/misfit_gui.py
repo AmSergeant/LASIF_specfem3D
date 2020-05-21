@@ -2,27 +2,23 @@
 # -*- coding: utf-8 -*-
 
 
-from PyQt4 import QtGui
-from PyQt4.QtCore import pyqtSlot
+import lasif.visualization
+from .window_region_item import WindowLinearRegionItem
+from ..colors import COLORS
+import sys
+import random
+import os
+from obspy.taup import TauPyModel
+from obspy.geodetics import locations2degrees
+import matplotlib.patheffects as PathEffects
+import inspect
+import imp
+from glob import iglob
+from PyQt5 import QtGui, QtWidgets
+from PyQt5.QtCore import pyqtSlot
 import pyqtgraph as pg
 # Default to antialiased drawing.
 pg.setConfigOptions(antialias=True, foreground=(50, 50, 50), background=None)
-
-
-from glob import iglob
-import imp
-import inspect
-import matplotlib.patheffects as PathEffects
-from obspy.geodetics import locations2degrees
-from obspy.taup import TauPyModel
-import os
-import random
-import sys
-
-from ..colors import COLORS
-from .window_region_item import WindowLinearRegionItem
-
-import lasif.visualization
 
 
 taupy_model = TauPyModel("ak135")
@@ -45,7 +41,7 @@ def compile_and_import_ui_files():
         py_ui_file = os.path.splitext(ui_file)[0] + os.path.extsep + 'py'
         if not os.path.exists(py_ui_file) or \
                 (os.path.getmtime(ui_file) >= os.path.getmtime(py_ui_file)):
-            from PyQt4 import uic
+            from PyQt5 import uic
             print("Compiling ui file: %s" % ui_file)
             with open(py_ui_file, 'w') as open_file:
                 uic.compileUi(ui_file, open_file)
@@ -61,7 +57,7 @@ def compile_and_import_ui_files():
 path_effects = [PathEffects.withStroke(linewidth=5, foreground="white")]
 
 
-class Window(QtGui.QMainWindow):
+class Window(QtWidgets.QMainWindow):
     def __init__(self, comm):
         QtGui.QMainWindow.__init__(self)
         self.comm = comm
@@ -166,7 +162,7 @@ class Window(QtGui.QMainWindow):
 
         try:
             self.current_station_scatter.remove()
-        except:
+        except BaseException:
             pass
 
         stations = self.comm.query.get_all_stations_for_event(

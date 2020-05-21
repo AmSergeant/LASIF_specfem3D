@@ -18,6 +18,7 @@ class ColoredLogger(object):
     """
     Simple logging class printing to the screen in color as well as to a file.
     """
+
     def __init__(self, log_filename=None, debug=False):
         FORMAT = "[%(asctime)-15s] %(levelname)s: %(message)s"
         if log_filename is not None:

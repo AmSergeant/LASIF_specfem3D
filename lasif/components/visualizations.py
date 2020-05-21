@@ -611,7 +611,6 @@ class VisualizationsComponent(Component):
 
         plt.figure(figsize=(20, 21))
 
-
         m = self.comm.project.domain.plot()
 
         event_stations = []
@@ -953,7 +952,7 @@ class VisualizationsComponent(Component):
     def plot_preprocessed_waveforms(self, event_name, iteration_name, components = ['E','N','Z'], 
                                     scaling = 0.5, plot_raw=False, plot_window=True, Phase=None):
         """
-        Will plot seismic waveform gather with data stored in DATA/event_name/preprocessed folder 
+        Will plot seismic waveform gather with data stored in DATA/event_name/preprocessed folder
         that corresponds to preprocessing parameters of the iteration file
         Parameters
         ----------
@@ -964,7 +963,7 @@ class VisualizationsComponent(Component):
         components: list of str
             list of seismic components to plot
         plot_raw: Boolean, True or False
-            if True, will plot on top of preprocessed waveforms, the raw waveforms 
+            if True, will plot on top of preprocessed waveforms, the raw waveforms
             which did not pass the preprocessing selection process
         plot_window: Boolean, True or False
             if True, will plot the time limits for the pase windowing as defined in the iteration file
@@ -975,7 +974,7 @@ class VisualizationsComponent(Component):
         Raises
         ------
         ValueError
-            - if no seismic waveforms stored in preprocessed folder 
+            - if no seismic waveforms stored in preprocessed folder
             for one of the asked component
             - if no waveforms or the epicentral distance range is zero
 
@@ -983,7 +982,7 @@ class VisualizationsComponent(Component):
         -------
         None.
 
-        """  
+        """
         from lasif.visualization import plot_waveform_section
         from obspy.geodetics.base import locations2degrees
         from obspy.core import read, Stream
@@ -998,31 +997,33 @@ class VisualizationsComponent(Component):
 
         # check the number of components
         ncomp = len(components)
-        if ncomp>3:
+        if ncomp > 3:
             msg = ("There are more than 3 components given")
             raise LASIFError(msg)
 
         # sort components so will plot Z data first
         if 'Z' in components:
             components.sort(reverse=False)
-            components = np.roll(np.array(components),1).tolist()
-        if (('R' in components )or ('T' in components)) and plot_raw:
-            print("====================================================================================")
-            print("!!! No R or T component available for raw data, plot_raw data option is disabled !!!")
+            components = np.roll(np.array(components), 1).tolist()
+        if (('R' in components)or ('T' in components)) and plot_raw:
+            print(
+                "====================================================================================")
+            print(
+                "!!! No R or T component available for raw data, plot_raw data option is disabled !!!")
             plot_raw = False
 
         # check data component and initiate titles for each component plot
-        titles=[]
+        titles = []
         for comp in components:
-            if comp=='Z':
+            if comp == 'Z':
                 titles.append('Vertical')
-            elif comp=='E':
+            elif comp == 'E':
                 titles.append('East')
-            elif comp=='N':
+            elif comp == 'N':
                 titles.append('North')
-            elif comp=='R':
+            elif comp == 'R':
                 titles.append('Radial')
-            elif comp=='T':
+            elif comp == 'T':
                 titles.append('Transverse')
             else: 
                 raise ValueError("Invalid data component '%s'. Component should be E, N, R, T or Z." %comp)
@@ -1040,6 +1041,7 @@ class VisualizationsComponent(Component):
         waveforms = [wav for wav in waveforms 
                      if wav["channel"][-1] in components]
         # Group by station name.
+
         def func(x):
             return ".".join(x["channel_id"].split(".")[:2])
         waveforms.sort(key=func)
@@ -1047,8 +1049,8 @@ class VisualizationsComponent(Component):
             raws = self.comm.waveforms.get_metadata_raw(event_name)
             raws.sort(key=func)
             # we keep only raw files that were not processed to save time
-            raw_sta =[raw["channel_id"] for raw in raws]
-            wav_sta =[wav["channel_id"] for wav in waveforms]
+            raw_sta = [raw["channel_id"] for raw in raws]
+            wav_sta = [wav["channel_id"] for wav in waveforms]
             not_in_wav = list(set(raw_sta) ^ set(wav_sta))
             raws = [raw for raw in raws if raw["channel_id"] in not_in_wav]
 
@@ -1091,7 +1093,7 @@ class VisualizationsComponent(Component):
 
         # Plotting
         import matplotlib.pylab as plt
-        import matplotlib.gridspec as gridspec   
+        import matplotlib.gridspec as gridspec
         fig = plt.figure(figsize=(12, 8))
         spec = gridspec.GridSpec(ncols=ncomp, nrows=1, figure=fig)
         plt.suptitle(event_name)
@@ -1129,16 +1131,28 @@ class VisualizationsComponent(Component):
                         tr.detrend("linear")
                         tr.detrend("demean")
                         tr.taper(0.05, type="cosine")
-                        tr.filter("bandpass", freqmin=pparam["highpass"], freqmax=pparam["lowpass"], corners=3,
-                                  zerophase=False)
+                        tr.filter(
+                            "bandpass",
+                            freqmin=pparam["highpass"],
+                            freqmax=pparam["lowpass"],
+                            corners=3,
+                            zerophase=False)
                         tr.detrend("linear")
                         tr.detrend("demean")
                         tr.taper(0.05, type="cosine")
-                        tr.filter("bandpass", freqmin=pparam["highpass"], freqmax=pparam["lowpass"], corners=3,
-                                  zerophase=False)
+                        tr.filter(
+                            "bandpass",
+                            freqmin=pparam["highpass"],
+                            freqmax=pparam["lowpass"],
+                            corners=3,
+                            zerophase=False)
                         tr.interpolate(
-                            sampling_rate=1.0 / pparam["dt"],
-                            method="lanczos", starttime=event["origin_time"], window="blackman", a=12,
+                            sampling_rate=1.0 /
+                            pparam["dt"],
+                            method="lanczos",
+                            starttime=event["origin_time"],
+                            window="blackman",
+                            a=12,
                             npts=pparam["npts"])
                         st_raw += tr
                     plot_waveform_section(ax1,st_raw, offset_raw, reftime = event["origin_time"], scale=scaling, 
@@ -1318,7 +1332,7 @@ class VisualizationsComponent(Component):
     def plot_synthetic_waveforms(self, event_name, iteration_name, components = ['E','N','Z'], 
                                  scaling = 0.5, plot_window=True, Phase=None):
         """
-        Will plot seismic waveform gather with synthetics and preprocessed data 
+        Will plot seismic waveform gather with synthetics and preprocessed data
         that corresponds to preprocessing parameters of the iteration file
         Parameters
         ----------
@@ -1338,7 +1352,7 @@ class VisualizationsComponent(Component):
         Raises
         ------
         ValueError
-            - if no seismic waveforms stored in the synthetic folder 
+            - if no seismic waveforms stored in the synthetic folder
             for one of the asked component
             - if no waveforms or the epicentral distance range is zero
 
@@ -1346,7 +1360,7 @@ class VisualizationsComponent(Component):
         -------
         None.
 
-        """  
+        """
         from lasif.visualization import plot_waveform_section
         from obspy.geodetics.base import locations2degrees
         from obspy.core import read, Stream
@@ -1361,7 +1375,7 @@ class VisualizationsComponent(Component):
 
         # check the number of components
         ncomp = len(components)
-        if ncomp>3:
+        if ncomp > 3:
             msg = ("There are more than 3 components given")
             raise LASIFError(msg)
 
@@ -1371,17 +1385,17 @@ class VisualizationsComponent(Component):
             components = np.roll(np.array(components),1).tolist()
 
         # check data component and initiate titles for each component plot
-        titles=[]
+        titles = []
         for comp in components:
-            if comp=='Z':
+            if comp == 'Z':
                 titles.append('Vertical')
-            elif comp=='E':
+            elif comp == 'E':
                 titles.append('East')
-            elif comp=='N':
+            elif comp == 'N':
                 titles.append('North')
-            elif comp=='R':
+            elif comp == 'R':
                 titles.append('Radial')
-            elif comp=='T':
+            elif comp == 'T':
                 titles.append('Transverse')
             else: 
                 raise ValueError("Invalid data component '%s'. Component should be E, N, R, T or Z." %comp)
@@ -1402,6 +1416,7 @@ class VisualizationsComponent(Component):
         synthetics = [syn for syn in synthetics 
                       if syn["channel"][-1] in components]
         # Group by station name.
+
         def func(x):
             return ".".join(x["channel_id"].split(".")[:2])
         waveforms.sort(key=func)
@@ -1439,7 +1454,7 @@ class VisualizationsComponent(Component):
 
         # Plotting
         import matplotlib.pylab as plt
-        import matplotlib.gridspec as gridspec   
+        import matplotlib.gridspec as gridspec
         fig = plt.figure(figsize=(12, 8))
         spec = gridspec.GridSpec(ncols=ncomp, nrows=1, figure=fig)
         plt.suptitle(event_name)
@@ -1487,7 +1502,7 @@ class VisualizationsComponent(Component):
 
         if ncomp>1:
             sub += 1
-            ax2 = fig.add_subplot(spec[0, sub], sharex = ax1, sharey=ax1)
+            ax2 = fig.add_subplot(spec[0, sub], sharex=ax1, sharey=ax1)
             comp = components[sub]
             file_list = [syn["filename"] for syn in synthetics if comp in syn["channel"]]
             if len(file_list)==0:
@@ -1526,7 +1541,7 @@ class VisualizationsComponent(Component):
 
             if ncomp>2:
                 sub += 1
-                ax3 = fig.add_subplot(spec[0, sub], sharex = ax1, sharey=ax1)
+                ax3 = fig.add_subplot(spec[0, sub], sharex=ax1, sharey=ax1)
                 comp = components[sub]
                 file_list = [syn["filename"] for syn in synthetics if comp in syn["channel"]]
                 if len(file_list)==0:
@@ -1617,7 +1632,7 @@ class VisualizationsComponent(Component):
         Raises
         ------
         ValueError
-            - if no seismic waveforms stored in the synthetic folder 
+            - if no seismic waveforms stored in the synthetic folder
             for one of the asked component
             - if no stf
             - if no waveforms or the epicentral distance range is zero
@@ -1626,7 +1641,7 @@ class VisualizationsComponent(Component):
         -------
         None.
 
-        """  
+        """
         from lasif.visualization import plot_waveform_section
         from obspy.geodetics.base import locations2degrees
         from obspy.core import read, Stream
@@ -1636,12 +1651,12 @@ class VisualizationsComponent(Component):
 
         def compute_synthetics_from_stf(src_array, stream_green):
             nfft = stream_green[0].stats.npts
-            src_fft = np.fft.fft(src_array,nfft)
+            src_fft = np.fft.fft(src_array, nfft)
             stream_syn = stream_green.copy()
-            for i, sy in enumerate(stream_green): 
-                sy_fft = np.fft.fft(sy.data,nfft)
+            for i, sy in enumerate(stream_green):
+                sy_fft = np.fft.fft(sy.data, nfft)
                 cal = sy.copy()
-                cal.data = np.real(np.fft.ifft(src_fft*sy_fft))
+                cal.data = np.real(np.fft.ifft(src_fft * sy_fft))
                 stream_syn[i] = cal
             return stream_syn
 
@@ -1649,7 +1664,7 @@ class VisualizationsComponent(Component):
 
         # check the number of components
         ncomp = len(components)
-        if ncomp>3:
+        if ncomp > 3:
             msg = ("There are more than 3 components given")
             raise LASIFError(msg)
 
@@ -1659,17 +1674,17 @@ class VisualizationsComponent(Component):
             components = np.roll(np.array(components),1).tolist()
 
         # check data component and initiate titles for each component plot
-        titles=[]
+        titles = []
         for comp in components:
-            if comp=='Z':
+            if comp == 'Z':
                 titles.append('Vertical')
-            elif comp=='E':
+            elif comp == 'E':
                 titles.append('East')
-            elif comp=='N':
+            elif comp == 'N':
                 titles.append('North')
-            elif comp=='R':
+            elif comp == 'R':
                 titles.append('Radial')
-            elif comp=='T':
+            elif comp == 'T':
                 titles.append('Transverse')
             else: 
                 raise ValueError("Invalid data component '%s'. Component should be E, N, R, T or Z." %comp)
@@ -1690,6 +1705,7 @@ class VisualizationsComponent(Component):
         greens = [green for green in greens 
                   if green["channel"][-1] in components]
         # Group by station name.
+
         def func(x):
             return ".".join(x["channel_id"].split(".")[:2])
         waveforms.sort(key=func)
@@ -1734,7 +1750,7 @@ class VisualizationsComponent(Component):
 
         # Plotting
         import matplotlib.pylab as plt
-        import matplotlib.gridspec as gridspec   
+        import matplotlib.gridspec as gridspec
         fig = plt.figure(figsize=(12, 8))
         spec = gridspec.GridSpec(ncols=ncomp, nrows=1, figure=fig)
         plt.suptitle(event_name)
@@ -1778,7 +1794,7 @@ class VisualizationsComponent(Component):
         st_wav = Stream()
         for files in file_list_wav:
             tr = read(files)
-            tr.trim(starttime,endtime)
+            tr.trim(starttime, endtime)
             st_wav += tr
         #st_syn = compute_synthetics_from_stf(stf[0].data, st_green)
         #offset_syn = offset_green
@@ -1807,15 +1823,17 @@ class VisualizationsComponent(Component):
 
         if ncomp>1:
             sub += 1
-            ax2 = fig.add_subplot(spec[0, sub], sharex = ax1, sharey=ax1)
+            ax2 = fig.add_subplot(spec[0, sub], sharex=ax1, sharey=ax1)
             comp = components[sub]
 
             '''
             stf = \
                 self.comm.waveforms.get_waveform_stf(event_name, iteration_name, component = comp)
             if not stf:
-                raise LASIFError("No stf data available for component '%s'" %comp) 
-            print(stf[0])    
+                raise LASIFError(
+                    "No stf data available for component '%s'" %
+                    comp)
+            print(stf[0])
             starttime = stf[0].stats.starttime
             endtime = stf[0].stats.endtime
             '''
@@ -1827,7 +1845,7 @@ class VisualizationsComponent(Component):
             st_green = Stream()
             for files in file_list_green:
                 tr = read(files)
-                tr.trim(starttime,endtime)
+                tr.trim(starttime, endtime)
                 st_green += tr
             file_list_wav = [wav["filename"] for wav in waveforms if comp in wav["channel"]]
             if len(file_list_wav)==0:
@@ -1837,7 +1855,7 @@ class VisualizationsComponent(Component):
             st_wav = Stream()
             for files in file_list_wav:
                 tr = read(files)
-                tr.trim(starttime,endtime)
+                tr.trim(starttime, endtime)
                 st_wav += tr
             #st_syn = compute_synthetics_from_stf(stf[0].data, st_green)
             st_syn = stream_syn.select(component = comp)
@@ -1871,15 +1889,17 @@ class VisualizationsComponent(Component):
 
             if ncomp>2:
                 sub += 1
-                ax3 = fig.add_subplot(spec[0, sub], sharex = ax1, sharey=ax1)
+                ax3 = fig.add_subplot(spec[0, sub], sharex=ax1, sharey=ax1)
                 comp = components[sub]
 
                 '''
                 stf = \
                     self.comm.waveforms.get_waveform_stf(event_name, iteration_name, component = comp)
                 if not stf:
-                    raise LASIFError("No stf data available for component '%s'" %comp) 
-                print(stf[0])    
+                    raise LASIFError(
+                        "No stf data available for component '%s'" %
+                        comp)
+                print(stf[0])
                 starttime = stf[0].stats.starttime
                 endtime = stf[0].stats.endtime
                 '''
@@ -1891,7 +1911,7 @@ class VisualizationsComponent(Component):
                 st_green = Stream()
                 for files in file_list_green:
                     tr = read(files)
-                    tr.trim(starttime,endtime)
+                    tr.trim(starttime, endtime)
                     st_green += tr
                 file_list_wav = [wav["filename"] for wav in waveforms if comp in wav["channel"]]
                 if len(file_list_wav)==0:
@@ -1901,7 +1921,7 @@ class VisualizationsComponent(Component):
                 st_wav = Stream()
                 for files in file_list_wav:
                     tr = read(files)
-                    tr.trim(starttime,endtime)
+                    tr.trim(starttime, endtime)
                     st_wav += tr
                 #st_syn = compute_synthetics_from_stf(stf[0].data, st_green)
                 st_syn = stream_syn.select(component = comp)

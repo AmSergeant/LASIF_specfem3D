@@ -27,7 +27,7 @@ def get_package_data():
         inspect.getfile(inspect.currentframe()))), "lasif")
     # Recursively include all files in these folders:
     folders = [os.path.join(root_dir, "tests", "baseline_images"),
-               os.path.join(root_dir, "tests", "data"), 
+               os.path.join(root_dir, "tests", "data"),
                os.path.join(root_dir, "data", "GCMT_Catalog")]
     for folder in folders:
         for directory, _, files in os.walk(folder):
@@ -66,8 +66,10 @@ setup_config = dict(
         "pytest",
         "mock",
         "flask",
-        "flask-cache",
+        "flask_cache",
+        "PyQt5",
         "geojson",
+        "HinetPy",
         "Pillow",
         "instaseis"
     ],

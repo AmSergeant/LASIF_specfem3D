@@ -17,6 +17,7 @@ class IterationsComponent(Component):
     :param communicator: The communicator instance.
     :param component_name: The name of this component for the communicator.
     """
+
     def __init__(self, iterations_folder, communicator, component_name):
         self.__cached_iterations = {}
         self._folder = iterations_folder
@@ -186,7 +187,7 @@ class IterationsComponent(Component):
 
         It will take all settings in one iteration and transfers them to
         another iteration. Any comments will be deleted.
-        The event dict will be upadated based on selected waveform components 
+        The event dict will be upadated based on selected waveform components
         in preprocessed event folder
 
         :param existing_iteration_name: Name of the iteration to be used as
@@ -253,7 +254,6 @@ class IterationsComponent(Component):
             events[event_name] = existing_iteration.events[event_name]
         existing_iteration.events = events
 
-
         # Clone the old iteration, delete any comments and change the name.
         existing_iteration.comments = []
         existing_iteration.iteration_name = new_iteration_name
@@ -262,7 +262,6 @@ class IterationsComponent(Component):
         if create_folders:
             self.create_synthetics_folder_for_iteration(new_iteration_name)
             self.create_stf_folder_for_iteration(new_iteration_name)
-
 
     def create_successive_iteration(self, existing_iteration_name,
                                     new_iteration_name, create_folders=True):
@@ -336,7 +335,6 @@ class IterationsComponent(Component):
         if create_folders:
             self.create_synthetics_folder_for_iteration(new_iteration_name)
             self.create_stf_folder_for_iteration(new_iteration_name)
-
 
     def save_iteration(self, iteration):
         """

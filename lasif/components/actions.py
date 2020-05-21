@@ -14,7 +14,6 @@ from obspy.taup import TauPyModel
 from obspy.geodetics import locations2degrees
 
 
-
 class ActionsComponent(Component):
     """
     Component implementing actions on the data. Requires most other
@@ -72,8 +71,8 @@ class ActionsComponent(Component):
             comp_to_process.append('Z')
 
         earth_model = TauPyModel("ak135")
-        
-        
+
+
 
         def processing_data_generator():
             """
@@ -118,8 +117,8 @@ class ActionsComponent(Component):
                 else:
                     is_output = False
                 return is_output
-            
-            
+
+
             # ----- Entering the function -----
             # Loop over the chosen events.
             for event_name, event in iteration.events.items():
@@ -154,7 +153,11 @@ class ActionsComponent(Component):
 
                 # Group by station name.
                 def func(x):
-                    return ".".join(x["channel_id"].split(".")[:2])
+                    if x["channel_id"].split(".")[0] != "":
+                        st_name = ".".join(x["channel_id"].split(".")[:2])
+                    else:
+                        st_name = ".".join(x["channel_id"].split(".")[:3])
+                    return st_name
 
                 waveforms.sort(key=func)
                 for station_name, channels in  \
@@ -184,12 +187,12 @@ class ActionsComponent(Component):
                                (event_name, station_name))
                         warnings.warn(msg, LASIFWarning)
                     location = locations[0][1]
-                    
+
 
                     # compute the P-wave arrival time to be used for SNR calculation
                     channel = location[0].copy()
                     channel.update(stations[station_name])
-                    dist_in_deg = locations2degrees(channel["latitude"], channel["longitude"], 
+                    dist_in_deg = locations2degrees(channel["latitude"], channel["longitude"],
                                                     event["latitude"], event["longitude"])
                     tts = earth_model.get_travel_times(source_depth_in_km=event["depth_in_km"],
                                                        distance_in_degree=dist_in_deg,
@@ -250,7 +253,7 @@ class ActionsComponent(Component):
                             is_output = _check_if_output_file_exists(output_filename, channel, output_folder, components)
                             if is_output is True:
                                 continue
-                            
+
 
                         # Xml Station file
                         try:
@@ -260,11 +263,11 @@ class ActionsComponent(Component):
                             msg = (e.__repr__())
                             warnings.warn(msg, LASIFWarning)
                             continue
-                            
+
                         '''
                         # for RESP files
                         station_filename = \
-                            self.comm.stations.get_station_filename(channel["network"], 
+                            self.comm.stations.get_station_filename(channel["network"],
                                                                     channel["station"], channel["location"],
                                                                     channel["channel"], 'RESP')
                         if station_filename.endswith('.1'):
@@ -281,9 +284,9 @@ class ActionsComponent(Component):
 
                     station_dict.update({"waveforms": wav_dict})
                     yield station_dict
-                
-        
-        
+
+
+
         # Only rank 0 needs to know what has to be processsed.
         if MPI.COMM_WORLD.rank == 0:
             if noise_threshold == None:
@@ -301,15 +304,15 @@ class ActionsComponent(Component):
         logfile = self.comm.project.get_log_file(
             "DATA_PREPROCESSING", "processing_iteration_%s" % (str(
                 iteration.name)))
-        
+
         # write header to log file
         with open(logfile, "at") as fh:
             fh.write('--------------------------------------------------------------------\n')
             fh.write("Processing info for iteration %s\n"%iteration_name)
             if event_names is None:
-                fh.write("\tfor all events in the database\n") 
+                fh.write("\tfor all events in the database\n")
             else:
-                fh.write("\tfor %d events in the database\n"%len(event_names)) 
+                fh.write("\tfor %d events in the database\n"%len(event_names))
             fh.write("\tfor components:\n")
             for comp in components:
                 fh.write("\t\t\t%s\n"%comp)
@@ -321,12 +324,12 @@ class ActionsComponent(Component):
                 fh.write("\tApply SVD based selection (see data_svd_selection function)\n")
             fh.write('--------------------------------------------------------------------\n')
         fh.close()
-    
+
 
         # Load project specific data preprocessing function.
         preprocessing_function = self.comm.project.get_project_function(
             "preprocessing_function")
-        
+
         # parallel run
         distribute_across_ranks(
             function=preprocessing_function, items=to_be_processed,
@@ -342,7 +345,7 @@ class ActionsComponent(Component):
         if svd_selection== "True":
             # Load project specific data selection function.
             data_svd_selection = self.comm.project.get_project_function(
-                "data_svd_selection") 
+                "data_svd_selection")
 
             # Loop over the chosen events.
             for event_name, event in iteration.events.items():
@@ -350,7 +353,7 @@ class ActionsComponent(Component):
                     continue
 
                 one_event_to_be_processed = [proc["processing_info"] for proc in to_be_processed
-                                             if event_name in proc["processing_info"]["event_name"]]                
+                                             if event_name in proc["processing_info"]["event_name"]]
 
                 # This is for reformatting the metadat info dictionnary to fit with the data_svd_selection function
                 # This is repeatitive tasks - not clean, could be improved
@@ -395,7 +398,7 @@ class ActionsComponent(Component):
     def stf_estimate(self, iteration_name, components = ['E','N','Z'], event_names=None):
         """
         Estimate the source wavelet by deconvolving the synthetics from data
-        following Pratt, R. G. (1999), 
+        following Pratt, R. G. (1999),
         Seismic waveform inversion in the frequency domain, part 1: Theory and verification in a physical scale model
 
         This function works with and without MPI.
@@ -408,7 +411,6 @@ class ActionsComponent(Component):
         import instaseis
 
         iteration = self.comm.iterations.get(iteration_name)
-
 
         process_params = iteration.get_process_params()
         processing_tag = iteration.processing_tag
@@ -458,7 +460,7 @@ class ActionsComponent(Component):
 
                 output_folder = self.comm.waveforms.get_waveform_folder(
                     event_name=event_name, data_type="synthetic",
-                    tag_or_iteration="ITERATION_%s"%iteration_name)
+                    tag_or_iteration="ITERATION_%s" % iteration_name)
                 if not os.path.exists(output_folder):
                     os.makedirs(output_folder)
 
@@ -466,7 +468,7 @@ class ActionsComponent(Component):
                 event = self.comm.events.get(event_name)
 
                 # get the source
-                source=instaseis.Source.parse(event["filename"])
+                source = instaseis.Source.parse(event["filename"])
                 event["source"] = source
 
                 try:
@@ -474,8 +476,8 @@ class ActionsComponent(Component):
                     stations = self.comm.query\
                         .get_all_stations_for_event(event_name)
                     # Get the processed waveform data.
-                    waveforms = \
-                        self.comm.waveforms.get_metadata_processed(event_name, processing_tag)
+                    waveforms = self.comm.waveforms.get_metadata_processed(
+                        event_name, processing_tag)
                 except LASIFNotFoundError:
                     warnings.warn(
                         "No data found for event '%s'. Did you delete data "
@@ -534,9 +536,9 @@ class ActionsComponent(Component):
                             output_folder,
                             os.path.basename(input_filename))
                         # Skip already processed files.
-                        #if os.path.exists(output_filename):
+                        # if os.path.exists(output_filename):
                         #    continue
-                        
+
                         # get station_file to parse to instaseis
                         station_filename = \
                             self.comm.stations.get_channel_filename(channel["channel_id"][:-1]+'Z',
@@ -546,12 +548,12 @@ class ActionsComponent(Component):
                         if '/RESP/' in station_filename:
                             receiver.latitude = channel["latitude"]
                             receiver.longitude = channel["longitude"]
-                        
+
 
                         '''
                         # force to StationXML file
                         station_filename = \
-                            self.comm.stations.get_station_filename(channel["network"], 
+                            self.comm.stations.get_station_filename(channel["network"],
                                                                     channel["station"], channel["location"],
                                                                     channel["channel"], 'StationXML')
                         receiver = instaseis.Receiver.parse(station_filename)[0]
@@ -561,7 +563,7 @@ class ActionsComponent(Component):
 
 
                         # compute the P-wave arrival time to be used for SNR calculation
-                        dist_in_deg = locations2degrees(channel["latitude"], channel["longitude"], 
+                        dist_in_deg = locations2degrees(channel["latitude"], channel["longitude"],
                                                         event["latitude"], event["longitude"])
                         tts = earth_model.get_travel_times(source_depth_in_km=event["depth_in_km"],
                                                            distance_in_degree=dist_in_deg,
@@ -572,8 +574,9 @@ class ActionsComponent(Component):
                             continue
                         else:
                             # check the purist name
-                            if len(tts)>1:
-                                first_tt_arrival = tts[[i for i,j in enumerate(tts) if j.purist_name=='P'][0]].time
+                            if len(tts) > 1:
+                                first_tt_arrival = tts[[i for i, j in enumerate(
+                                    tts) if j.purist_name == 'P'][0]].time
                             else:
                                 first_tt_arrival  = tts[0].time
 
@@ -597,7 +600,7 @@ class ActionsComponent(Component):
                             "receiver": receiver,
                             "event_information": event,
                             "event_name": event_name,
-                            "first_P_arrival":first_tt_arrival
+                            "first_P_arrival": first_tt_arrival
                         }
 
                         yield ret_dict
@@ -616,44 +619,44 @@ class ActionsComponent(Component):
             synthetics_to_process = None
         if not synthetics_to_process:
             print("No synthetic files to be processed")
-        else:    
-        
+        else:
+
 
             # Load project specific synthetics computing function.
             instaseis_synthetics_function = self.comm.project.get_project_function(
                 "instaseis_synthetics_function")
-    
-    
+
+
             logfile = self.comm.project.get_log_file(
                 "SYNTHETICS", "instaseis_synthetics_iteration_%s" % (str(
                     iteration.name)))
-            
+
             # write header to log file
             with open(logfile, "at") as fh:
                 fh.write('--------------------------------------------------------------------\n')
                 fh.write("Synthetic info for iteration %s\n"%iteration_name)
                 if event_names is None:
-                    fh.write("\tfor all events in the database\n") 
+                    fh.write("\tfor all events in the database\n")
                 else:
-                    fh.write("\tfor %d events in the database\n"%len(event_names)) 
+                    fh.write("\tfor %d events in the database\n"%len(event_names))
                 fh.write("\tfor components:\n")
                 for comp in components:
                     fh.write("\t\t\t%s\n"%comp)
                 fh.write('--------------------------------------------------------------------\n')
             fh.close()
-    
-    
-            
+
+
+
             distribute_across_ranks(
                 function=instaseis_synthetics_function, items=synthetics_to_process,
                 get_name=lambda x: "%s -- %s"\
                 %(x["processing_info"]["event_name"], x["processing_info"]["channel_id"]),
                 logfile=logfile)
 
-        
+
         # Load project specific stf_deconvolution function.
         stf_deconvolution = self.comm.project.get_project_function(
-            "stf_deconvolution") 
+            "stf_deconvolution")
 
         # Loop over the chosen events.
         for event_name, event in iteration.events.items():
@@ -668,7 +671,7 @@ class ActionsComponent(Component):
                     tag_or_iteration='ITERATION_%s'%iteration_name)
                 if not os.path.exists(output_folder):
                     os.makedirs(output_folder)
-    
+
                 print(("\nEstimating the stf for %s"%event_name))
                 stf_deconvolution(one_event_to_be_processed, output_folder, components)
             else:
@@ -1125,7 +1128,7 @@ class ActionsComponent(Component):
         """
         Finalizes the adjoint sources.
         """
-        
+
         import numpy as np
         from lasif import rotations
 

@@ -71,7 +71,7 @@ MSWORD_FRIENDLY = 11
 PLAIN_COLUMNS = 12
 RANDOM = 20
 
-_re = re.compile("\033\[[0-9;]*m")
+_re = re.compile(r"\033\[[0-9;]*m")
 
 
 def _get_size(text):
@@ -448,6 +448,7 @@ class PrettyTable(object):
 
         fields - list or tuple of field names
         """
+
     def _set_field_names(self, val):
         val = [self._unicode(x) for x in val]
         self._validate_option("field_names", val)
@@ -943,10 +944,12 @@ class PrettyTable(object):
         self._vrules = random.choice((ALL, FRAME, NONE))
         self.left_padding_width = random.randint(0, 5)
         self.right_padding_width = random.randint(0, 5)
-        self.vertical_char = random.choice("~!@#$%^&*()_+|-=\{}[];':\",./;<>?")
+        self.vertical_char = random.choice(
+            r"~!@#$%^&*()_+|-=\{}[];':\",./;<>?")
         self.horizontal_char = random.choice(
             "~!@#$%^&*()_+|-=\{}[];':\",./;<>?")
-        self.junction_char = random.choice("~!@#$%^&*()_+|-=\{}[];':\",./;<>?")
+        self.junction_char = random.choice(
+            r"~!@#$%^&*()_+|-=\{}[];':\",./;<>?")
 
     ##############################
     # DATA INPUT METHODS         #

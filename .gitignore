@@ -6,3 +6,8 @@ htmlcov
 lasif/misfit_gui/qt_window.py
 .cache
 lasif/RELEASE-VERSION
+Tutorial
+*.swo
+*.swp
+.python-version
+

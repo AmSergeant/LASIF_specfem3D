@@ -18,6 +18,7 @@ class ModelsComponent(Component):
     :param communicator: The communicator instance.
     :param component_name: The name of this component for the communicator.
     """
+
     def __init__(self, models_folder, communicator, component_name):
         self._folder = models_folder
         super(ModelsComponent, self).__init__(communicator,

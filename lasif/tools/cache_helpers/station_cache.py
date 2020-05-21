@@ -21,7 +21,7 @@ from obspy.io.xseed import Parser
 from lasif import LASIFError
 from lasif.file_handling import simple_resp_parser
 from .file_info_cache import FileInfoCache
-
+from lasif.nied_manager.nied_filehandler import simple_sacpz_parser
 
 # The tolerances to which station coordinates for different locations are
 # considered equal.
@@ -37,14 +37,16 @@ class StationCache(FileInfoCache):
     """
     Cache for Station files.
 
-    Currently supports SEED, XML-SEED, RESP, and StationXML files.
+    Currently supports SEED, XML-SEED, RESP, StationXML and SACPZ files
 
     SEED files have to match the following pattern: 'dataless.*'
     RESP files: RESP.*
     StationXML: *.xml
+    SACPZ: *.SAC and *.SAC_PZ
     """
+
     def __init__(self, cache_db_file, root_folder, seed_folder, resp_folder,
-                 stationxml_folder, read_only, show_progress=True):
+                 stationxml_folder, sacpz_folder, read_only, show_progress=True):
         self.index_values = [
             ("channel_id", "TEXT"),
             ("start_date", "INTEGER"),
@@ -55,11 +57,12 @@ class StationCache(FileInfoCache):
             ("local_depth_in_m", "REAL")]
 
         self.indices = ["channel_id"]
-        self.filetypes = ["seed", "resp", "stationxml"]
+        self.filetypes = ["seed", "resp", "stationxml","sacpz"]
 
         self.seed_folder = seed_folder
         self.resp_folder = resp_folder
         self.stationxml_folder = stationxml_folder
+        self.sacpz_folder = sacpz_folder
 
         self.__cache_station_coordinates = {}
 
@@ -78,6 +81,9 @@ class StationCache(FileInfoCache):
     def _find_files_stationxml(self):
         return glob.glob(os.path.join(self.stationxml_folder, "*.xml"))
 
+    def _find_files_sacpz(self):
+        return glob.glob(os.path.join(self.sacpz_folder, "*.SAC"))
+
     @staticmethod
     def _extract_index_values_seed(filename):
         """
@@ -85,7 +91,7 @@ class StationCache(FileInfoCache):
         """
         try:
             p = Parser(filename)
-        except:
+        except BaseException:
             msg = "Not a valid SEED file?"
             raise StationCacheError(msg)
         channels = p.get_inventory()["channels"]
@@ -105,7 +111,7 @@ class StationCache(FileInfoCache):
         """
         try:
             inv = obspy.read_inventory(filename, format="stationxml")
-        except:
+        except BaseException:
             msg = "Not a valid StationXML file?"
             raise StationCacheError(msg)
 
@@ -141,7 +147,7 @@ class StationCache(FileInfoCache):
         try:
             channels = simple_resp_parser.get_inventory(filename,
                                                         remove_duplicates=True)
-        except:
+        except BaseException:
             msg = "Not a valid RESP file?"
             raise StationCacheError(msg)
 
@@ -149,6 +155,31 @@ class StationCache(FileInfoCache):
             _i["channel_id"], int(_i["start_date"].timestamp),
             int(_i["end_date"].timestamp) if _i["end_date"] else None,
             None, None, None, None] for _i in channels]
+
+        return channels
+
+    @staticmethod
+    def _extract_index_values_sacpz(filename):
+        try:
+            channels = simple_sacpz_parser(filename)
+        except BaseException:
+            msg = "Not a valid sacpz file?"
+            raise StationCacheError(msg)
+
+        #channels = [[
+        #    _i["channel_id"], int(_i["start_date"].timestamp),
+        #    int(_i["end_date"].timestamp) if _i["end_date"] else None,
+        #    _i["latitude"], _i["longitude"], _i["elevation_in_m"],
+        #    _i["local_depth_in_m"]] for _i in channels]
+        channels = [[
+            _i["channel_id"], int(_i["start_date"].timestamp),
+            int(_i["end_date"].timestamp) if _i["end_date"] else None,
+            None,None,None,None] for _i in channels]
+        #channels = [[
+        #    _i["channel_id"], 0,
+        #    32481591010.0,
+        #    None,None,None,None] for _i in channels]
+
 
         return channels
 
@@ -234,7 +265,7 @@ class StationCache(FileInfoCache):
         SELECT files.filename FROM indices
         INNER JOIN files
         ON indices.filepath_id=files.id
-        WHERE (indices.channel_id = '%s') AND (indices.start_date < %i) AND
+        WHERE (indices.channel_id = '%s') AND (indices.start_date <= %i) AND
             ((indices.end_date IS NULL) OR (indices.end_date > %i))
         LIMIT 1;
         """ % (channel_id, time, time)

@@ -49,7 +49,7 @@ try:
     line = p.stdout.readline().decode()
     p.stdout.close()
     __version__ = line.strip()
-except:
+except BaseException:
     warnings.warn("Could not determine LASIF version. Is git installed?",
                   LASIFWarning)
     __version__ = "UNDEFINED"

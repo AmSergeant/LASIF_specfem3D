@@ -304,10 +304,10 @@ def _recursive_dict(element):
     text = element.text
     try:
         text = int(text)
-    except:
+    except BaseException:
         try:
             text = float(text)
-        except:
+        except BaseException:
             pass
     if isinstance(text, str):
         if text.lower() == "false":

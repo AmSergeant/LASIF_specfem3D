@@ -14,8 +14,8 @@ special purpose tool that does what I need it to do.
 """
 
 
-from PyQt4 import QtGui
-from PyQt4.QtCore import pyqtSlot
+from PyQt5 import QtGui, QtWidgets
+from PyQt5.QtCore import pyqtSlot
 
 from glob import iglob
 import imp
@@ -67,7 +67,7 @@ def compile_and_import_ui_files():
             print(e.message)
 
 
-class Window(QtGui.QMainWindow):
+class Window(QtWidgets.QMainWindow):
     def __init__(self, comm):
         QtGui.QMainWindow.__init__(self)
         # LASIF communicator instances.
@@ -288,7 +288,7 @@ class Window(QtGui.QMainWindow):
         for _i in self.plot_state["depth_profile_line"]:
             try:
                 _i.remove()
-            except:
+            except BaseException:
                 pass
             del _i
         self.plot_state["depth_profile_line"] = []

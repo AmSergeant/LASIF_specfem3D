@@ -22,6 +22,7 @@ class ValidatorComponent(Component):
     :param communicator: The communicator instance.
     :param component_name: The name of this component for the communicator.
     """
+
     def __init__(self, *args, **kwargs):
         super(ValidatorComponent, self).__init__(*args, **kwargs)
         self._reports = []

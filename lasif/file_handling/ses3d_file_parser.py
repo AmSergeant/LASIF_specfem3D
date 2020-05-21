@@ -45,7 +45,7 @@ def is_SES3D(filename_or_file_object):
         opened_file = True
     try:
         first_line = filename_or_file_object.readline()
-    except:
+    except BaseException:
         if opened_file:
             filename_or_file_object.close()
         return False

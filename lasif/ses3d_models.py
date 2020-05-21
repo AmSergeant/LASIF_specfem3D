@@ -64,6 +64,7 @@ class RawSES3DModelHandler(object):
         * vy_[xx]_[timestep]
         * vz_[xx]_[timestep]
     """
+
     def __init__(self, directory, domain, model_type="earth_model"):
         """
         The init function.
@@ -483,7 +484,7 @@ class RawSES3DModelHandler(object):
                 offset = np.abs(depth_data)
                 try:
                     offset = offset[offset < 50].max()
-                except:
+                except BaseException:
                     offset = offset.max()
                 vmin = -offset
                 vmax = offset

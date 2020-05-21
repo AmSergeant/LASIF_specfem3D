@@ -18,12 +18,20 @@ from obspy.imaging.beachball import beach
 from obspy.signal.tf_misfit import plot_tfr
 
 
-def plot_waveform_section(axis,stream, offsets, reftime = None, scale=5., colors=None, lw = 1, type='normal'):
+def plot_waveform_section(
+        axis,
+        stream,
+        offsets,
+        reftime=None,
+        scale=5.,
+        colors=None,
+        lw=1,
+        type='normal'):
     """
     Create a waveform gather plot for one event.
 
     """
-    if reftime ==None:
+    if reftime is None:
         reftime = stream[0].stats.starttime
     if colors==None:
         colors='k'
@@ -291,6 +299,7 @@ def plot_stations_for_event(map_object, station_dict, event_info,
     map_object.ax.set_title(title, size="large")
     return stations
 
+
 def plot_stations(map_object, station_dict,
                   color="red", alpha=1.0):
     """
@@ -429,4 +438,3 @@ def plot_event_histogram(events, plot_type, lat_0 = None, lon_0 = None):
         plt.title("Event azimuth distribution (%i events)" % len(events))
 
     plt.tight_layout()
-

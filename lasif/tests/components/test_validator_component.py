@@ -127,7 +127,7 @@ def test_data_validation(comm, capsys):
                               "event_cache.sqlite")
     try:
         os.remove(c_filename)
-    except:
+    except BaseException:
         pass
 
     with open(filename, "wt") as fh:

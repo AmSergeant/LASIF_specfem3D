@@ -30,6 +30,7 @@ class Communicator(object):
     Communicator object used to exchange information and expose
     functionality between different components.
     """
+
     def __init__(self):
         self.__components = {}
 

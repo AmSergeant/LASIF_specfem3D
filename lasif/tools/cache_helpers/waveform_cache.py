@@ -120,7 +120,7 @@ class WaveformCache(FileInfoCache):
 
         try:
             st = obspy.read(filename, headonly=True)
-        except:
+        except BaseException:
             warnings.warn("Could not read waveform file '%s'." % filename)
             return None
 

@@ -57,7 +57,7 @@ class DownloadsComponent(Component):
     def download_data_for_one_event(self, event, providers=None, networks = None):
         event = self.comm.events.get(event)
 
-        from obspy.clients.fdsn.mass_downloader import MassDownloader, \
+        from obspy.clients.fdsn.mass_downloader import \
             Restrictions, GlobalDomain
 
         print(" ")
@@ -79,41 +79,60 @@ class DownloadsComponent(Component):
         mseed_storage = os.path.join(proj.paths["data"], event["event_name"],
                                      "raw")
 
-        # Attempt to get StationXML data for a very long time span. This has
-        # the nice side effect that StationXML files will mostly be shared
-        # between events.
-        restrictions = Restrictions(
-            starttime=starttime,
-            endtime=endtime,
-            # Go back 10 years.
-            station_starttime=starttime - 86400 * 365.25 * 10,
-            # Advance 10 years.
-            station_endtime=endtime + 86400 * 365.25 * 10,
-            network=networks, station=None, location=None, channel=None,
-            minimum_interstation_distance_in_m=ds[
-                "interstation_distance_in_m"],
-            reject_channels_with_gaps=True,
-            minimum_length=0.95,
-            location_priorities=ds["location_priorities"],
-            channel_priorities=ds["channel_priorities"])
+        # download from FDSN server
+        if (networks is None or not networks.startswith("NIED")):
+            from obspy.clients.fdsn.mass_downloader import MassDownloader
 
-        stationxml_storage = self._get_stationxml_storage_fct(starttime,
-                                                              endtime)
+            print("download from FDSN server")
 
-        # Also log to file for reasons of provenance and debugging.
-        logger = logging.getLogger("obspy.clients.fdsn.mass_downloader")
-        fh = logging.FileHandler(
-            self.comm.project.get_log_file("DOWNLOADS", event["event_name"]))
-        fh.setLevel(logging.INFO)
-        FORMAT = "[%(asctime)s] - %(name)s - %(levelname)s: %(message)s"
-        formatter = logging.Formatter(FORMAT)
-        fh.setFormatter(formatter)
-        logger.addHandler(fh)
+            # Attempt to get StationXML data for a very long time span. This has
+            # the nice side effect that StationXML files will mostly be shared
+            # between events.
+            restrictions = Restrictions(
+                starttime=starttime,
+                endtime=endtime,
+                # Go back 10 years.
+                station_starttime=starttime - 86400 * 365.25 * 10,
+                # Advance 10 years.
+                station_endtime=endtime + 86400 * 365.25 * 10,
+                network=networks, station=None, location=None, channel=None,
+                minimum_interstation_distance_in_m=ds[
+                    "interstation_distance_in_m"],
+                reject_channels_with_gaps=True,
+                minimum_length=0.95,
+                location_priorities=ds["location_priorities"],
+                channel_priorities=ds["channel_priorities"])
 
-        dlh = MassDownloader(providers=providers)
-        dlh.download(domain=domain, restrictions=restrictions,
-                     mseed_storage=mseed_storage,
-                     stationxml_storage=stationxml_storage)
+            stationxml_storage = self._get_stationxml_storage_fct(starttime,
+                                                                  endtime)
+
+            # Also log to file for reasons of provenance and debugging.
+            logger = logging.getLogger("obspy.clients.fdsn.mass_downloader")
+            fh = logging.FileHandler(
+                self.comm.project.get_log_file("DOWNLOADS", event["event_name"]))
+            fh.setLevel(logging.INFO)
+            FORMAT = "[%(asctime)s] - %(name)s - %(levelname)s: %(message)s"
+            formatter = logging.Formatter(FORMAT)
+            fh.setFormatter(formatter)
+            logger.addHandler(fh)
+
+            dlh = MassDownloader(providers=providers)
+            dlh.download(domain=domain, restrictions=restrictions,
+                         mseed_storage=mseed_storage,
+                         stationxml_storage=stationxml_storage)
+
+        # download from NIED server
+        else:
+            from lasif.nied_manager.nied_downloader import NiedDownloader
+            print("download from NIED server")
+
+            dlh = NiedDownloader(starttime=starttime,
+                                 endtime=endtime,
+                                 network=networks,
+                                 domain=domain,
+                                 )
+            sacpaz_path=self.comm.project.paths["sacpz"]
+            dlh.download(outdir=mseed_storage,stationdir=sacpaz_path)
 
         print("")
         

@@ -7,6 +7,7 @@
     GNU General Public License, Version 3
     (http://www.gnu.org/copyleft/gpl.html)
 """
+from lasif.utils import get_event_filename
 import glob
 import inspect
 import numpy as np
@@ -18,14 +19,13 @@ from scipy.spatial import cKDTree
 
 EARTH_RADIUS = 6371.00
 
-from lasif.utils import get_event_filename
-
 
 class SphericalNearestNeighbour(object):
     """
     Spherical nearest neighbour queries using scipy's fast
     kd-tree implementation.
     """
+
     def __init__(self, data):
         cart_data = self.spherical2cartesian(data)
         self.data = data

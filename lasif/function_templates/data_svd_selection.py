@@ -17,7 +17,7 @@ import warnings
 from lasif import LASIFError
 
 
-def data_svd_selection(to_be_processed, components = ['E','N','Z'], cc_threshold = 0.7):  # NOQA
+def data_svd_selection(to_be_processed, components=['E', 'N', 'Z'], cc_threshold=0.7):  # NOQA
     """
     Function to perform the actual preprocessing for one individual seismogram.
     This is part of the project so it can change depending on the project.
@@ -135,7 +135,6 @@ def data_svd_selection(to_be_processed, components = ['E','N','Z'], cc_threshold
 
         """
 
-
         def invert_time_shift(stream):
             """
             invert for the best time-shifts for m indivual traces to align them with respect to each other
@@ -169,8 +168,8 @@ def data_svd_selection(to_be_processed, components = ['E','N','Z'], cc_threshold
             m = len(stream)
             all_combin = list(itertools.combinations(np.arange(m), 2))
             N = len(all_combin)
-            time_shift_doublet=np.zeros((N,1),dtype = float)
-            G=np.zeros((N,m),dtype = int) 
+            time_shift_doublet = np.zeros((N, 1), dtype=float)
+            G = np.zeros((N, m), dtype=int)
             for i, combin in enumerate(all_combin):
                 i1 = combin[0]
                 i2 = combin[1]
@@ -183,12 +182,12 @@ def data_svd_selection(to_be_processed, components = ['E','N','Z'], cc_threshold
             model_time_shift = Ginv.dot(time_shift_doublet)
             return model_time_shift
 
-
         # Invert the time-shift for individual traces
         time_shifts = invert_time_shift(stream)
 
         # align traces + construct array of aligned data
-        data_matrix = np.zeros((len(stream),stream[0].stats.npts),dtype = float)
+        data_matrix = np.zeros(
+            (len(stream), stream[0].stats.npts), dtype=float)
         i = 0
         stream_aligned = stream.copy()
         for i, tr in enumerate(stream_aligned):
@@ -230,11 +229,12 @@ def data_svd_selection(to_be_processed, components = ['E','N','Z'], cc_threshold
         # =========================================================================
         # Align individual seismograms with the stack, and construct data matrix
         # =========================================================================
-        data_matrix = np.zeros((len(stream),stream[0].stats.npts),dtype = float)
+        data_matrix = np.zeros(
+            (len(stream), stream[0].stats.npts), dtype=float)
         i = 0
         stream_aligned = stream.copy()
         for tr in stream_aligned:
-            cc = np.correlate(stack,tr.data, mode="full")
+            cc = np.correlate(stack, tr.data, mode="full")
             time_shift = int(cc.argmax() - stream[0].stats.npts + 1)
 
             tr.data = align_trace(tr.data, time_shift )
@@ -247,6 +247,7 @@ def data_svd_selection(to_be_processed, components = ['E','N','Z'], cc_threshold
 
         return reference_wav, stream_aligned
 
+        return reference_wav, stream_aligned
 
 
 
@@ -279,13 +280,19 @@ def data_svd_selection(to_be_processed, components = ['E','N','Z'], cc_threshold
         # read traces, window around phase of interest and construct a stack
         # =========================================================================
         st_win = obspy.Stream()
-        stack = np.zeros(int(window_length_in_sec/process_params["dt"]),dtype=float)
+        stack = np.zeros(int(window_length_in_sec /
+                             process_params["dt"]), dtype=float)
         files_to_read = []
         for file_to_read, first_tt_arrival in zip(file_list, arrival_times):
             if os.path.isfile(file_to_read):
                 tr = obspy.read(file_to_read)
-                idx_sigwin_start = int(np.ceil((first_tt_arrival - seconds_prior_arrival) / process_params["dt"]))
-                idx_sigwin_end = idx_sigwin_start + int(window_length_in_sec/ process_params["dt"])
+                idx_sigwin_start = int(
+                    np.ceil(
+                        (first_tt_arrival -
+                         seconds_prior_arrival) /
+                        process_params["dt"]))
+                idx_sigwin_end = idx_sigwin_start + \
+                    int(window_length_in_sec / process_params["dt"])
                 tr[0].data = tr[0].data[idx_sigwin_start:idx_sigwin_end]
                 tr.detrend("linear")
 
@@ -306,10 +313,10 @@ def data_svd_selection(to_be_processed, components = ['E','N','Z'], cc_threshold
         # =========================================================================
         # construct reference waveforms and aligned data
         # =========================================================================
-        ## For testing
-        ## choose the option for align the traces: inversion of time-shift across the traces, or use the stack
-        ## it appears that both method yiel similar results
-        ## So I suggest to use either one of the two options
+        # For testing
+        # choose the option for align the traces: inversion of time-shift across the traces, or use the stack
+        # it appears that both method yiel similar results
+        # So I suggest to use either one of the two options
         try:
             reference_wav, st_aligned = construct_reference_wavefrom_from_dtt_inversion(st_win)
         except:
@@ -321,16 +328,17 @@ def data_svd_selection(to_be_processed, components = ['E','N','Z'], cc_threshold
         st_win_select = obspy.Stream()
         for tr in st_win:
             a = np.dot(tr.data, np.transpose(reference_wav))
-            b = np.linalg.norm(tr.data,ord=None)*np.linalg.norm(reference_wav,ord=None)
-            cc = a/b
-            if np.abs(cc)>=cc_threshold:
+            b = np.linalg.norm(tr.data, ord=None) * \
+                np.linalg.norm(reference_wav, ord=None)
+            cc = a / b
+            if np.abs(cc) >= cc_threshold:
                 st_win_select += tr
 
         '''
         # plotting
         from lasif.visualization import plot_waveform_section
         import matplotlib.pyplot as plt
-        import matplotlib.gridspec as gridspec 
+        import matplotlib.gridspec as gridspec
         fig=plt.figure()
         spec = gridspec.GridSpec(ncols=1, nrows=6, figure=fig)
         ax=fig.add_subplot(spec[0:4, 0])
@@ -348,7 +356,7 @@ def data_svd_selection(to_be_processed, components = ['E','N','Z'], cc_threshold
 
         # =========================================================================
         # Remove non-selected files
-        # =========================================================================    
+        # =========================================================================
         if st_win_select:
             files_to_keep = []
             for tr in st_win_select:
@@ -373,34 +381,34 @@ def data_svd_selection(to_be_processed, components = ['E','N','Z'], cc_threshold
     '''    
     """ I do not use this anymore, I check for every files
     # =========================================================================
-    # find other horizontal files to be processed based on selection on Z 
-    # =========================================================================        
+    # find other horizontal files to be processed based on selection on Z
+    # =========================================================================
     if st_win_select:
         E_file_list = []
         N_file_list = []
         for tr in st_win_select:
             loc_id = "%s.%s"%(tr.stats.network,tr.stats.station)
-            E_file_list.append([wav["processing_info"]["output_filename"] 
-                 for wav in to_be_processed 
-                 if (loc_id in wav["processing_info"]["station_filename"]) 
+            E_file_list.append([wav["processing_info"]["output_filename"]
+                 for wav in to_be_processed
+                 if (loc_id in wav["processing_info"]["station_filename"])
                  and ('E' in wav["processing_info"]["channel"])][0])
-            N_file_list.append([wav["processing_info"]["output_filename"] 
-                 for wav in to_be_processed 
-                 if (loc_id in wav["processing_info"]["station_filename"]) 
+            N_file_list.append([wav["processing_info"]["output_filename"]
+                 for wav in to_be_processed
+                 if (loc_id in wav["processing_info"]["station_filename"])
                  and ('N' in wav["processing_info"]["channel"])][0])
         print("%d E files and %d N files to process"%(len(E_file_list), len(N_file_list)))
     """
-    
+
     # =========================================================================
     # Same process on E component
     # =========================================================================
-    E_file_list = [wav["processing_info"]["output_filename"] 
-                 for wav in to_be_processed 
+    E_file_list = [wav["processing_info"]["output_filename"]
+                 for wav in to_be_processed
                  if 'E' in wav["processing_info"]["channel"]]
-    E_arrival_times = [wav["processing_info"]["first_P_arrival"] 
-                 for wav in to_be_processed 
+    E_arrival_times = [wav["processing_info"]["first_P_arrival"]
+                 for wav in to_be_processed
                  if 'E' in wav["processing_info"]["channel"]]
-    
+
     st_win = obspy.Stream()
     stack = np.zeros(int(window_length_in_sec/process_params["dt"]),dtype=float)
     E_files = []
@@ -411,14 +419,14 @@ def data_svd_selection(to_be_processed, components = ['E','N','Z'], cc_threshold
             idx_sigwin_end = idx_sigwin_start + int(window_length_in_sec/ process_params["dt"])
             tr[0].data = tr[0].data[idx_sigwin_start:idx_sigwin_end]
             tr.detrend("linear")
-            
+
             stack += tr[0].data
             st_win += tr
             E_files.append(file_to_read)
     E_file_list = E_files
     print("%d E files to actually process"%len(E_file_list))
-       
-    
+
+
     if st_win:
         stack /= len(st_win)
         try:
@@ -426,7 +434,7 @@ def data_svd_selection(to_be_processed, components = ['E','N','Z'], cc_threshold
             del stack
         except:
             reference_wav, st_aligned = construct_reference_wavefrom_from_dtt_stack(st_win, stack)
-                  
+
         st_win_select = obspy.Stream()
         for tr in st_win:
             a = np.dot(tr.data, np.transpose(reference_wav))
@@ -434,39 +442,39 @@ def data_svd_selection(to_be_processed, components = ['E','N','Z'], cc_threshold
             cc = a/b
             if np.abs(cc)>=cc_threshold:
                 st_win_select += tr
-                
+
         if st_win_select:
             E_files_to_keep = []
             for tr in st_win_select:
                 loc_id = "%s.%s"%(tr.stats.network,tr.stats.station)
-                E_files_to_keep.append([wav["processing_info"]["output_filename"] 
-                     for wav in to_be_processed 
-                     if (loc_id in wav["processing_info"]["station_filename"]) 
+                E_files_to_keep.append([wav["processing_info"]["output_filename"]
+                     for wav in to_be_processed
+                     if (loc_id in wav["processing_info"]["station_filename"])
                      and ('E' in wav["processing_info"]["channel"])][0])
             E_files_to_rmv = list(set(E_file_list) - set(E_files_to_keep))
             print("%d/%d E files to rmb"%(len(E_files_to_rmv),len(E_file_list)))
-            
+
         else:
             print("no selected E files, will remove all")
             E_files_to_rmv = E_file_list
-         
-        
+
+
         # remove non-selected Efiles
         for Efile in E_files_to_rmv:
             os.system("rm %s"%Efile)
-           
-            
-            
+
+
+
     # =========================================================================
     # Same process on N component
     # =========================================================================
-    N_file_list = [wav["processing_info"]["output_filename"] 
-                 for wav in to_be_processed 
+    N_file_list = [wav["processing_info"]["output_filename"]
+                 for wav in to_be_processed
                  if 'N' in wav["processing_info"]["channel"]]
-    N_arrival_times = [wav["processing_info"]["first_P_arrival"] 
-                 for wav in to_be_processed 
+    N_arrival_times = [wav["processing_info"]["first_P_arrival"]
+                 for wav in to_be_processed
                  if 'N' in wav["processing_info"]["channel"]]
-    
+
     st_win = obspy.Stream()
     stack = np.zeros(int(window_length_in_sec/process_params["dt"]),dtype=float)
     N_files = []
@@ -477,14 +485,14 @@ def data_svd_selection(to_be_processed, components = ['E','N','Z'], cc_threshold
             idx_sigwin_end = idx_sigwin_start + int(window_length_in_sec/ process_params["dt"])
             tr[0].data = tr[0].data[idx_sigwin_start:idx_sigwin_end]
             tr.detrend("linear")
-            
+
             stack += tr[0].data
             st_win += tr
             N_files.append(file_to_read)
     N_file_list = N_files
     print("%d N files to actually process"%len(N_file_list))
-       
-    
+
+
     if st_win:
         stack /= len(st_win)
         try:
@@ -492,7 +500,7 @@ def data_svd_selection(to_be_processed, components = ['E','N','Z'], cc_threshold
             del stack
         except:
             reference_wav, st_aligned = construct_reference_wavefrom_from_dtt_stack(st_win, stack)
-                  
+
         st_win_select = obspy.Stream()
         for tr in st_win:
             a = np.dot(tr.data, np.transpose(reference_wav))
@@ -500,23 +508,23 @@ def data_svd_selection(to_be_processed, components = ['E','N','Z'], cc_threshold
             cc = a/b
             if np.abs(cc)>=cc_threshold:
                 st_win_select += tr
-                
+
         if st_win_select:
             N_files_to_keep = []
             for tr in st_win_select:
                 loc_id = "%s.%s"%(tr.stats.network,tr.stats.station)
-                N_files_to_keep.append([wav["processing_info"]["output_filename"] 
-                     for wav in to_be_processed 
-                     if (loc_id in wav["processing_info"]["station_filename"]) 
+                N_files_to_keep.append([wav["processing_info"]["output_filename"]
+                     for wav in to_be_processed
+                     if (loc_id in wav["processing_info"]["station_filename"])
                      and ('N' in wav["processing_info"]["channel"])][0])
             N_files_to_rmv = list(set(N_file_list) - set(N_files_to_keep))
             print("%d/%d N files to rmb"%(len(N_files_to_rmv),len(N_file_list)))
-            
+
         else:
             print("no selected N files, will remove all")
             N_files_to_rmv = N_file_list
-        
-        
+
+
         # remove non-selected Efiles
         for Nfile in N_files_to_rmv:
             os.system("rm %s"%Nfile)

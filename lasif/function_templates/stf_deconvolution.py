@@ -16,7 +16,7 @@ import warnings
 from lasif import LASIFError
 
 
-def stf_deconvolution(to_be_processed, output_folder, components = ['E','N','Z'],):  # NOQA
+def stf_deconvolution(to_be_processed, output_folder, components=['E', 'N', 'Z'],):  # NOQA
     """
     Function to perform the actual preprocessing for one individual seismogram.
     This is part of the project so it can change depending on the project.
@@ -90,11 +90,11 @@ def stf_deconvolution(to_be_processed, output_folder, components = ['E','N','Z']
     def source_deconvolution_freq(stream_data, stream_green, lambd=0.001, recompute_syn=False):
 
         # Calculate STF:
-        # deconvoluate the Green's functions from observed seismograms 
+        # deconvoluate the Green's functions from observed seismograms
         # following Pratt 1999, equation 17
         nfft = stream_data[0].stats.npts
-        num = np.zeros(nfft,dtype = complex)
-        den = np.zeros(nfft,dtype = complex)
+        num = np.zeros(nfft, dtype=complex)
+        den = np.zeros(nfft, dtype=complex)
         chi_obs = []
         for tr, sy in zip(stream_data, stream_green):
             tr_fft = np.fft.fft(tr.data,nfft)
@@ -111,19 +111,19 @@ def stf_deconvolution(to_be_processed, output_folder, components = ['E','N','Z']
         src = np.real(np.fft.ifft(s))
         stream_src = obspy.Stream()
         stream_src += tr.copy()
-        stream_src[0].stats.station=''
+        stream_src[0].stats.station = ''
         stream_src[0].data = src
         residual = []
         stream_syn = obspy.Stream()
 
         # recompute synthetics with the estimated STF
         if recompute_syn:
-            src_fft = np.fft.fft(src,nfft)
+            src_fft = np.fft.fft(src, nfft)
             chi_syn = []
-            for tr, sy in zip(stream_data, stream_green): 
-                sy_fft = np.fft.fft(sy.data,nfft)
+            for tr, sy in zip(stream_data, stream_green):
+                sy_fft = np.fft.fft(sy.data, nfft)
                 cal = sy.copy()
-                cal.data = np.real(np.fft.ifft(src_fft*sy_fft))
+                cal.data = np.real(np.fft.ifft(src_fft * sy_fft))
                 stream_syn += cal
                 res = tr.data - cal.data
                 chi_syn.append(np.sum(res**2))
@@ -152,7 +152,7 @@ def stf_deconvolution(to_be_processed, output_folder, components = ['E','N','Z']
     evlo = to_be_processed[0]["processing_info"]["event_information"]["longitude"]
     for comp in components:    
         # =========================================================================
-        # Component selection 
+        # Component selection
         # =========================================================================
         # !!!!!! replace first_P_arrival by phase of interest to be calculated in preprocess_data and given in process_info
 
@@ -188,7 +188,7 @@ def stf_deconvolution(to_be_processed, output_folder, components = ['E','N','Z']
 
 
         # =========================================================================
-        # read traces, window around phase of interest 
+        # read traces, window around phase of interest
         # =========================================================================
         st_wav = obspy.Stream()
         st_syn = obspy.Stream()
@@ -283,7 +283,8 @@ def stf_deconvolution(to_be_processed, output_folder, components = ['E','N','Z']
 
         # if no waveform selected at the previous step (snr criteria), quit the process
         if not st_wav or not st_syn:
-            raise LASIFError("No data for this event, will skip the stf estimation")
+            raise LASIFError(
+                "No data for this event, will skip the stf estimation")
         else:
 
             st_wav.taper(0.01)
@@ -454,7 +455,7 @@ def stf_deconvolution(to_be_processed, output_folder, components = ['E','N','Z']
             nfft = st_wav[0].stats.npts
             st_syn = obspy.Stream()
             src_fft = np.fft.fft(stf[0].data,nfft)
-            for sy in st_green: 
+            for sy in st_green:
                 sy_fft = np.fft.fft(sy.data,nfft)
                 cal = sy.copy()
                 cal.data = np.real(np.fft.ifft(src_fft*sy_fft))

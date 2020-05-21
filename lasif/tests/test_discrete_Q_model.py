@@ -9,14 +9,12 @@ Simple tests for the constant Q model calculator.
     GNU Lesser General Public License, Version 3
     (http://www.gnu.org/copyleft/lesser.html)
 """
-import matplotlib as mpl
-mpl.use("agg")
-
-import numpy as np
-
-from lasif.tools import Q_discrete
 from lasif.tests.testing_helpers import images_are_identical, \
     reset_matplotlib
+from lasif.tools import Q_discrete
+import numpy as np
+import matplotlib as mpl
+mpl.use("agg")
 
 
 WEIGHTS = np.array([1.6264684983257656, 1.0142952434286228,

@@ -130,9 +130,13 @@ def preprocessing_function(processing_info, iteration, components, noise_thresho
         npts = process_params["npts"]
 
         # Estimate noise level from waveforms prior to the first arrival.
-        idx_noise_end = int(np.ceil((first_tt_arrival - 0.5 * minimum_period) / dt)) - 1
+        idx_noise_end = int(
+            np.ceil(
+                (first_tt_arrival - 0.5 * minimum_period) / dt)) - 1
         idx_noise_end = max(10, idx_noise_end)
-        idx_noise_start = int(np.ceil((first_tt_arrival - 5 * minimum_period) / dt))
+        idx_noise_start = int(
+            np.ceil(
+                (first_tt_arrival - 5 * minimum_period) / dt))
         idx_noise_start = max(10, idx_noise_start)
         idx_sigwin_start = int(np.ceil((first_tt_arrival - 0.5 * minimum_period) / dt))
         idx_sigwin_end = idx_sigwin_start + int(minimum_period/ dt)

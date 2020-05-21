@@ -20,11 +20,10 @@ import warnings
 from lasif import LASIFError
 
 
-
 def instaseis_synthetics_function(processing_info, iteration, db):  # NOQA
     """
     Function to compute the synthetics seismogram for one individual seismogram.
-    It uses the same preprocessing parameters as for data seismograms 
+    It uses the same preprocessing parameters as for data seismograms
     defined in the iteration file.
     This is part of the project so it can change depending on the project.
 
@@ -162,8 +161,7 @@ def instaseis_synthetics_function(processing_info, iteration, db):  # NOQA
     # Convert to single precision to save some space.
     tr.data = np.require(tr.data, dtype="float32", requirements="C")
     tr.stats._format = processing_info["output_filename"].split('.')[-1]
-    if hasattr(tr.stats, "mseed"): # to be fixed
+    if hasattr(tr.stats, "mseed"):  # to be fixed
         tr.stats.mseed.encoding = "FLOAT32"
 
     tr.write(processing_info["output_filename"], format=tr.stats._format)
-

@@ -98,6 +98,7 @@ class WindowGroupManager(object):
     """
     Class managing all windows for one event and a certain iteration.
     """
+
     def __init__(self, directory, iteration, event_name, comm=None):
         """
 
@@ -201,6 +202,7 @@ class WindowCollection(object):
     Represents all the windows for one particular channel for one event and
     one iteration.
     """
+
     def __init__(self, filename, windows=None, event_name=None,
                  channel_id=None, synthetics_tag=None, comm=None):
         if windows and os.path.exists(filename):

@@ -19,6 +19,7 @@ class LimitedSizeDict(collections.OrderedDict):
     """
     Based on http://stackoverflow.com/a/2437645/1657047
     """
+
     def __init__(self, *args, **kwds):
         self.size_limit = kwds.pop("size_limit", None)
         collections.OrderedDict.__init__(self, *args, **kwds)
@@ -43,8 +44,14 @@ class WaveformsComponent(Component):
     :param communicator: The communicator instance.
     :param component_name: The name of this component for the communicator.
     """
-    def __init__(self, data_folder, synthetics_folder, stf_folder, communicator,
-                 component_name):
+
+    def __init__(
+            self,
+            data_folder,
+            synthetics_folder,
+            stf_folder,
+            communicator,
+            component_name):
         self._data_folder = data_folder
         self._synthetics_folder = synthetics_folder
         self._stf_folder = stf_folder
@@ -290,6 +297,20 @@ class WaveformsComponent(Component):
                 raise LASIFNotFoundError(msg)
 
 
+        list_file = glob.glob(os.path.join(data_path, "stf_%s*" % component))
+        if len(list_file) > 1:
+            msg = (
+                "More than one stf data file for event '%s' and iteration '%s' and component %s "
+                "found." %
+                (event_name, tag_or_iteration, component))
+            raise LASIFNotFoundError(msg)
+        else:
+            try:
+                stf = obspy.read(list_file[0])
+                return stf
+            except BaseException:
+                msg = ("Cannot read stf file %s" % list_file[0])
+                raise LASIFNotFoundError(msg)
 
     def get_waveforms_synthetic(self, event_name, station_id,
                                 long_iteration_name):
@@ -583,8 +604,6 @@ class WaveformsComponent(Component):
                    (event_name, long_iteration_name))
             raise LASIFNotFoundError(msg)
         return self._convert_timestamps(waveform_cache.get_values())
-
-
 
     def get_metadata_synthetic_for_station(self, event_name,
                                            long_iteration_name, station_id):

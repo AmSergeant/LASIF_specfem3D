@@ -18,6 +18,7 @@ class KernelsComponent(Component):
     :param communicator: The communicator instance.
     :param component_name: The name of this component for the communicator.
     """
+
     def __init__(self, kernels_folder, communicator, component_name):
         self._folder = kernels_folder
         super(KernelsComponent, self).__init__(communicator,

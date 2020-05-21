@@ -100,6 +100,7 @@ class FileInfoCache(object):
 
     Intended to be subclassed.
     """
+
     def __init__(self, cache_db_file, root_folder,
                  read_only, pretty_name, show_progress=True):
         self.cache_db_file = cache_db_file
@@ -239,7 +240,7 @@ class FileInfoCache(object):
                           self.cache_db_file))
                     try:
                         os.remove(self.cache_db_file)
-                    except:
+                    except BaseException:
                         pass
                     self.db_conn = sqlite3.connect(self.cache_db_file)
                     self.db_cursor = self.db_conn.cursor()

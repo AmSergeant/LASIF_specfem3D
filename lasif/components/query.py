@@ -247,7 +247,8 @@ class QueryComponent(Component):
         processing_tag = iteration.processing_tag
 
         # Collect information from all the different places.
-        waveform_metadata = self.comm.waveforms.get_metadata_processed(event_name, processing_tag)
+        waveform_metadata = self.comm.waveforms.get_metadata_processed(
+            event_name, processing_tag)
         station_coordinates = self.comm.stations.get_all_channels_at_time(
             event["origin_time"])
         inventory_coordinates = self.comm.inventory_db.get_all_coordinates()
@@ -341,7 +342,7 @@ class QueryComponent(Component):
         """
         Returns a dictionary with a list of stations per processed event for one iteration.
         :param iteration_name: name of the iteration
-        """     
+        """
         events = {}
         for event in self.comm.events.list():
             try:
