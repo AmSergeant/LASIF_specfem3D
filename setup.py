@@ -69,7 +69,7 @@ setup_config = dict(
         "flask_cache",
         "PyQt5",
         "geojson",
-        "HinetPy"
+        "HinetPy",
         "Pillow",
         "instaseis"
     ],
